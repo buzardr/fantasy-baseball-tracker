@@ -719,16 +719,6 @@ const TEAMS = [
 
 const MY_TEAM = "Ballpark Franks";
 
-// All-Star Break date 2026
-const ALL_STAR_DATE = new Date('2026-07-13');
-const SEASON_START  = new Date('2026-03-26'); // Opening Day 2026
-
-// Stat cache TTL: 4 hours
-const CACHE_TTL_MS = 4 * 60 * 60 * 1000;
-
-// MLB Stats API base
-const MLB_API = 'https://statsapi.mlb.com/api/v1';
-
 // ── ROSTER DATA ──────────────────────────────────────────────
 // Format: [pos, name, mlbTeam, salary, fantasyTeam, isMilb, ohtaniHitterOnly]
 const ROSTER = [
@@ -1112,107 +1102,210 @@ const ROSTER = [
 ];
 
 // ════════════════════════════════════════════════════════════
-// MLB STATS API INTEGRATION
+// MLB ID RESOLVER + STAT ENGINE
+// Strategy:
+//   1. Persistent ID cache in localStorage (never expires)
+//      so each player is only searched once ever.
+//   2. Search via MLB suggest API (reliable, returns player list)
+//      Match by full name (normalized) + mlbTeam abbreviation.
+//   3. Fetch stats via byDateRange endpoint for proper 1H/2H splits.
+//   4. Stats cache has a 4-hour TTL per half (1H / 2H / FULL).
 // ════════════════════════════════════════════════════════════
 
-// Player name → MLB Person ID lookup
-// These are real MLB IDs from the statsapi.mlb.com database
-const PLAYER_IDS = {
+const MLB_API   = 'https://statsapi.mlb.com/api/v1';
+const SPORT_ID  = 1; // MLB
+
+// ── Persistent player-ID cache (localStorage, never expires) ──
+const ID_STORE_KEY = 'rlw_player_ids_v2';
+
+function loadIdStore() {
+  try { return JSON.parse(localStorage.getItem(ID_STORE_KEY) || '{}'); }
+  catch(e) { return {}; }
+}
+function saveIdStore(store) {
+  try { localStorage.setItem(ID_STORE_KEY, JSON.stringify(store)); }
+  catch(e) {}
+}
+
+// Seed with IDs we already know are correct (reduces API calls)
+const KNOWN_IDS = {
   "Aaron Judge": 592450, "Aaron Nola": 605400, "Adley Rutschman": 668939,
-  "Adolis Garcia": 666969, "Agustin Ramirez": 699855, "Alec Bohm": 664761,
-  "Alec Burleson": 683737, "Alek Thomas": 671107, "Alex Bregman": 608324,
-  "Andres Gimenez": 665926, "Andres Munoz": 668678, "Andrew Abbott": 682526,
-  "Andy Pages": 681624, "Aroldis Chapman": 547973, "Austin Riley": 663586,
-  "Austin Wells": 694192, "Ben Rice": 691852, "Ben Williamson": 701580,
-  "Bo Bichette": 666182, "Bo Naylor": 672584, "Bobby Witt Jr.": 677951,
-  "Brady House": 694192, "Brandon Lowe": 641578, "Brandon Nimmo": 607043,
-  "Brandon Woodruff": 622491, "Brendan Donovan": 680977, "Brent Rooker": 667670,
-  "Brenton Doyle": 681584, "Brice Turang": 682847, "Bryan Abreu": 650556,
-  "Bryan Reynolds": 668804, "Bryan Woo": 692120, "Bryce Harper": 547180,
-  "Bryce Miller": 694563, "Bryson Stott": 681082, "Byron Buxton": 621439,
-  "C.J. Abrams": 682928, "Cade Horton": 701538, "Cade Smith": 666205,
-  "Cal Raleigh": 663728, "Caleb Durbin": 694192, "Cam Schlittler": 694192,
-  "Cam Smith": 694201, "Carlos Correa": 621043, "Carlos Estevez": 615698,
-  "Carlos Rodon": 607074, "Carlos Santana": 467793, "Carter Jensen": 694192,
-  "Ceddanne Rafaela": 694192, "Chandler Simpson": 694652, "Chase Burns": 694297,
-  "Chris Sale": 519242, "Christian Walker": 572039, "Christian Yelich": 592885,
-  "Clay Holmes": 641933, "Coby Mayo": 676775, "Cody Bellinger": 641355,
-  "Cole Ragans": 669270, "Cole Young": 694192, "Colson Montgomery": 699699,
-  "Colt Keith": 694192, "Connelly Early": 694192, "Corbin Burnes": 669456,
-  "Corbin Carroll": 682998, "Corey Seager": 608369, "Cristian Javier": 664299,
-  "Cristopher Sanchez": 657545, "Daniel Palencia": 676715, "Dansby Swanson": 621020,
-  "Daulton Varsho": 661388, "David Bednar": 676440, "Daylen Lile": 702131,
-  "Devin Williams": 642547, "Dillon Dingler": 686668, "Drake Baldwin": 701200,
-  "Drew Rasmussen": 656756, "Dylan Cease": 656302, "Edgar Quero": 700361,
-  "Edward Cabrera": 661403, "Edwin Diaz": 621242, "Elly De La Cruz": 682829,
-  "Emerson Hancock": 694158, "Emmet Sheehan": 694192, "Ernie Clement": 676967,
+  "Adolis Garcia": 666969, "Alec Bohm": 664761, "Alec Burleson": 683737,
+  "Alek Thomas": 671107, "Alex Bregman": 608324, "Andres Gimenez": 665926,
+  "Andrew Abbott": 682526, "Andy Pages": 681624, "Aroldis Chapman": 547973,
+  "Austin Riley": 663586, "Ben Rice": 691852, "Bo Bichette": 666182,
+  "Bo Naylor": 672584, "Bobby Witt Jr.": 677951, "Brandon Lowe": 641578,
+  "Brandon Nimmo": 607043, "Brandon Woodruff": 622491, "Brendan Donovan": 680977,
+  "Brent Rooker": 667670, "Brenton Doyle": 681584, "Brice Turang": 682847,
+  "Bryan Abreu": 650556, "Bryan Reynolds": 668804, "Bryan Woo": 692120,
+  "Bryce Harper": 547180, "Bryce Miller": 694563, "Bryson Stott": 681082,
+  "Byron Buxton": 621439, "C.J. Abrams": 682928, "Cade Smith": 666205,
+  "Cal Raleigh": 663728, "Cam Smith": 694201, "Carlos Correa": 621043,
+  "Carlos Estevez": 615698, "Carlos Rodon": 607074, "Carlos Santana": 467793,
+  "Chandler Simpson": 694652, "Chase Burns": 694297, "Chris Sale": 519242,
+  "Christian Walker": 572039, "Christian Yelich": 592885, "Clay Holmes": 641933,
+  "Coby Mayo": 676775, "Cody Bellinger": 641355, "Cole Ragans": 669270,
+  "Colson Montgomery": 699699, "Corbin Burnes": 669456, "Corbin Carroll": 682998,
+  "Corey Seager": 608369, "Cristian Javier": 664299, "Cristopher Sanchez": 657545,
+  "Daniel Palencia": 676715, "Dansby Swanson": 621020, "Daulton Varsho": 661388,
+  "David Bednar": 676440, "Devin Williams": 642547, "Dillon Dingler": 686668,
+  "Drake Baldwin": 701200, "Drew Rasmussen": 656756, "Dylan Cease": 656302,
+  "Edgar Quero": 700361, "Edward Cabrera": 661403, "Edwin Diaz": 621242,
+  "Elly De La Cruz": 682829, "Emerson Hancock": 694158, "Ernie Clement": 676967,
   "Eugenio Suarez": 553993, "Eury Perez": 694038, "Ezequiel Tovar": 678662,
   "Fernando Tatis Jr.": 665487, "Framber Valdez": 664285, "Francisco Lindor": 596019,
-  "Freddie Freeman": 518692, "Freddy Peralta": 642547, "Gabriel Moreno": 683003,
-  "Garrett Crochet": 680757, "Gavin Williams": 694192, "George Kirby": 669923,
-  "George Springer": 543807, "Geraldo Perdomo": 664056, "Gerrit Cole": 543037,
-  "Giancarlo Stanton": 519317, "Gleyber Torres": 650402, "Grayson Rodriguez": 668678,
+  "Freddie Freeman": 518692, "Gabriel Moreno": 683003, "Garrett Crochet": 680757,
+  "George Kirby": 669923, "George Springer": 543807, "Geraldo Perdomo": 664056,
+  "Gerrit Cole": 543037, "Giancarlo Stanton": 519317, "Gleyber Torres": 650402,
   "Gunnar Henderson": 683002, "Heliot Ramos": 671218, "Hunter Brown": 671764,
-  "Hunter Goodman": 694192, "Hunter Greene": 668881, "Ian Happ": 664023,
-  "Isaac Paredes": 670623, "Ivan Herrera": 672356, "J.P. Crawford": 641487,
-  "J.T. Realmuto": 592663, "Jac Caglianone": 701665, "Jack Flaherty": 656427,
-  "Jack Leiter": 682668, "Jackson Chourio": 694192, "Jackson Holliday": 694973,
-  "Jackson Merrill": 693978, "Jacob Misiorowski": 694192, "Jacob Wilson": 699560,
+  "Hunter Greene": 668881, "Ian Happ": 664023, "Isaac Paredes": 670623,
+  "Ivan Herrera": 672356, "J.P. Crawford": 641487, "J.T. Realmuto": 592663,
+  "Jac Caglianone": 701665, "Jack Flaherty": 656427, "Jack Leiter": 682668,
+  "Jackson Holliday": 694973, "Jackson Merrill": 693978, "Jacob Wilson": 699560,
   "Jacob deGrom": 594798, "Jake Burger": 669394, "Jake Meyers": 669482,
-  "Jakob Marsee": 701156, "James Wood": 694192, "Jarren Duran": 665923,
-  "Javier Baez": 595879, "Jazz Chisholm Jr.": 665750, "Jeff Hoffman": 621107,
-  "Jeff McNeil": 657020, "Jeremy Pena": 665197, "Jesus Luzardo": 660271,
-  "Jhoan Duran": 657514, "Jo Adell": 668976, "Joe Ryan": 656557,
-  "Jonathan Aranda": 677800, "Jonathan India": 694192, "Jordan Walker": 676475,
-  "Jorge Soler": 578428, "Jose Altuve": 514888, "Jose Caballero": 678880,
-  "Jose Ramirez": 608566, "Jose Soriano": 672580, "Josh Hader": 623352,
-  "Josh Naylor": 647304, "Juan Soto": 665742, "Julio Rodriguez": 677594,
-  "Junior Caminero": 694192, "Justin Topa": 668015, "Kazuma Okamoto": 694192,
-  "Kenley Jansen": 445276, "Ketel Marte": 606466, "Kevin Gausman": 592332,
-  "Kodai Senga": 677569, "Konnor Griffin": 694192, "Kris Bubic": 663903,
-  "Kyle Bradish": 669152, "Kyle Harrison": 694192, "Kyle Manzardo": 694192,
-  "Kyle Schwarber": 656941, "Kyle Stowers": 680870, "Kyle Teel": 701532,
-  "Kyle Tucker": 663656, "Lawrence Butler": 694192, "Lenyn Sosa": 694192,
-  "Liam Hicks": 694192, "Logan Gilbert": 669302, "Logan Webb": 657277,
-  "Luis Arraez": 650559, "Luis Castillo": 622491, "Luis Garcia": 694192,
-  "Luis Robert Jr.": 673357, "Luis Severino": 622491, "Luke Keaschall": 694192,
-  "Luke Raley": 663837, "MacKenzie Gore": 663738, "Maikel Garcia": 671435,
-  "Manny Machado": 592518, "Marcelo Mayer": 694192, "Marcus Semien": 543760,
-  "Mason Miller": 672882, "Masyn Winn": 694192, "Matt Brash": 670047,
-  "Matt Chapman": 571745, "Matt McLain": 694192, "Matt Olson": 621566,
-  "Matthew Boyd": 571945, "Max Fried": 594777, "Max Meyer": 694192,
-  "Max Muncy": 571970, "Merrill Kelly": 594482, "Michael Busch": 694192,
-  "Michael Harris II": 694192, "Michael King": 641745, "Mick Abel": 694192,
-  "Mike Trout": 545361, "Miquel Vargas": 672695, "Mitch Keller": 694192,
-  "Mookie Betts": 605141, "Munetaka Murakami": 694192, "Nathan Eovaldi": 547888,
-  "Nathaniel Lowe": 663993, "Nick Castellanos": 592206, "Nick Fortes": 694192,
+  "Jakob Marsee": 701156, "Jarren Duran": 665923, "Javier Baez": 595879,
+  "Jazz Chisholm Jr.": 665750, "Jeff Hoffman": 621107, "Jeff McNeil": 657020,
+  "Jeremy Pena": 665197, "Jesus Luzardo": 660271, "Jhoan Duran": 657514,
+  "Jo Adell": 668976, "Joe Ryan": 656557, "Jonathan Aranda": 677800,
+  "Jordan Walker": 676475, "Jorge Soler": 578428, "Jose Altuve": 514888,
+  "Jose Caballero": 678880, "Jose Ramirez": 608566, "Jose Soriano": 672580,
+  "Josh Hader": 623352, "Josh Naylor": 647304, "Juan Soto": 665742,
+  "Julio Rodriguez": 677594, "Justin Topa": 668015, "Kenley Jansen": 445276,
+  "Ketel Marte": 606466, "Kevin Gausman": 592332, "Kodai Senga": 677569,
+  "Kris Bubic": 663903, "Kyle Bradish": 669152, "Kyle Schwarber": 656941,
+  "Kyle Stowers": 680870, "Kyle Teel": 701532, "Kyle Tucker": 663656,
+  "Logan Gilbert": 669302, "Logan Webb": 657277, "Luis Arraez": 650559,
+  "Luis Robert Jr.": 673357, "Luke Raley": 663837, "MacKenzie Gore": 663738,
+  "Maikel Garcia": 671435, "Manny Machado": 592518, "Marcus Semien": 543760,
+  "Mason Miller": 672882, "Matt Brash": 670047, "Matt Chapman": 571745,
+  "Matt Olson": 621566, "Matthew Boyd": 571945, "Max Fried": 594777,
+  "Max Muncy": 571970, "Merrill Kelly": 594482, "Michael King": 641745,
+  "Mike Trout": 545361, "Miquel Vargas": 672695, "Mookie Betts": 605141,
+  "Nathan Eovaldi": 547888, "Nathaniel Lowe": 663993, "Nick Castellanos": 592206,
   "Nick Kurtz": 701597, "Nick Lodolo": 669854, "Nick Pivetta": 601713,
-  "Nico Hoerner": 663538, "Noah Cameron": 694192, "Noelvi Marte": 694192,
-  "Nolan Arenado": 571448, "Nolan Gorman": 669060, "Oneil Cruz": 694192,
+  "Nico Hoerner": 663538, "Nolan Arenado": 571448, "Nolan Gorman": 669060,
   "Otto Lopez": 672355, "Ozzie Albies": 645277, "Paul Goldschmidt": 502671,
-  "Paul Sewald": 622261, "Paul Skenes": 694192, "Pete Crow-Armstrong": 694192,
-  "Pete Fairbanks": 622530, "Peter Alonso": 624413, "Rafael Devers": 646240,
-  "Raisel Iglesias": 694192, "Ramon Laureano": 694192, "Randy Arozarena": 668227,
-  "Ranger Suarez": 694192, "Riley Greene": 682985, "Robbie Ray": 571918,
-  "Roki Sasaki": 694192, "Roman Anthony": 694192, "Ronald Acuna Jr.": 660670,
-  "Royce Lewis": 668615, "Ryan Helsley": 694192, "Ryan Jeffers": 680777,
-  "Ryan Mountcastle": 663996, "Ryan Pepiot": 694192, "Ryan Weathers": 694192,
-  "Ryne Nelson": 669388, "Salvador Perez": 521692, "Sandy Alcantara": 645261,
-  "Seiya Suzuki": 673548, "Shane Baz": 694192, "Shane McClanahan": 694192,
-  "Shea Langeliers": 669127, "Shohei Ohtani": 660271, "Shota Imanaga": 694192,
-  "Sonny Gray": 543243, "Spencer Strider": 675911, "Spencer Torkelson": 679529,
-  "Steven Kwan": 694192, "TJ Rumfield": 694192, "Taj Bradley": 694192,
-  "Tanner Bibee": 694192, "Tarik Skubal": 694192, "Tatsuya Imai": 694192,
-  "Taylor Ward": 621585, "Teoscar Hernandez": 606192, "Trea Turner": 607208,
-  "Trevor Megill": 670006, "Trevor Rogers": 669432, "Trevor Story": 596115,
-  "Tyler Glasnow": 607192, "Tyler Soderstrom": 694192, "Vinnie Pasquantino": 686665,
-  "Vladimir Guerrero Jr.": 665489, "Will Smith": 645261, "Will Warren": 694192,
-  "Willi Castro": 694192, "William Contreras": 676083, "Willson Contreras": 572233,
-  "Willy Adames": 642715, "Wilyer Abreu": 694192, "Wyatt Langford": 694192,
-  "Xander Bogaerts": 571771, "Xavier Edwards": 678663, "Yainer Diaz": 694192,
-  "Yandy Diaz": 650490, "Yordan Alvarez": 670541, "Yoshinobu Yamamoto": 694192,
-  "Zac Gallen": 668678, "Zach Neto": 694192, "Zack Wheeler": 554430,
+  "Paul Sewald": 622261, "Pete Fairbanks": 622530, "Peter Alonso": 624413,
+  "Rafael Devers": 646240, "Randy Arozarena": 668227, "Riley Greene": 682985,
+  "Robbie Ray": 571918, "Ronald Acuna Jr.": 660670, "Royce Lewis": 668615,
+  "Ryan Jeffers": 680777, "Ryan Mountcastle": 663996, "Ryne Nelson": 669388,
+  "Salvador Perez": 521692, "Sandy Alcantara": 645261, "Seiya Suzuki": 673548,
+  "Shea Langeliers": 669127, "Shohei Ohtani": 660271, "Sonny Gray": 543243,
+  "Spencer Strider": 675911, "Spencer Torkelson": 679529, "Taylor Ward": 621585,
+  "Teoscar Hernandez": 606192, "Trea Turner": 607208, "Trevor Megill": 670006,
+  "Trevor Rogers": 669432, "Trevor Story": 596115, "Tyler Glasnow": 607192,
+  "Vinnie Pasquantino": 686665, "Vladimir Guerrero Jr.": 665489,
+  "William Contreras": 676083, "Willson Contreras": 572233, "Willy Adames": 642715,
+  "Xander Bogaerts": 571771, "Xavier Edwards": 678663, "Yandy Diaz": 650490,
+  "Yordan Alvarez": 670541, "Zack Wheeler": 554430,
 };
+
+// Normalize name for matching: lowercase, strip punctuation, collapse spaces
+function normName(s) {
+  return s.toLowerCase()
+    .replace(/[.\-',]/g, '')
+    .replace(/\bjr\b|\bsr\b|\bii\b|\biii\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// ── MLB team abbreviation map (API uses some different abbrevs) ──
+const TEAM_ABBR_MAP = {
+  'ARI':'ARI','ATL':'ATL','BAL':'BAL','BOS':'BOS','CHC':'CHC',
+  'CWS':'CWS','CIN':'CIN','CLE':'CLE','COL':'COL','DET':'DET',
+  'HOU':'HOU','KC':'KC','LAA':'LAA','LAD':'LAD','MIA':'MIA',
+  'MIL':'MIL','MIN':'MIN','NYM':'NYM','NYY':'NYY','ATH':'ATH',
+  'PHI':'PHI','PIT':'PIT','SD':'SD','SF':'SF','SEA':'SEA',
+  'STL':'STL','TB':'TB','TEX':'TEX','TOR':'TOR','WAS':'WSH',
+};
+
+// ── Search MLB API for a player by name, return their ID ──
+// Uses the suggest endpoint which is reliable and fast.
+// Falls back to a broader search if suggest returns nothing.
+async function resolvePlayerId(name, mlbTeamRoster) {
+  // The MLB suggest API: takes a partial name, returns array of player objects
+  // Endpoint: /people/search?names=<lastname>&sportIds=1
+  // We search by last name first (more precise), then match full name
+  
+  const parts = name.trim().split(/\s+/);
+  const lastName = parts[parts.length - 1];
+  const normalizedTarget = normName(name);
+  
+  // Try last name search first
+  const searchUrl = `${MLB_API}/people/search?names=${encodeURIComponent(lastName)}&sportIds=${SPORT_ID}`;
+  
+  try {
+    const res = await fetch(searchUrl);
+    if (!res.ok) throw new Error(`${res.status}`);
+    const data = await res.json();
+    const people = data?.people || [];
+    
+    if (people.length > 0) {
+      // Try exact normalized name match first
+      let match = people.find(p => normName(p.fullName || '') === normalizedTarget);
+      
+      // If no exact match, try matching by team abbreviation
+      if (!match && mlbTeamRoster) {
+        const targetAbbr = TEAM_ABBR_MAP[mlbTeamRoster] || mlbTeamRoster;
+        match = people.find(p => {
+          const nameMatch = normName(p.fullName || '').includes(normName(parts[0])) &&
+                           normName(p.fullName || '').includes(normName(lastName));
+          const teamMatch = p.currentTeam?.abbreviation === targetAbbr ||
+                           p.currentTeam?.abbreviation === mlbTeamRoster;
+          return nameMatch && teamMatch;
+        });
+      }
+      
+      // Fallback: best partial name match
+      if (!match) {
+        match = people.find(p => {
+          const pn = normName(p.fullName || '');
+          return pn.includes(normName(lastName)) && pn.includes(normName(parts[0]));
+        });
+      }
+      
+      if (match) return match.id;
+    }
+  } catch(e) {
+    // silently continue to full-name search
+  }
+  
+  // Fallback: search full name
+  try {
+    const fullUrl = `${MLB_API}/people/search?names=${encodeURIComponent(name)}&sportIds=${SPORT_ID}`;
+    const res2 = await fetch(fullUrl);
+    if (!res2.ok) return null;
+    const data2 = await res2.json();
+    const people2 = data2?.people || [];
+    const match2 = people2.find(p => normName(p.fullName || '') === normName(name)) || people2[0];
+    return match2?.id || null;
+  } catch(e) {
+    return null;
+  }
+}
+
+// ── Fetch stats for a known player ID, date range, group ──
+async function fetchStatsByDateRange(playerId, group, startDate, endDate) {
+  const url = `${MLB_API}/people/${playerId}/stats?stats=byDateRange` +
+              `&startDate=${startDate}&endDate=${endDate}` +
+              `&group=${group}&sportId=${SPORT_ID}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    // byDateRange returns splits array; aggregate across all entries if multiple
+    const stats = data?.stats;
+    if (!stats || stats.length === 0) return null;
+    // Find the matching group
+    const grouped = stats.find(s => s.group?.displayName?.toLowerCase() === group) || stats[0];
+    const splits = grouped?.splits;
+    if (!splits || splits.length === 0) return null;
+    // If one entry it's the aggregate; if multiple, take the total row or first
+    return splits[0].stat;
+  } catch(e) {
+    return null;
+  }
+}
 
 // ════════════════════════════════════════════════════════════
 // APP STATE
@@ -1220,109 +1313,60 @@ const PLAYER_IDS = {
 
 let currentHalf = '1H';
 let currentTeam = 'Ballpark Franks';
-let statsCache = {};   // { playerName: { hitter|pitcher stats } }
-let teamStats  = {};   // computed per team
-let loadState  = { loaded: 0, total: 0, errors: 0 };
+let statsCache  = {};  // { playerName: { found, id, stat, isPitcher } } — per active half
+let teamStats   = {};
+let loadState   = { loaded: 0, total: 0, errors: 0 };
 
 // ════════════════════════════════════════════════════════════
-// MLB API CALLS
+// CACHE MANAGEMENT
+// Separate TTL caches per half so switching 1H↔2H↔FULL
+// doesn't invalidate the others.
+// Player ID store is separate and never expires.
 // ════════════════════════════════════════════════════════════
 
-async function fetchPlayerStats(playerName, playerId, isPitcher) {
-  const season = 2026;
-  const group  = isPitcher ? 'pitching' : 'hitting';
-  const url    = `${MLB_API}/people/${playerId}/stats?stats=season&season=${season}&group=${group}&sportId=1`;
-  
+const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+function statCacheKey(half) { return `rlw_stats_2026_${half}`; }
+
+function loadCachedStats(half) {
   try {
-    const res  = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    const splits = data?.stats?.[0]?.splits;
-    if (!splits || splits.length === 0) return null;
-    return splits[0].stat;
-  } catch(e) {
-    return null;
-  }
-}
-
-// Search player by name to find MLB ID
-async function searchPlayerById(name, mlbTeam) {
-  // Try search endpoint
-  const search = encodeURIComponent(name);
-  const url = `${MLB_API}/people/search?names=${search}&sportIds=1`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const people = data?.people;
-    if (!people || people.length === 0) return null;
-    // Try to match by team
-    const match = people.find(p => p.currentTeam?.abbreviation === mlbTeam) || people[0];
-    return match?.id || null;
-  } catch(e) {
-    return null;
-  }
-}
-
-// Get stats for date range (for half-season splits)
-async function fetchPlayerStatsByDate(playerId, isPitcher, startDate, endDate) {
-  const group = isPitcher ? 'pitching' : 'hitting';
-  const url = `${MLB_API}/people/${playerId}/stats?stats=byDateRange&startDate=${startDate}&endDate=${endDate}&group=${group}&sportId=1`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const splits = data?.stats?.[0]?.splits;
-    if (!splits || splits.length === 0) return null;
-    return splits[0].stat;
-  } catch(e) {
-    return null;
-  }
-}
-
-// ════════════════════════════════════════════════════════════
-// STAT LOADING ORCHESTRATION
-// ════════════════════════════════════════════════════════════
-
-const CACHE_KEY = 'rlw_stats_2026';
-const HALF_CACHE_KEY = h => `rlw_stats_2026_${h}`;
-
-function loadCachedStats() {
-  try {
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (!cached) return null;
-    const { ts, data } = JSON.parse(cached);
+    const raw = localStorage.getItem(statCacheKey(half));
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
     if (Date.now() - ts < CACHE_TTL_MS) return data;
     return null;
   } catch(e) { return null; }
 }
 
-function saveCachedStats(data) {
+function saveCachedStats(half, data) {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+    localStorage.setItem(statCacheKey(half), JSON.stringify({ ts: Date.now(), data }));
   } catch(e) {}
 }
 
-function getDateRangeForHalf(half) {
+function getDateRange(half) {
+  const fmt  = d => d.toISOString().split('T')[0];
   const today = new Date();
-  const fmt = d => d.toISOString().split('T')[0];
-  if (half === '1H') {
-    return { start: '2026-03-26', end: fmt(new Date(Math.min(today, ALL_STAR_DATE))) };
-  } else if (half === '2H') {
-    return { start: fmt(ALL_STAR_DATE), end: fmt(today) };
-  } else {
-    return { start: '2026-03-26', end: fmt(today) };
-  }
+  const asb   = new Date('2026-07-13'); // All-Star Break
+  const open  = '2026-03-26';           // Opening Day
+  if (half === '1H') return { start: open,    end: fmt(today < asb ? today : asb) };
+  if (half === '2H') return { start: fmt(asb), end: fmt(today) };
+  return { start: open, end: fmt(today) }; // FULL
 }
+
+// ════════════════════════════════════════════════════════════
+// MAIN STAT LOADER
+// ════════════════════════════════════════════════════════════
 
 async function loadAllStats(force = false) {
   setStatus('load', 'Checking cache...');
-  
+
+  // Try stats cache for current half
   if (!force) {
-    const cached = loadCachedStats();
+    const cached = loadCachedStats(currentHalf);
     if (cached) {
       statsCache = cached;
-      setStatus('ok', `Stats loaded from cache · ${Object.keys(cached).length} players`);
+      setStatus('ok', `Loaded from cache · ${Object.keys(cached).length} players · ${currentHalf}`);
       updateLastUpdated();
       computeTeamStats();
       renderAll();
@@ -1331,126 +1375,136 @@ async function loadAllStats(force = false) {
     }
   }
 
-  // Get players that need stats (not MiLB)
-  const activePlayers = ROSTER.filter(p => !p[5]);
-  loadState = { loaded: 0, total: activePlayers.length, errors: 0 };
-  
-  setStatus('load', `Fetching stats for ${activePlayers.length} players...`);
-  setLoaderMsg('Fetching MLB stats...');
-  setProgress(5);
-
-  // Resolve player IDs (use known IDs or search)
-  const resolvedIds = {};
-  for (const p of activePlayers) {
-    const name = p[1];
-    if (PLAYER_IDS[name] && PLAYER_IDS[name] !== 694192) {
-      resolvedIds[name] = PLAYER_IDS[name];
-    }
-    // Will search for 694192 placeholders during stat fetch
+  // ── Phase 1: Resolve all player IDs ──────────────────────
+  const idStore   = loadIdStore();
+  // Seed with known-correct IDs (only overwrites missing entries)
+  for (const [name, id] of Object.entries(KNOWN_IDS)) {
+    if (!idStore[name]) idStore[name] = id;
   }
 
-  // Fetch stats in batches
-  const BATCH_SIZE = 15;
-  const { start, end } = getDateRangeForHalf('FULL');
+  const activePlayers = ROSTER.filter(p => !p[5]); // exclude MiLB
+  loadState = { loaded: 0, total: activePlayers.length, errors: 0 };
+
+  setLoaderMsg('Resolving player IDs...');
+  setProgress(5);
+  setStatus('load', 'Resolving player IDs from MLB API...');
+
+  // Find players missing from ID store
+  const needsSearch = activePlayers.filter(p => !idStore[p[1]]);
   
-  for (let i = 0; i < activePlayers.length; i += BATCH_SIZE) {
-    const batch = activePlayers.slice(i, i + BATCH_SIZE);
+  if (needsSearch.length > 0) {
+    setLoaderMsg(`Searching ${needsSearch.length} new players...`);
     
+    // Search in batches of 8 to avoid overwhelming the API
+    const ID_BATCH = 8;
+    for (let i = 0; i < needsSearch.length; i += ID_BATCH) {
+      const batch = needsSearch.slice(i, i + ID_BATCH);
+      await Promise.all(batch.map(async (p) => {
+        const [, name, mlbTeam] = p;
+        const found = await resolvePlayerId(name, mlbTeam);
+        if (found) idStore[name] = found;
+        // If not found, store null so we don't re-search next time
+        else idStore[name] = null;
+      }));
+      const pct = Math.round(((i + batch.length) / needsSearch.length) * 20) + 5;
+      setProgress(pct);
+    }
+    saveIdStore(idStore); // persist for future loads
+  }
+
+  setProgress(25);
+  setLoaderMsg('Fetching season stats...');
+
+  // ── Phase 2: Fetch stats for all active players ──────────
+  const { start, end } = getDateRange(currentHalf);
+  const newCache = {};
+  const STAT_BATCH = 12;
+
+  for (let i = 0; i < activePlayers.length; i += STAT_BATCH) {
+    const batch = activePlayers.slice(i, i + STAT_BATCH);
+
     await Promise.all(batch.map(async (p) => {
-      const [pos, name, mlbTeam, salary, fantasyTeam, isMilb, ohtaniHO] = p;
-      const isPitcher = pos === 'P';
-      // Skip pitching stats for Ohtani
-      const fetchPitching = isPitcher && !ohtaniHO;
-      const fetchHitting  = !isPitcher || ohtaniHO;
-      
-      let playerId = resolvedIds[name] || PLAYER_IDS[name];
-      
-      // If placeholder ID, try searching
-      if (!playerId || playerId === 694192) {
-        playerId = await searchPlayerById(name, mlbTeam);
-        if (playerId) resolvedIds[name] = playerId;
-      }
-      
+      const [pos, name, mlbTeam, , , , ohtaniHO] = p;
+      const isPitcher     = pos === 'P';
+      // Ohtani is listed as OF with ohtaniHO=true — fetch hitting only, never pitching
+      const needsPitching = isPitcher && !ohtaniHO;
+      const playerId      = idStore[name];
+
       if (!playerId) {
-        statsCache[name] = { found: false };
+        newCache[name] = { found: false, id: null };
         loadState.errors++;
         loadState.loaded++;
         return;
       }
-      
-      let stat = null;
-      // Fetch by date range for proper splits
-      if (fetchPitching) {
-        stat = await fetchPlayerStatsByDate(playerId, true, start, end);
-      } else if (fetchHitting) {
-        stat = await fetchPlayerStatsByDate(playerId, false, start, end);
-      }
-      
+
+      const group = needsPitching ? 'pitching' : 'hitting';
+      const stat  = await fetchStatsByDateRange(playerId, group, start, end);
+
       if (stat) {
-        statsCache[name] = { found: true, id: playerId, stat, isPitcher: fetchPitching };
+        newCache[name] = { found: true, id: playerId, stat, isPitcher: needsPitching };
       } else {
-        statsCache[name] = { found: false, id: playerId };
+        newCache[name] = { found: false, id: playerId };
         loadState.errors++;
       }
-      
       loadState.loaded++;
     }));
-    
-    const pct = Math.round((i + batch.length) / activePlayers.length * 90) + 5;
+
+    const pct = Math.round(((i + batch.length) / activePlayers.length) * 70) + 25;
     setProgress(pct);
-    setLoaderMsg(`Loading stats... ${loadState.loaded}/${loadState.total}`);
-    setStatus('load', `Loading ${loadState.loaded}/${loadState.total} players (${loadState.errors} errors)...`);
+    setLoaderMsg(`Fetching stats... ${loadState.loaded}/${loadState.total}`);
+    setStatus('load', `Loading ${loadState.loaded}/${loadState.total} · ${loadState.errors} not found`);
   }
-  
-  saveCachedStats(statsCache);
+
+  statsCache = newCache;
+  saveCachedStats(currentHalf, newCache);
   setProgress(100);
   updateLastUpdated();
-  
+
   computeTeamStats();
   renderAll();
-  
-  const msg = `Stats updated · ${loadState.total - loadState.errors}/${loadState.total} players loaded`;
-  setStatus('ok', msg);
+
+  const found  = loadState.total - loadState.errors;
+  setStatus('ok', `${found}/${loadState.total} players loaded · ${currentHalf} · click Refresh to update`);
   setLoaderMsg('Done!');
-  
   setTimeout(hideLoader, 500);
 }
+
 
 // ════════════════════════════════════════════════════════════
 // BEST-BALL STAT COMPUTATION
 // ════════════════════════════════════════════════════════════
 
-function getPlayerStatForHalf(name, half) {
-  // If we have full-season stats, we need to re-fetch for splits
-  // For now return full-season stats (split fetching can be added)
+// Helper: look up a player's stat object from the current half's cache
+function getStat(name) {
   return statsCache[name]?.stat || null;
 }
 
 function computeTeamStats() {
   teamStats = {};
-  
+
   for (const team of TEAMS) {
-    const roster = ROSTER.filter(p => p[4] === team && !p[5]); // active MLB only
+    const roster   = ROSTER.filter(p => p[4] === team && !p[5]); // active MLB only
     const pitchers = roster.filter(p => p[0] === 'P');
     const hitters  = roster.filter(p => p[0] !== 'P');
-    
-    // ── PITCHERS: Best Ball picks best 9 by ERA ──────────
-    const pitcherStats = pitchers.map(p => {
-      const s = statsCache[p[1]]?.stat;
-      return {
-        name: p[1],
-        ohtaniHO: p[6],
-        w: s?.wins || 0,
-        sv: s?.saves || 0,
-        k: s?.strikeOuts || 0,
-        era: s?.era ? parseFloat(s.era) : 99,
-        whip: s?.whip ? parseFloat(s.whip) : 9.99,
-        ip: s?.inningsPitched ? parseFloat(s.inningsPitched) : 0,
-        hasStats: !!s,
-      };
-    }).filter(p => !p.ohtaniHO); // exclude Ohtani pitcher
 
-    // Sort by ERA (ascending), take best 9
+    // ── PITCHERS: Best Ball picks best 9 by ERA ──────────
+    const pitcherStats = pitchers
+      .filter(p => !p[6]) // exclude Ohtani's pitcher slot
+      .map(p => {
+        const s = getStat(p[1]);
+        return {
+          name:     p[1],
+          w:        s?.wins         || 0,
+          sv:       s?.saves        || 0,
+          k:        s?.strikeOuts   || 0,
+          era:      s?.era          ? parseFloat(s.era)              : 99,
+          whip:     s?.whip         ? parseFloat(s.whip)             : 9.99,
+          ip:       s?.inningsPitched ? parseFloat(s.inningsPitched) : 0,
+          hasStats: !!s,
+        };
+      });
+
+    // Sort: pitchers with stats first (by ERA asc), then no-stats ones last
     const sorted = [...pitcherStats].sort((a, b) => {
       if (!a.hasStats && !b.hasStats) return 0;
       if (!a.hasStats) return 1;
@@ -1458,83 +1512,80 @@ function computeTeamStats() {
       return a.era - b.era;
     });
     const best9 = sorted.slice(0, 9);
-    
-    // Compute IP-weighted ERA/WHIP
-    const totalIP  = best9.reduce((s, p) => s + p.ip, 0);
-    const weightedERA  = totalIP > 0 ? best9.reduce((s, p) => s + p.era * p.ip, 0) / totalIP : 99;
-    const weightedWHIP = totalIP > 0 ? best9.reduce((s, p) => s + p.whip * p.ip, 0) / totalIP : 9.99;
-    
-    const totW   = best9.reduce((s, p) => s + p.w, 0);
+
+    // IP-weighted ERA/WHIP across the best 9
+    const totalIP      = best9.reduce((s, p) => s + p.ip, 0);
+    const weightedERA  = totalIP > 0 ? best9.reduce((s, p) => s + p.era  * p.ip, 0) / totalIP : 0;
+    const weightedWHIP = totalIP > 0 ? best9.reduce((s, p) => s + p.whip * p.ip, 0) / totalIP : 0;
+    const totW   = best9.reduce((s, p) => s + p.w,  0);
     const totSV  = best9.reduce((s, p) => s + p.sv, 0);
-    const totK   = best9.reduce((s, p) => s + p.k, 0);
+    const totK   = best9.reduce((s, p) => s + p.k,  0);
     const wspts  = totW + totSV * 0.5;
-    
+
     // ── HITTERS: Best Ball picks best 2 per pos, best 6 OF ──
     const POS_GROUPS = { C: 2, '1B': 2, '2B': 2, 'SS': 2, '3B': 2, OF: 6 };
-    
     let totAB = 0, totH = 0, tot2B = 0, tot3B = 0, totHR = 0;
-    let totR = 0, totRBI = 0, totSB = 0;
-    
+    let totR  = 0, totRBI = 0, totSB = 0;
+    const bestHitters = []; // track which hitters are "starters" for roster view
+
     for (const [pos, slots] of Object.entries(POS_GROUPS)) {
       const pool = hitters.filter(p => p[0] === pos);
       const withStats = pool.map(p => {
-        const s = statsCache[p[1]]?.stat;
-        // Include Ohtani hitting stats
-        const ohtaniS = p[6] ? statsCache[p[1]]?.stat : null;
-        const stat = s || ohtaniS;
+        const s = getStat(p[1]);
         return {
           name: p[1],
-          ab:  stat?.atBats || 0,
-          h:   stat?.hits || 0,
-          d2:  stat?.doubles || 0,
-          d3:  stat?.triples || 0,
-          hr:  stat?.homeRuns || 0,
-          r:   stat?.runs || 0,
-          rbi: stat?.rbi || 0,
-          sb:  stat?.stolenBases || 0,
-          score: (stat?.runs || 0) + (stat?.homeRuns || 0) + (stat?.rbi || 0),
+          ab:   s?.atBats      || 0,
+          h:    s?.hits        || 0,
+          d2:   s?.doubles     || 0,
+          d3:   s?.triples     || 0,
+          hr:   s?.homeRuns    || 0,
+          r:    s?.runs        || 0,
+          rbi:  s?.rbi         || 0,
+          sb:   s?.stolenBases || 0,
+          // composite score for best-ball selection
+          score: (s?.runs || 0) + (s?.homeRuns || 0) + (s?.rbi || 0),
         };
       });
-      
-      // Sort by composite score desc, take top N slots
+
       withStats.sort((a, b) => b.score - a.score);
       const starters = withStats.slice(0, slots);
-      
+      starters.forEach(p => { bestHitters.push(p.name); });
+
       starters.forEach(p => {
-        totAB  += p.ab;
-        totH   += p.h;
-        tot2B  += p.d2;
-        tot3B  += p.d3;
-        totHR  += p.hr;
-        totR   += p.r;
-        totRBI += p.rbi;
-        totSB  += p.sb;
+        totAB  += p.ab;  totH   += p.h;
+        tot2B  += p.d2;  tot3B  += p.d3;
+        totHR  += p.hr;  totR   += p.r;
+        totRBI += p.rbi; totSB  += p.sb;
       });
     }
-    
-    // Also add Ohtani hitting
-    const ohtaniOnTeam = ROSTER.find(p => p[1] === 'Shohei Ohtani' && p[4] === team);
-    if (ohtaniOnTeam) {
-      const os = statsCache['Shohei Ohtani']?.stat;
+
+    // Ohtani hitting: he's listed as OF with ohtaniHO=true — add his hitting stats
+    const ohtaniEntry = ROSTER.find(p => p[1] === 'Shohei Ohtani' && p[4] === team);
+    if (ohtaniEntry) {
+      const os = getStat('Shohei Ohtani');
       if (os) {
-        totAB  += os.atBats || 0;
-        totH   += os.hits || 0;
-        tot2B  += os.doubles || 0;
-        tot3B  += os.triples || 0;
-        totHR  += os.homeRuns || 0;
-        totR   += os.runs || 0;
-        totRBI += os.rbi || 0;
+        totAB  += os.atBats      || 0;
+        totH   += os.hits        || 0;
+        tot2B  += os.doubles     || 0;
+        tot3B  += os.triples     || 0;
+        totHR  += os.homeRuns    || 0;
+        totR   += os.runs        || 0;
+        totRBI += os.rbi         || 0;
         totSB  += os.stolenBases || 0;
+        bestHitters.push('Shohei Ohtani');
       }
     }
-    
+
     const avg = totAB > 0 ? totH / totAB : 0;
-    
+
     teamStats[team] = {
       avg, R: totR, XBH: tot2B + tot3B, HR: totHR, RBI: totRBI, SB: totSB,
-      WS: wspts, K: totK, ERA: weightedERA < 50 ? weightedERA : 0, WHIP: weightedWHIP < 5 ? weightedWHIP : 0,
+      WS: wspts, K: totK,
+      ERA:  weightedERA  > 0 && weightedERA  < 50 ? weightedERA  : 0,
+      WHIP: weightedWHIP > 0 && weightedWHIP < 5  ? weightedWHIP : 0,
       W: totW, SV: totSV,
       best9Pitchers: best9.map(p => p.name),
+      bestHitters,
     };
   }
 }
@@ -1666,20 +1717,23 @@ function renderCategories() {
 }
 
 function renderRosters(team) {
-  const roster = ROSTER.filter(p => p[4] === team);
+  const roster   = ROSTER.filter(p => p[4] === team);
   const pitchers = roster.filter(p => p[0] === 'P');
   const hitters  = roster.filter(p => p[0] !== 'P');
   const best9    = teamStats[team]?.best9Pitchers || [];
-  
+  const bestH    = teamStats[team]?.bestHitters   || [];
+
   document.getElementById('pitcher-count').textContent = `(${pitchers.filter(p=>!p[5]).length} MLB / ${pitchers.filter(p=>p[5]).length} MiLB)`;
   document.getElementById('hitter-count').textContent  = `(${hitters.filter(p=>!p[5]).length} MLB / ${hitters.filter(p=>p[5]).length} MiLB)`;
-  
+
   function makeRow(p) {
     const [pos, name, mlbTeam, salary, ft, isMilb, ohtaniHO] = p;
-    const s = statsCache[name]?.stat;
-    const isBB = best9.includes(name);
+    const s      = getStat(name);
+    const isBBp  = best9.includes(name);
+    const isBBh  = bestH.includes(name);
+    const isBB   = isBBp || isBBh;
     const posKey = pos === '1B' ? 'B1' : pos === '2B' ? 'B2' : pos === '3B' ? 'B3' : pos;
-    
+
     let statsHtml = '';
     if (isMilb) {
       statsHtml = `<span style="color:var(--muted);font-size:10px;font-family:'DM Mono',monospace;">MiLB</span>`;
@@ -1691,11 +1745,11 @@ function renderRosters(team) {
       statsHtml = `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">${w}W ${sv}SV ${k}K <span style="color:var(--muted)">${era} ERA ${whip} WHIP</span></span>`;
     } else {
       const avg = s.avg || '.000';
-      const hr = s.homeRuns || 0, r = s.runs || 0, rbi = s.rbi || 0, sb = s.stolenBases || 0;
-      const xbh = (s.doubles||0) + (s.triples||0);
+      const hr  = s.homeRuns || 0, r = s.runs || 0, rbi = s.rbi || 0, sb = s.stolenBases || 0;
+      const xbh = (s.doubles || 0) + (s.triples || 0);
       statsHtml = `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">${avg} <span style="color:var(--muted)">${r}R ${xbh}XBH ${hr}HR ${rbi}RBI ${sb}SB</span></span>`;
     }
-    
+
     return `
       <div class="player-row ${isMilb ? 'milb' : ''} ${isBB ? 'active-bb' : ''}">
         <div class="pos-tag ${posKey}">${pos}</div>
@@ -1705,7 +1759,7 @@ function renderRosters(team) {
       </div>
     `;
   }
-  
+
   document.getElementById('pitcher-rows').innerHTML = pitchers.map(makeRow).join('');
   document.getElementById('hitter-rows').innerHTML  = hitters.map(makeRow).join('');
 }
@@ -1740,8 +1794,8 @@ function setHalf(half) {
     : 'Full season stats';
   document.getElementById('controls-info').textContent = info;
   
-  // Re-fetch with appropriate date range
-  refreshStats();
+  // Load stats for this half — uses cache if available, fetches if not
+  loadAllStats(false);
 }
 
 async function refreshStats() {
