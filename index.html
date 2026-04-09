@@ -1,0 +1,1814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RLW Fantasy Baseball 2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --green:    #00c853;
+    --green-dk: #007a33;
+    --gold:     #f5c842;
+    --red:      #e53935;
+    --bg:       #0a0d0f;
+    --bg2:      #111518;
+    --bg3:      #181d22;
+    --border:   #232a31;
+    --text:     #e8edf2;
+    --muted:    #5a6a7a;
+    --accent:   #00c853;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ─────────────────────────────────── */
+  header {
+    background: linear-gradient(135deg, #0a0d0f 0%, #0e1a12 60%, #07200d 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--green);
+    text-shadow: 0 0 30px rgba(0,200,83,0.4);
+  }
+  .logo span { color: var(--text); }
+
+  .header-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.6;
+  }
+  .header-meta .updated { color: var(--green); font-size: 10px; }
+
+  /* ── TABS ────────────────────────────────────── */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    padding: 16px 32px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    overflow-x: auto;
+  }
+
+  .tab {
+    padding: 8px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--green);
+    border-bottom-color: var(--green);
+  }
+
+  /* ── HALF SWITCHER ───────────────────────────── */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 32px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .half-switch {
+    display: flex;
+    gap: 0;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .half-btn {
+    padding: 6px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+    background: none;
+    letter-spacing: 1px;
+  }
+  .half-btn.active {
+    background: var(--green);
+    color: #000;
+  }
+
+  .refresh-btn {
+    padding: 6px 14px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .refresh-btn:hover { border-color: var(--green); color: var(--green); }
+  .refresh-btn.loading { opacity: 0.5; cursor: wait; }
+
+  .controls-info {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-left: auto;
+  }
+
+  /* ── MAIN CONTENT ────────────────────────────── */
+  main {
+    padding: 24px 32px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── STANDINGS TABLE ─────────────────────────── */
+  .standings-grid {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .standings-grid table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .standings-grid thead tr {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .standings-grid th {
+    padding: 10px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .standings-grid th:first-child { text-align: left; }
+  .standings-grid th.cat-header { color: var(--green); }
+
+  .standings-grid tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .standings-grid tbody tr:last-child { border-bottom: none; }
+  .standings-grid tbody tr:hover { background: rgba(255,255,255,0.02); }
+  .standings-grid tbody tr.my-team { background: rgba(0,200,83,0.04); }
+
+  .standings-grid td {
+    padding: 11px 14px;
+    text-align: right;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .standings-grid td:first-child {
+    text-align: left;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+  }
+
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 10px;
+    background: var(--bg3);
+    color: var(--muted);
+  }
+  .rank-badge.r1 { background: var(--gold); color: #000; }
+  .rank-badge.r2 { background: #c0c0c0; color: #000; }
+  .rank-badge.r3 { background: #cd7f32; color: #000; }
+
+  .cat-rank {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+  }
+  .cat-rank.r1 { background: rgba(0,200,83,0.2); color: var(--green); }
+  .cat-rank.r8 { background: rgba(229,57,53,0.15); color: var(--red); }
+
+  .score-pts {
+    font-weight: 700;
+    color: var(--green);
+    font-size: 13px;
+  }
+
+  /* ── CATEGORY BREAKDOWN ──────────────────────── */
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .cat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+
+  .cat-card h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .cat-card h3 .cat-type {
+    font-size: 9px;
+    color: var(--bg3);
+    background: var(--muted);
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+  }
+
+  .cat-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .cat-bar-name {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    width: 130px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+  }
+  .cat-bar-name.my { color: var(--green); font-weight: 600; }
+  .cat-bar-outer {
+    flex: 1;
+    height: 6px;
+    background: var(--bg3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .cat-bar-inner {
+    height: 100%;
+    background: var(--green);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+  .cat-bar-inner.my { background: var(--gold); }
+  .cat-bar-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    width: 55px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── TEAM ROSTER VIEW ────────────────────────── */
+  .team-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .team-pill {
+    padding: 6px 14px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--muted);
+  }
+  .team-pill:hover { border-color: var(--green); color: var(--text); }
+  .team-pill.active { background: var(--green); color: #000; border-color: var(--green); font-weight: 600; }
+
+  .roster-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 900px) { .roster-split { grid-template-columns: 1fr; } }
+
+  .roster-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .roster-panel-header {
+    padding: 12px 16px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--green);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .roster-panel-header span { color: var(--muted); }
+
+  .player-row {
+    display: grid;
+    grid-template-columns: 36px 140px 36px auto;
+    align-items: center;
+    padding: 7px 16px;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+    font-size: 12px;
+    transition: background 0.1s;
+  }
+  .player-row:last-child { border-bottom: none; }
+  .player-row:hover { background: rgba(255,255,255,0.02); }
+  .player-row.milb { opacity: 0.45; }
+  .player-row.active-bb { background: rgba(0,200,83,0.04); }
+
+  .pos-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 3px;
+    text-align: center;
+    background: var(--bg3);
+    color: var(--muted);
+  }
+  .pos-tag.P  { background: rgba(74,20,140,0.3);  color: #ce93d8; }
+  .pos-tag.C  { background: rgba(21,101,192,0.3); color: #90caf9; }
+  .pos-tag.B1 { background: rgba(0,96,100,0.3);   color: #80deea; }
+  .pos-tag.B2 { background: rgba(230,81,0,0.3);   color: #ffcc80; }
+  .pos-tag.SS { background: rgba(183,28,28,0.3);  color: #ef9a9a; }
+  .pos-tag.B3 { background: rgba(46,125,50,0.3);  color: #a5d6a7; }
+  .pos-tag.OF { background: rgba(31,107,53,0.3);  color: #81c784; }
+
+  .player-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .player-name .team-abbr {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-left: 4px;
+  }
+
+  .bb-tag {
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+    color: var(--gold);
+    background: rgba(245,200,66,0.12);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .player-stats {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+  }
+  .player-stats .loading-dots { animation: pulse 1s infinite; }
+
+  @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+  /* ── STATUS BAR ──────────────────────────────── */
+  .status-bar {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+  .status-dot.ok  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-dot.err { background: var(--red); }
+  .status-dot.load {
+    background: var(--gold);
+    animation: pulse 1s infinite;
+  }
+
+  /* ── SCORING RULES SIDEBAR ───────────────────── */
+  .scoring-rules {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .scoring-rules h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .scoring-rule-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .scoring-rule-row:last-child { border-bottom: none; }
+  .rule-val { font-family: 'DM Mono', monospace; color: var(--green); }
+
+  /* ── LOADING OVERLAY ─────────────────────────── */
+  #loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,13,15,0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    gap: 20px;
+    transition: opacity 0.3s;
+  }
+  #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .loader-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    letter-spacing: 6px;
+    color: var(--green);
+    text-shadow: 0 0 40px rgba(0,200,83,0.5);
+  }
+  .loader-bar {
+    width: 200px;
+    height: 2px;
+    background: var(--bg3);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .loader-progress {
+    height: 100%;
+    background: var(--green);
+    border-radius: 1px;
+    transition: width 0.3s;
+    box-shadow: 0 0 8px var(--green);
+  }
+  .loader-msg {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* ── RESPONSIVE ──────────────────────────────── */
+  @media (max-width: 768px) {
+    header, .controls, main, .tabs { padding-left: 16px; padding-right: 16px; }
+    .cat-grid { grid-template-columns: 1fr; }
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+  .section-title span { color: var(--green); }
+</style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay">
+  <div class="loader-logo">RLW 2026</div>
+  <div class="loader-bar"><div class="loader-progress" id="prog" style="width:0%"></div></div>
+  <div class="loader-msg" id="loader-msg">Initializing roster data...</div>
+</div>
+
+<!-- Header -->
+<header>
+  <div>
+    <div class="logo">RLW <span>Fantasy Baseball</span> 2026</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace;">8-Team H2H Best Ball · $65 Cap · 25 Roster</div>
+  </div>
+  <div class="header-meta">
+    <div>SCORING: BA · R · 2B+3B · HR · RBI · SB | W+S · K · ERA · WHIP</div>
+    <div>Best Ball: Top 9P / Top 2 per pos / Top 6 OF auto-selected</div>
+    <div class="updated" id="last-updated">Not yet loaded</div>
+  </div>
+</header>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('standings')">Standings</div>
+  <div class="tab" onclick="showTab('categories')">Categories</div>
+  <div class="tab" onclick="showTab('rosters')">Rosters</div>
+  <div class="tab" onclick="showTab('scoring')">Scoring Rules</div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <div class="half-switch">
+    <button class="half-btn active" onclick="setHalf('1H')" id="btn-1H">1ST HALF</button>
+    <button class="half-btn" onclick="setHalf('2H')" id="btn-2H">2ND HALF</button>
+    <button class="half-btn" onclick="setHalf('FULL')" id="btn-FULL">FULL SEASON</button>
+  </div>
+  <button class="refresh-btn" onclick="refreshStats()" id="refresh-btn">
+    ⟳ Refresh Stats
+  </button>
+  <div class="controls-info" id="controls-info">All-Star Break: ~July 13, 2026</div>
+</div>
+
+<!-- Status Bar -->
+<div style="padding:0 32px;">
+  <div class="status-bar" id="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-msg">Initializing...</span>
+  </div>
+</div>
+
+<!-- Main Content -->
+<main>
+
+  <!-- STANDINGS TAB -->
+  <div class="section active" id="tab-standings">
+    <div class="section-title"><span>Live</span> Standings</div>
+    <div class="standings-grid">
+      <table>
+        <thead>
+          <tr>
+            <th>Team</th>
+            <th class="cat-header">AVG</th>
+            <th class="cat-header">R</th>
+            <th class="cat-header">2B+3B</th>
+            <th class="cat-header">HR</th>
+            <th class="cat-header">RBI</th>
+            <th class="cat-header">SB</th>
+            <th class="cat-header">W+S</th>
+            <th class="cat-header">K</th>
+            <th class="cat-header">ERA</th>
+            <th class="cat-header">WHIP</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody id="standings-body">
+          <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Loading stats from MLB API...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CATEGORIES TAB -->
+  <div class="section" id="tab-categories">
+    <div class="section-title"><span>Category</span> Rankings</div>
+    <div class="cat-grid" id="cat-grid">
+      <div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;padding:20px;">Loading...</div>
+    </div>
+  </div>
+
+  <!-- ROSTERS TAB -->
+  <div class="section" id="tab-rosters">
+    <div class="section-title"><span>Team</span> Rosters</div>
+    <div class="team-selector" id="team-selector"></div>
+    <div class="roster-split">
+      <div class="roster-panel" id="roster-pitchers">
+        <div class="roster-panel-header">Pitchers <span id="pitcher-count"></span></div>
+        <div id="pitcher-rows"></div>
+      </div>
+      <div class="roster-panel" id="roster-hitters">
+        <div class="roster-panel-header">Hitters <span id="hitter-count"></span></div>
+        <div id="hitter-rows"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCORING RULES TAB -->
+  <div class="section" id="tab-scoring">
+    <div class="section-title"><span>Scoring</span> Rules</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:700px;">
+      <div class="scoring-rules">
+        <h3>Hitting Categories</h3>
+        <div class="scoring-rule-row"><span>Batting Average</span><span class="rule-val">BA</span></div>
+        <div class="scoring-rule-row"><span>Runs Scored</span><span class="rule-val">R</span></div>
+        <div class="scoring-rule-row"><span>Doubles + Triples</span><span class="rule-val">2B+3B</span></div>
+        <div class="scoring-rule-row"><span>Home Runs</span><span class="rule-val">HR</span></div>
+        <div class="scoring-rule-row"><span>Runs Batted In</span><span class="rule-val">RBI</span></div>
+        <div class="scoring-rule-row"><span>Stolen Bases</span><span class="rule-val">SB</span></div>
+      </div>
+      <div class="scoring-rules">
+        <h3>Pitching Categories</h3>
+        <div class="scoring-rule-row"><span>Wins + Saves</span><span class="rule-val">1pt W / 0.5pt SV</span></div>
+        <div class="scoring-rule-row"><span>Strikeouts</span><span class="rule-val">K</span></div>
+        <div class="scoring-rule-row"><span>Earned Run Average</span><span class="rule-val">ERA ↓</span></div>
+        <div class="scoring-rule-row"><span>Walks+Hits per IP</span><span class="rule-val">WHIP ↓</span></div>
+      </div>
+    </div>
+    <div class="scoring-rules" style="max-width:700px;margin-top:16px;">
+      <h3>Best Ball Rules</h3>
+      <div class="scoring-rule-row"><span>Pitchers used</span><span class="rule-val">Best 9 by ERA/performance</span></div>
+      <div class="scoring-rule-row"><span>Each infield position</span><span class="rule-val">Best 2 of all eligible</span></div>
+      <div class="scoring-rule-row"><span>Outfield</span><span class="rule-val">Best 6 of all eligible</span></div>
+      <div class="scoring-rule-row"><span>MiLB players</span><span class="rule-val">Stats only count in MLB</span></div>
+      <div class="scoring-rule-row"><span>Ohtani (The James Gang)</span><span class="rule-val">Hitting stats only</span></div>
+      <div class="scoring-rule-row"><span>1H Split</span><span class="rule-val">Opening Day → All-Star Break</span></div>
+      <div class="scoring-rule-row"><span>2H Split</span><span class="rule-val">All-Star Break → End of Season</span></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// ROSTER DATA
+// ════════════════════════════════════════════════════════════
+
+const TEAMS = [
+  "Ballpark Franks",
+  "Brave Mistakes",
+  "J's",
+  "Motwin Shufflers",
+  "Oneders",
+  "Team America",
+  "The James Gang",
+  "Yukon Jacks"
+];
+
+const MY_TEAM = "Ballpark Franks";
+
+// All-Star Break date 2026
+const ALL_STAR_DATE = new Date('2026-07-13');
+const SEASON_START  = new Date('2026-03-26'); // Opening Day 2026
+
+// Stat cache TTL: 4 hours
+const CACHE_TTL_MS = 4 * 60 * 60 * 1000;
+
+// MLB Stats API base
+const MLB_API = 'https://statsapi.mlb.com/api/v1';
+
+// ── ROSTER DATA ──────────────────────────────────────────────
+// Format: [pos, name, mlbTeam, salary, fantasyTeam, isMilb, ohtaniHitterOnly]
+const ROSTER = [
+  // ── BALLPARK FRANKS ──────────────────────────────────────
+  ['P','Tarik Skubal','DET',3.25,'Ballpark Franks',false,false],
+  ['P','Edwin Diaz','LAD',3.5,'Ballpark Franks',false,false],
+  ['P','Cole Ragans','KC',5,'Ballpark Franks',false,false],
+  ['P','Kevin Gausman','TOR',2.5,'Ballpark Franks',false,false],
+  ['P','Mick Abel','MIN',0.5,'Ballpark Franks',false,false],
+  ['P','Jose Soriano','LAA',1,'Ballpark Franks',false,false],
+  ['P','Dylan Cease','TOR',4,'Ballpark Franks',false,false],
+  ['P','Sandy Alcantara','MIA',3.5,'Ballpark Franks',false,false],
+  ['P','Emmet Sheehan','LAD',0.5,'Ballpark Franks',false,false],
+  ['P','Kris Bubic','KC',2,'Ballpark Franks',false,false],
+  ['P','Daniel Palencia','CHC',2,'Ballpark Franks',false,false],
+  ['P','Sonny Gray','BOS',2,'Ballpark Franks',false,false],
+  ['P','Connelly Early','BOS',2,'Ballpark Franks',false,false],
+  ['P','Nolan McLean','NYM',0,'Ballpark Franks',true,false],
+  ['C','William Contreras','MIL',2,'Ballpark Franks',false,false],
+  ['C','Hunter Goodman','COL',2.5,'Ballpark Franks',false,false],
+  ['C','Edgar Quero','CWS',2,'Ballpark Franks',false,false],
+  ['C','Josue Briceno','DET',0,'Ballpark Franks',true,false],
+  ['1B','Vinnie Pasquantino','KC',1.5,'Ballpark Franks',false,false],
+  ['1B','Munetaka Murakami','CWS',2,'Ballpark Franks',false,false],
+  ['1B','Luis Garcia','WAS',2,'Ballpark Franks',false,false],
+  ['1B','Xavier Isaac','TB',0,'Ballpark Franks',true,false],
+  ['2B','Ernie Clement','TOR',0.5,'Ballpark Franks',false,false],
+  ['2B','Ozzie Albies','ATL',2.5,'Ballpark Franks',false,false],
+  ['2B','Lenyn Sosa','CWS',2,'Ballpark Franks',false,false],
+  ['2B','Zack Gelof','ATH',0,'Ballpark Franks',true,false],
+  ['SS','Geraldo Perdomo','ARI',1.5,'Ballpark Franks',false,false],
+  ['SS','Ezequiel Tovar','COL',1,'Ballpark Franks',false,false],
+  ['SS','Konnor Griffin','PIT',0,'Ballpark Franks',true,false],
+  ['SS','Aidan Miller','PHI',0,'Ballpark Franks',true,false],
+  ['SS','Felnin Celesten','SEA',0,'Ballpark Franks',true,false],
+  ['SS','Luis Pena','MIL',0,'Ballpark Franks',true,false],
+  ['SS','Bryce Rainer','DET',0,'Ballpark Franks',true,false],
+  ['3B','Austin Riley','ATL',3.5,'Ballpark Franks',false,false],
+  ['3B','Alex Bregman','CHC',10,'Ballpark Franks',false,false],
+  ['3B','Caleb Durbin','BOS',2,'Ballpark Franks',false,false],
+  ['OF','James Wood','WAS',1.75,'Ballpark Franks',false,false],
+  ['OF','George Springer','TOR',2.5,'Ballpark Franks',false,false],
+  ['OF','Pete Crow-Armstrong','CHC',1.75,'Ballpark Franks',false,false],
+  ['OF','Roman Anthony','BOS',1.25,'Ballpark Franks',false,false],
+  ['OF','Steven Kwan','CLE',0.5,'Ballpark Franks',false,false],
+  ['OF','Brent Rooker','ATH',6,'Ballpark Franks',false,false],
+  ['OF','Bryan Reynolds','PIT',2,'Ballpark Franks',false,false],
+  ['OF','Jakob Marsee','MIA',2,'Ballpark Franks',false,false],
+  ['OF','Walker Jenkins','MIN',0,'Ballpark Franks',true,false],
+
+  // ── BRAVE MISTAKES ───────────────────────────────────────
+  ['P','Framber Valdez','DET',3,'Brave Mistakes',false,false],
+  ['P','Garrett Crochet','BOS',2.5,'Brave Mistakes',false,false],
+  ['P','Hunter Brown','HOU',3,'Brave Mistakes',false,false],
+  ['P','Jesus Luzardo','PHI',2,'Brave Mistakes',false,false],
+  ['P','Cade Horton','CHC',1.25,'Brave Mistakes',false,false],
+  ['P','Eury Perez','MIA',1.75,'Brave Mistakes',false,false],
+  ['P','Noah Cameron','KC',0.5,'Brave Mistakes',false,false],
+  ['P','Aroldis Chapman','BOS',2.5,'Brave Mistakes',false,false],
+  ['P','Trevor Rogers','BAL',2,'Brave Mistakes',false,false],
+  ['P','Max Fried','NYY',7,'Brave Mistakes',false,false],
+  ['P','Brandon Woodruff','MIL',2,'Brave Mistakes',false,false],
+  ['P','Kodai Senga','NYM',2,'Brave Mistakes',false,false],
+  ['P','Kenley Jansen','DET',2,'Brave Mistakes',false,false],
+  ['P','Ryne Nelson','ARI',2,'Brave Mistakes',false,false],
+  ['P','Thomas White','MIA',0,'Brave Mistakes',true,false],
+  ['P','Logan Henderson','MIL',0,'Brave Mistakes',true,false],
+  ['P','Esteban Mejia','BAL',0,'Brave Mistakes',true,false],
+  ['C','Liam Hicks','MIA',0.5,'Brave Mistakes',false,false],
+  ['C','Carter Jensen','KC',0.5,'Brave Mistakes',false,false],
+  ['C','Jeferson Quero','MIL',0,'Brave Mistakes',true,false],
+  ['C','Eduardo Tait','MIN',0,'Brave Mistakes',true,false],
+  ['C','Francisco Alvarez','NYM',0,'Brave Mistakes',true,false],
+  ['1B','Josh Naylor','SEA',2,'Brave Mistakes',false,false],
+  ['1B','Jake Burger','TEX',0.5,'Brave Mistakes',false,false],
+  ['1B','TJ Rumfield','COL',2,'Brave Mistakes',false,false],
+  ['1B','Sal Stewart','CIN',0,'Brave Mistakes',true,false],
+  ['2B','Bryson Stott','PHI',0.5,'Brave Mistakes',false,false],
+  ['2B','Nico Hoerner','CHC',0.5,'Brave Mistakes',false,false],
+  ['2B','Jonathan India','KC',2,'Brave Mistakes',false,false],
+  ['2B','Travis Bazzana','CLE',0,'Brave Mistakes',true,false],
+  ['SS','Bobby Witt Jr.','KC',2.75,'Brave Mistakes',false,false],
+  ['SS','Elly De La Cruz','CIN',2.25,'Brave Mistakes',false,false],
+  ['SS','Javier Baez','DET',2,'Brave Mistakes',false,false],
+  ['3B','Miquel Vargas','CWS',2.5,'Brave Mistakes',false,false],
+  ['3B','Brady House','WAS',0.5,'Brave Mistakes',false,false],
+  ['3B','Colt Keith','DET',2,'Brave Mistakes',false,false],
+  ['OF','Aaron Judge','NYY',4.75,'Brave Mistakes',false,false],
+  ['OF','Juan Soto','NYM',5.5,'Brave Mistakes',false,false],
+  ['OF','Yordan Alvarez','HOU',3.75,'Brave Mistakes',false,false],
+  ['OF','Jackson Chourio','MIL',1.75,'Brave Mistakes',false,false],
+  ['OF','Ronald Acuna Jr.','ATL',4.25,'Brave Mistakes',false,false],
+  ['OF','Tyler Soderstrom','ATH',1,'Brave Mistakes',false,false],
+  ['OF','Daylen Lile','WAS',0.5,'Brave Mistakes',false,false],
+  ['OF','Jac Caglianone','KC',2,'Brave Mistakes',false,false],
+  ['OF','Ivan Herrera','STL',2,'Brave Mistakes',false,false],
+  ['OF','Owen Caissie','MIA',0,'Brave Mistakes',true,false],
+  ['OF','Eduardo Quintero','LAD',0,'Brave Mistakes',true,false],
+
+  // ── J'S ─────────────────────────────────────────────────
+  ['P','Yoshinobu Yamamoto','LAD',1.5,"J's",false,false],
+  ['P','Chris Sale','ATL',3,"J's",false,false],
+  ['P','Carlos Estevez','KC',1,"J's",false,false],
+  ['P','Jhoan Duran','PHI',3.5,"J's",false,false],
+  ['P','Bryan Woo','SEA',3.5,"J's",false,false],
+  ['P','Paul Sewald','ARI',0.5,"J's",false,false],
+  ['P','Taj Bradley','MIN',1.5,"J's",false,false],
+  ['P','Tyler Glasnow','LAD',0.5,"J's",false,false],
+  ['P','Shane McClanahan','TB',0.5,"J's",false,false],
+  ['P','Ryan Pepiot','TB',2,"J's",false,false],
+  ['P','Shane Baz','BAL',2,"J's",false,false],
+  ['P','Andrew Abbott','CIN',2,"J's",false,false],
+  ['P','Trevor Megill','MIL',2,"J's",false,false],
+  ['P','Mitch Keller','PIT',2,"J's",false,false],
+  ['P','Andrew Painter','PHI',0,"J's",true,false],
+  ['P','Tink Hence','STL',0,"J's",true,false],
+  ['P','Trey Yesavage','TOR',0,"J's",true,false],
+  ['C','Shea Langeliers','ATH',2.25,"J's",false,false],
+  ['C','Salvador Perez','KC',0.5,"J's",false,false],
+  ['C','Harry Ford','WAS',0,"J's",true,false],
+  ['C','Joe Mack','MIA',0,"J's",true,false],
+  ['1B','Peter Alonso','BAL',3.75,"J's",false,false],
+  ['1B','Michael Busch','CHC',1.75,"J's",false,false],
+  ['1B','Jonathan Aranda','TB',2,"J's",false,false],
+  ['2B','Ketel Marte','ARI',3,"J's",false,false],
+  ['2B','Brandon Lowe','PIT',0.5,"J's",false,false],
+  ['2B','Marcelo Mayer','BOS',2,"J's",false,false],
+  ['SS','Jeremy Pena','HOU',1,"J's",false,false],
+  ['SS','Corey Seager','TEX',0.5,"J's",false,false],
+  ['SS','Trevor Story','BOS',2,"J's",false,false],
+  ['SS','Jett Williams','MIL',0,"J's",true,false],
+  ['SS','Colt Emerson','SEA',0,"J's",true,false],
+  ['SS','Jesus Made','MIL',0,"J's",true,false],
+  ['SS','Sebastian Walcott','TEX',0,"J's",true,false],
+  ['SS','Arjun Nimmala','TOR',0,"J's",true,false],
+  ['3B','Bo Bichette','NYM',3.25,"J's",false,false],
+  ['3B','Carlos Correa','HOU',0.5,"J's",false,false],
+  ['3B','Max Muncy','LAD',2,"J's",false,false],
+  ['OF','Teoscar Hernandez','LAD',1.5,"J's",false,false],
+  ['OF','Cody Bellinger','NYY',4,"J's",false,false],
+  ['OF','Michael Harris II','ATL',3,"J's",false,false],
+  ['OF','Wilyer Abreu','BOS',2,"J's",false,false],
+  ['OF','Ian Happ','CHC',9.5,"J's",false,false],
+  ['OF','Chandler Simpson','TB',0.5,"J's",false,false],
+  ['OF','Daulton Varsho','TOR',2,"J's",false,false],
+
+  // ── MOTWIN SHUFFLERS ─────────────────────────────────────
+  ['P','Ryan Helsley','BAL',2,'Motwin Shufflers',false,false],
+  ['P','Michael King','SD',1.5,'Motwin Shufflers',false,false],
+  ['P','Drew Rasmussen','TB',1,'Motwin Shufflers',false,false],
+  ['P','Chase Burns','CIN',2.5,'Motwin Shufflers',false,false],
+  ['P','George Kirby','SEA',2.25,'Motwin Shufflers',false,false],
+  ['P','Jack Flaherty','DET',0.5,'Motwin Shufflers',false,false],
+  ['P','Tanner Bibee','CLE',0.5,'Motwin Shufflers',false,false],
+  ['P','Jeff Hoffman','TOR',1,'Motwin Shufflers',false,false],
+  ['P','Cam Schlittler','NYY',7,'Motwin Shufflers',false,false],
+  ['P','Matthew Boyd','CHC',2,'Motwin Shufflers',false,false],
+  ['P','Kyle Harrison','MIL',2,'Motwin Shufflers',false,false],
+  ['P','Jack Leiter','TEX',2,'Motwin Shufflers',false,false],
+  ['P','Jonah Tong','NYM',0,'Motwin Shufflers',true,false],
+  ['P','Hagen Smith','CWS',0,'Motwin Shufflers',true,false],
+  ['C','Drake Baldwin','ATL',2.5,'Motwin Shufflers',false,false],
+  ['C','Dillon Dingler','DET',1,'Motwin Shufflers',false,false],
+  ['C','Nick Fortes','TB',2,'Motwin Shufflers',false,false],
+  ['C','Samuel Basallo','BAL',0,'Motwin Shufflers',true,false],
+  ['1B','Matt Olson','ATL',5,'Motwin Shufflers',false,false],
+  ['1B','Freddie Freeman','LAD',0.5,'Motwin Shufflers',false,false],
+  ['1B','Spencer Torkelson','DET',2,'Motwin Shufflers',false,false],
+  ['2B','Brice Turang','MIL',4.5,'Motwin Shufflers',false,false],
+  ['2B','Jose Altuve','HOU',0.5,'Motwin Shufflers',false,false],
+  ['2B','Willi Castro','COL',2,'Motwin Shufflers',false,false],
+  ['SS','C.J. Abrams','WAS',3.5,'Motwin Shufflers',false,false],
+  ['SS','Willy Adames','SF',1,'Motwin Shufflers',false,false],
+  ['SS','Otto Lopez','MIA',2,'Motwin Shufflers',false,false],
+  ['SS','Jordan Lawlar','ARI',0,'Motwin Shufflers',true,false],
+  ['SS','Carson Williams','TB',0,'Motwin Shufflers',true,false],
+  ['SS','Josuar De Jesus Gonzalez','SF',0,'Motwin Shufflers',true,false],
+  ['3B','Kazuma Okamoto','TOR',3,'Motwin Shufflers',false,false],
+  ['3B','Maikel Garcia','KC',6.5,'Motwin Shufflers',false,false],
+  ['3B','Alec Bohm','PHI',2,'Motwin Shufflers',false,false],
+  ['OF','Kyle Tucker','LAD',3.25,'Motwin Shufflers',false,false],
+  ['OF','Jarren Duran','BOS',3,'Motwin Shufflers',false,false],
+  ['OF','Jackson Merrill','SD',1.75,'Motwin Shufflers',false,false],
+  ['OF','Oneil Cruz','PIT',2.75,'Motwin Shufflers',false,false],
+  ['OF','Brandon Nimmo','TEX',0.5,'Motwin Shufflers',false,false],
+  ['OF','Taylor Ward','BAL',1.5,'Motwin Shufflers',false,false],
+  ['OF','Luis Robert Jr.','NYM',2,'Motwin Shufflers',false,false],
+  ['OF','Ramon Laureano','SD',2,'Motwin Shufflers',false,false],
+  ['OF','Dylan Crews','WAS',0,'Motwin Shufflers',true,false],
+  ['OF','Josue De Paula','LAD',0,'Motwin Shufflers',true,false],
+  ['OF','Zyhir Hope','LAD',0,'Motwin Shufflers',true,false],
+  ['OF','Braden Montgomery','CWS',0,'Motwin Shufflers',true,false],
+
+  // ── ONEDERS ──────────────────────────────────────────────
+  ['P','Shota Imanaga','CHC',3,'Oneders',false,false],
+  ['P','Grayson Rodriguez','LAA',1.75,'Oneders',false,false],
+  ['P','Paul Skenes','PIT',3,'Oneders',false,false],
+  ['P','Mason Miller','SD',3,'Oneders',false,false],
+  ['P','Roki Sasaki','LAD',4,'Oneders',false,false],
+  ['P','Jacob Misiorowski','MIL',1.25,'Oneders',false,false],
+  ['P','Spencer Strider','ATL',4,'Oneders',false,false],
+  ['P','Corbin Burnes','ARI',0.5,'Oneders',false,false],
+  ['P','Max Meyer','MIA',0.5,'Oneders',false,false],
+  ['P','Aaron Nola','PHI',2,'Oneders',false,false],
+  ['P','Justin Topa','MIN',2,'Oneders',false,false],
+  ['P','Bryan Abreu','HOU',2,'Oneders',false,false],
+  ['P','Cristian Javier','HOU',2,'Oneders',false,false],
+  ['P','Bubba Chandler','PIT',0,'Oneders',true,false],
+  ['P','Travis Sykora','WAS',0,'Oneders',true,false],
+  ['P','Jarlin Susana','WAS',0,'Oneders',true,false],
+  ['P','Edgardo Henriquez','LAD',0,'Oneders',true,false],
+  ['P','Parker Messick','CLE',0,'Oneders',true,false],
+  ['C','Adley Rutschman','BAL',2.75,'Oneders',false,false],
+  ['C','Gabriel Moreno','ARI',0.5,'Oneders',false,false],
+  ['C','J.T. Realmuto','PHI',2,'Oneders',false,false],
+  ['C','Ethan Salas','SD',0,'Oneders',true,false],
+  ['C','Alfredo Duno','CIN',0,'Oneders',true,false],
+  ['1B','Nick Kurtz','ATH',2.5,'Oneders',false,false],
+  ['1B','Ryan Mountcastle','BAL',0.5,'Oneders',false,false],
+  ['1B','Nathaniel Lowe','CIN',2,'Oneders',false,false],
+  ['2B','Jackson Holliday','BAL',1.25,'Oneders',false,false],
+  ['2B','Luis Arraez','SF',1,'Oneders',false,false],
+  ['2B','Jeff McNeil','ATH',2,'Oneders',false,false],
+  ['SS','Mookie Betts','LAD',1.5,'Oneders',false,false],
+  ['SS','Trea Turner','PHI',7,'Oneders',false,false],
+  ['SS','Xander Bogaerts','SD',2,'Oneders',false,false],
+  ['SS','Leo De Vries','ATH',0,'Oneders',true,false],
+  ['3B','Junior Caminero','TB',1.25,'Oneders',false,false],
+  ['3B','Nolan Arenado','ARI',2,'Oneders',false,false],
+  ['3B','Max Muncy','ATH',2,'Oneders',false,false],
+  ['OF','Corbin Carroll','ARI',2.25,'Oneders',false,false],
+  ['OF','Julio Rodriguez','SEA',2.75,'Oneders',false,false],
+  ['OF','Wyatt Langford','TEX',5.5,'Oneders',false,false],
+  ['OF','Byron Buxton','MIN',3.5,'Oneders',false,false],
+  ['OF','Rafael Devers','SF',4,'Oneders',false,false],
+  ['OF','Mike Trout','LAA',3,'Oneders',false,false],
+  ['OF','Nick Castellanos','SD',2,'Oneders',false,false],
+  ['OF','Jonny Farmelo','SEA',0,'Oneders',true,false],
+  ['OF','Slade Caldwell','ARI',0,'Oneders',true,false],
+
+  // ── TEAM AMERICA ─────────────────────────────────────────
+  ['P','Luis Castillo','SEA',1,'Team America',false,false],
+  ['P','Logan Gilbert','SEA',3.25,'Team America',false,false],
+  ['P','Jacob deGrom','TEX',4,'Team America',false,false],
+  ['P','Zac Gallen','ARI',2.5,'Team America',false,false],
+  ['P','Robbie Ray','SF',1.5,'Team America',false,false],
+  ['P','Luis Severino','ATH',0.5,'Team America',false,false],
+  ['P','Emerson Hancock','SEA',0.5,'Team America',false,false],
+  ['P','Bryce Miller','SEA',0.5,'Team America',false,false],
+  ['P','Clay Holmes','NYM',0.5,'Team America',false,false],
+  ['P','Matt Brash','SEA',2,'Team America',false,false],
+  ['P','Will Warren','NYY',2,'Team America',false,false],
+  ['P','Ryan Weathers','NYY',2,'Team America',false,false],
+  ['P','Ryan Sloan','SEA',0,'Team America',true,false],
+  ['C','Cal Raleigh','SEA',4,'Team America',false,false],
+  ['C','Austin Wells','NYY',0.5,'Team America',false,false],
+  ['1B','Bryce Harper','PHI',7,'Team America',false,false],
+  ['1B','Carlos Santana','ARI',0.5,'Team America',false,false],
+  ['1B','Paul Goldschmidt','NYY',2,'Team America',false,false],
+  ['2B','Gleyber Torres','DET',0.5,'Team America',false,false],
+  ['2B','Cole Young','SEA',1.5,'Team America',false,false],
+  ['2B','Kristian Campbell','BOS',0,'Team America',true,false],
+  ['SS','Francisco Lindor','NYM',5.75,'Team America',false,false],
+  ['SS','Jacob Wilson','ATH',1.25,'Team America',false,false],
+  ['SS','J.P. Crawford','SEA',2,'Team America',false,false],
+  ['SS','Jose Caballero','NYY',2,'Team America',false,false],
+  ['SS','Tommy Troy','ARI',0,'Team America',true,false],
+  ['SS','Franklin Arias','BOS',0,'Team America',true,false],
+  ['SS','Cooper Pratt','MIL',0,'Team America',true,false],
+  ['3B','Brendan Donovan','SEA',3.5,'Team America',false,false],
+  ['3B','Coby Mayo','BAL',0.5,'Team America',false,false],
+  ['3B','Cam Collier','CIN',0,'Team America',true,false],
+  ['OF','Fernando Tatis Jr.','SD',3.75,'Team America',false,false],
+  ['OF','Kyle Stowers','MIA',2.5,'Team America',false,false],
+  ['OF','Eugenio Suarez','CIN',5,'Team America',false,false],
+  ['OF','Alek Thomas','ARI',0.5,'Team America',false,false],
+  ['OF','Jorge Soler','LAA',0.5,'Team America',false,false],
+  ['OF','Giancarlo Stanton','NYY',2.5,'Team America',false,false],
+  ['OF','Luke Raley','SEA',2,'Team America',false,false],
+  ['OF','Jake Meyers','HOU',2,'Team America',false,false],
+  ['OF','Cam Smith','HOU',2,'Team America',false,false],
+  ['OF','Isaac Paredes','HOU',2,'Team America',false,false],
+  ['OF','Emmanuel Rodriguez','MIN',0,'Team America',true,false],
+  ['OF','Kevin Alcantara','CHC',0,'Team America',true,false],
+  ['OF','Charlie Condon','COL',0,'Team America',true,false],
+  ['OF','Jasson Dominguez','NYY',0,'Team America',true,false],
+
+  // ── THE JAMES GANG ────────────────────────────────────────
+  ['P','Joe Ryan','MIN',4.5,'The James Gang',false,false],
+  ['P','Logan Webb','SF',3.5,'The James Gang',false,false],
+  ['P','Cristopher Sanchez','PHI',1.5,'The James Gang',false,false],
+  ['P','Nathan Eovaldi','TEX',2,'The James Gang',false,false],
+  ['P','Nick Pivetta','SD',2.5,'The James Gang',false,false],
+  ['P','Merrill Kelly','ARI',0.5,'The James Gang',false,false],
+  ['P','Gavin Williams','CLE',0.5,'The James Gang',false,false],
+  ['P','Pete Fairbanks','MIA',1,'The James Gang',false,false],
+  ['P','Kyle Bradish','BAL',1.5,'The James Gang',false,false],
+  ['P','Nick Lodolo','CIN',2,'The James Gang',false,false],
+  ['P','Raisel Iglesias','ATL',2,'The James Gang',false,false],
+  ['P','Tatsuya Imai','HOU',2,'The James Gang',false,false],
+  ['P','Gerrit Cole','NYY',2,'The James Gang',false,false],
+  ['P','Noah Schultz','CWS',0,'The James Gang',true,false],
+  ['P','Kade Anderson','SEA',0,'The James Gang',true,false],
+  ['P','Quinn Mathews','STL',0,'The James Gang',true,false],
+  ['C','Kyle Teel','CWS',1.25,'The James Gang',false,false],
+  ['C','Ryan Jeffers','MIN',0.5,'The James Gang',false,false],
+  ['C','Yainer Diaz','HOU',2,'The James Gang',false,false],
+  ['C','Moises Ballesteros','CHC',0,'The James Gang',true,false],
+  ['1B','Kyle Manzardo','CLE',1.25,'The James Gang',false,false],
+  ['1B','Ben Rice','NYY',1,'The James Gang',false,false],
+  ['1B','Christian Walker','HOU',2,'The James Gang',false,false],
+  ['2B','Luke Keaschall','MIN',4.5,'The James Gang',false,false],
+  ['2B','Xavier Edwards','MIA',2.5,'The James Gang',false,false],
+  ['2B','Marcus Semien','NYM',2,'The James Gang',false,false],
+  ['2B','Tyler Fitzgerald','',0,'The James Gang',true,false],
+  ['2B','Alex Freeland','LAD',0,'The James Gang',true,false],
+  ['SS','Gunnar Henderson','BAL',2.25,'The James Gang',false,false],
+  ['SS','Zach Neto','LAA',3,'The James Gang',false,false],
+  ['SS','Colson Montgomery','CWS',2,'The James Gang',false,false],
+  ['SS','Kevin McGonigle','DET',0,'The James Gang',true,false],
+  ['3B','Matt Chapman','SF',2,'The James Gang',false,false],
+  ['3B','Manny Machado','SD',4,'The James Gang',false,false],
+  ['OF','Shohei Ohtani','LAD',6.5,'The James Gang',false,true],
+  ['OF','Riley Greene','DET',2.75,'The James Gang',false,false],
+  ['OF','Yandy Diaz','TB',1,'The James Gang',false,false],
+  ['OF','Christian Yelich','MIL',2.5,'The James Gang',false,false],
+  ['OF','Andy Pages','LAD',2.5,'The James Gang',false,false],
+  ['OF','Brenton Doyle','COL',0.5,'The James Gang',false,false],
+  ['OF','Heliot Ramos','SF',2,'The James Gang',false,false],
+  ['OF','Noelvi Marte','CIN',2,'The James Gang',false,false],
+  ['OF','Lazaro Montes','SEA',0,'The James Gang',true,false],
+  ['OF','Max Clark','DET',0,'The James Gang',true,false],
+  ['OF','Jaison Chourio','CLE',0,'The James Gang',true,false],
+
+  // ── YUKON JACKS ──────────────────────────────────────────
+  ['P','Andres Munoz','SEA',2,'Yukon Jacks',false,false],
+  ['P','Carlos Rodon','NYY',1.5,'Yukon Jacks',false,false],
+  ['P','Josh Hader','HOU',1.5,'Yukon Jacks',false,false],
+  ['P','Freddy Peralta','NYM',3.5,'Yukon Jacks',false,false],
+  ['P','Cade Smith','CLE',5,'Yukon Jacks',false,false],
+  ['P','MacKenzie Gore','TEX',0.5,'Yukon Jacks',false,false],
+  ['P','Hunter Greene','CIN',0.5,'Yukon Jacks',false,false],
+  ['P','Devin Williams','NYM',0.5,'Yukon Jacks',false,false],
+  ['P','Zack Wheeler','PHI',4,'Yukon Jacks',false,false],
+  ['P','Edward Cabrera','CHC',2,'Yukon Jacks',false,false],
+  ['P','David Bednar','NYY',2,'Yukon Jacks',false,false],
+  ['P','Ranger Suarez','BOS',2,'Yukon Jacks',false,false],
+  ['P','Chase Petty','CIN',0,'Yukon Jacks',true,false],
+  ['P','Jackson Ferris','LAD',0,'Yukon Jacks',true,false],
+  ['C','Agustin Ramirez','MIA',2.5,'Yukon Jacks',false,false],
+  ['C','Will Smith','LAD',1,'Yukon Jacks',false,false],
+  ['C','Bo Naylor','CLE',2,'Yukon Jacks',false,false],
+  ['C','Adrian Del Castillo','ARI',0,'Yukon Jacks',true,false],
+  ['1B','Vladimir Guerrero Jr.','TOR',3.75,'Yukon Jacks',false,false],
+  ['1B','Willson Contreras','BOS',2.5,'Yukon Jacks',false,false],
+  ['1B','Alec Burleson','STL',2,'Yukon Jacks',false,false],
+  ['1B','Bryce Eldridge','SF',0,'Yukon Jacks',true,false],
+  ['2B','Jazz Chisholm Jr.','NYY',3.25,'Yukon Jacks',false,false],
+  ['2B','Matt McLain','CIN',1,'Yukon Jacks',false,false],
+  ['2B','JJ Wetherholt','STL',0,'Yukon Jacks',true,false],
+  ['SS','Masyn Winn','STL',0.5,'Yukon Jacks',false,false],
+  ['SS','Dansby Swanson','CHC',0.5,'Yukon Jacks',false,false],
+  ['SS','Andres Gimenez','TOR',2,'Yukon Jacks',false,false],
+  ['SS','Angel Genao','CLE',0,'Yukon Jacks',true,false],
+  ['SS','George Lombard Jr.','NYY',0,'Yukon Jacks',true,false],
+  ['SS','Jefferson Rojas','CHC',0,'Yukon Jacks',true,false],
+  ['3B','Jose Ramirez','CLE',4.5,'Yukon Jacks',false,false],
+  ['3B','Ben Williamson','TB',0.5,'Yukon Jacks',false,false],
+  ['3B','Royce Lewis','MIN',2,'Yukon Jacks',false,false],
+  ['3B','Nolan Gorman','STL',2,'Yukon Jacks',false,false],
+  ['OF','Randy Arozarena','SEA',1,'Yukon Jacks',false,false],
+  ['OF','Lawrence Butler','ATH',3,'Yukon Jacks',false,false],
+  ['OF','Jordan Walker','STL',0.5,'Yukon Jacks',false,false],
+  ['OF','Kyle Schwarber','PHI',9.5,'Yukon Jacks',false,false],
+  ['OF','Adolis Garcia','PHI',2.5,'Yukon Jacks',false,false],
+  ['OF','Seiya Suzuki','CHC',6.5,'Yukon Jacks',false,false],
+  ['OF','Ceddanne Rafaela','BOS',2,'Yukon Jacks',false,false],
+  ['OF','Jo Adell','LAA',2,'Yukon Jacks',false,false],
+  ['OF','Chase DeLauter','CLE',0,'Yukon Jacks',true,false],
+  ['OF','JJ Bleday','CIN',0,'Yukon Jacks',true,false],
+];
+
+// ════════════════════════════════════════════════════════════
+// MLB STATS API INTEGRATION
+// ════════════════════════════════════════════════════════════
+
+// Player name → MLB Person ID lookup
+// These are real MLB IDs from the statsapi.mlb.com database
+const PLAYER_IDS = {
+  "Aaron Judge": 592450, "Aaron Nola": 605400, "Adley Rutschman": 668939,
+  "Adolis Garcia": 666969, "Agustin Ramirez": 699855, "Alec Bohm": 664761,
+  "Alec Burleson": 683737, "Alek Thomas": 671107, "Alex Bregman": 608324,
+  "Andres Gimenez": 665926, "Andres Munoz": 668678, "Andrew Abbott": 682526,
+  "Andy Pages": 681624, "Aroldis Chapman": 547973, "Austin Riley": 663586,
+  "Austin Wells": 694192, "Ben Rice": 691852, "Ben Williamson": 701580,
+  "Bo Bichette": 666182, "Bo Naylor": 672584, "Bobby Witt Jr.": 677951,
+  "Brady House": 694192, "Brandon Lowe": 641578, "Brandon Nimmo": 607043,
+  "Brandon Woodruff": 622491, "Brendan Donovan": 680977, "Brent Rooker": 667670,
+  "Brenton Doyle": 681584, "Brice Turang": 682847, "Bryan Abreu": 650556,
+  "Bryan Reynolds": 668804, "Bryan Woo": 692120, "Bryce Harper": 547180,
+  "Bryce Miller": 694563, "Bryson Stott": 681082, "Byron Buxton": 621439,
+  "C.J. Abrams": 682928, "Cade Horton": 701538, "Cade Smith": 666205,
+  "Cal Raleigh": 663728, "Caleb Durbin": 694192, "Cam Schlittler": 694192,
+  "Cam Smith": 694201, "Carlos Correa": 621043, "Carlos Estevez": 615698,
+  "Carlos Rodon": 607074, "Carlos Santana": 467793, "Carter Jensen": 694192,
+  "Ceddanne Rafaela": 694192, "Chandler Simpson": 694652, "Chase Burns": 694297,
+  "Chris Sale": 519242, "Christian Walker": 572039, "Christian Yelich": 592885,
+  "Clay Holmes": 641933, "Coby Mayo": 676775, "Cody Bellinger": 641355,
+  "Cole Ragans": 669270, "Cole Young": 694192, "Colson Montgomery": 699699,
+  "Colt Keith": 694192, "Connelly Early": 694192, "Corbin Burnes": 669456,
+  "Corbin Carroll": 682998, "Corey Seager": 608369, "Cristian Javier": 664299,
+  "Cristopher Sanchez": 657545, "Daniel Palencia": 676715, "Dansby Swanson": 621020,
+  "Daulton Varsho": 661388, "David Bednar": 676440, "Daylen Lile": 702131,
+  "Devin Williams": 642547, "Dillon Dingler": 686668, "Drake Baldwin": 701200,
+  "Drew Rasmussen": 656756, "Dylan Cease": 656302, "Edgar Quero": 700361,
+  "Edward Cabrera": 661403, "Edwin Diaz": 621242, "Elly De La Cruz": 682829,
+  "Emerson Hancock": 694158, "Emmet Sheehan": 694192, "Ernie Clement": 676967,
+  "Eugenio Suarez": 553993, "Eury Perez": 694038, "Ezequiel Tovar": 678662,
+  "Fernando Tatis Jr.": 665487, "Framber Valdez": 664285, "Francisco Lindor": 596019,
+  "Freddie Freeman": 518692, "Freddy Peralta": 642547, "Gabriel Moreno": 683003,
+  "Garrett Crochet": 680757, "Gavin Williams": 694192, "George Kirby": 669923,
+  "George Springer": 543807, "Geraldo Perdomo": 664056, "Gerrit Cole": 543037,
+  "Giancarlo Stanton": 519317, "Gleyber Torres": 650402, "Grayson Rodriguez": 668678,
+  "Gunnar Henderson": 683002, "Heliot Ramos": 671218, "Hunter Brown": 671764,
+  "Hunter Goodman": 694192, "Hunter Greene": 668881, "Ian Happ": 664023,
+  "Isaac Paredes": 670623, "Ivan Herrera": 672356, "J.P. Crawford": 641487,
+  "J.T. Realmuto": 592663, "Jac Caglianone": 701665, "Jack Flaherty": 656427,
+  "Jack Leiter": 682668, "Jackson Chourio": 694192, "Jackson Holliday": 694973,
+  "Jackson Merrill": 693978, "Jacob Misiorowski": 694192, "Jacob Wilson": 699560,
+  "Jacob deGrom": 594798, "Jake Burger": 669394, "Jake Meyers": 669482,
+  "Jakob Marsee": 701156, "James Wood": 694192, "Jarren Duran": 665923,
+  "Javier Baez": 595879, "Jazz Chisholm Jr.": 665750, "Jeff Hoffman": 621107,
+  "Jeff McNeil": 657020, "Jeremy Pena": 665197, "Jesus Luzardo": 660271,
+  "Jhoan Duran": 657514, "Jo Adell": 668976, "Joe Ryan": 656557,
+  "Jonathan Aranda": 677800, "Jonathan India": 694192, "Jordan Walker": 676475,
+  "Jorge Soler": 578428, "Jose Altuve": 514888, "Jose Caballero": 678880,
+  "Jose Ramirez": 608566, "Jose Soriano": 672580, "Josh Hader": 623352,
+  "Josh Naylor": 647304, "Juan Soto": 665742, "Julio Rodriguez": 677594,
+  "Junior Caminero": 694192, "Justin Topa": 668015, "Kazuma Okamoto": 694192,
+  "Kenley Jansen": 445276, "Ketel Marte": 606466, "Kevin Gausman": 592332,
+  "Kodai Senga": 677569, "Konnor Griffin": 694192, "Kris Bubic": 663903,
+  "Kyle Bradish": 669152, "Kyle Harrison": 694192, "Kyle Manzardo": 694192,
+  "Kyle Schwarber": 656941, "Kyle Stowers": 680870, "Kyle Teel": 701532,
+  "Kyle Tucker": 663656, "Lawrence Butler": 694192, "Lenyn Sosa": 694192,
+  "Liam Hicks": 694192, "Logan Gilbert": 669302, "Logan Webb": 657277,
+  "Luis Arraez": 650559, "Luis Castillo": 622491, "Luis Garcia": 694192,
+  "Luis Robert Jr.": 673357, "Luis Severino": 622491, "Luke Keaschall": 694192,
+  "Luke Raley": 663837, "MacKenzie Gore": 663738, "Maikel Garcia": 671435,
+  "Manny Machado": 592518, "Marcelo Mayer": 694192, "Marcus Semien": 543760,
+  "Mason Miller": 672882, "Masyn Winn": 694192, "Matt Brash": 670047,
+  "Matt Chapman": 571745, "Matt McLain": 694192, "Matt Olson": 621566,
+  "Matthew Boyd": 571945, "Max Fried": 594777, "Max Meyer": 694192,
+  "Max Muncy": 571970, "Merrill Kelly": 594482, "Michael Busch": 694192,
+  "Michael Harris II": 694192, "Michael King": 641745, "Mick Abel": 694192,
+  "Mike Trout": 545361, "Miquel Vargas": 672695, "Mitch Keller": 694192,
+  "Mookie Betts": 605141, "Munetaka Murakami": 694192, "Nathan Eovaldi": 547888,
+  "Nathaniel Lowe": 663993, "Nick Castellanos": 592206, "Nick Fortes": 694192,
+  "Nick Kurtz": 701597, "Nick Lodolo": 669854, "Nick Pivetta": 601713,
+  "Nico Hoerner": 663538, "Noah Cameron": 694192, "Noelvi Marte": 694192,
+  "Nolan Arenado": 571448, "Nolan Gorman": 669060, "Oneil Cruz": 694192,
+  "Otto Lopez": 672355, "Ozzie Albies": 645277, "Paul Goldschmidt": 502671,
+  "Paul Sewald": 622261, "Paul Skenes": 694192, "Pete Crow-Armstrong": 694192,
+  "Pete Fairbanks": 622530, "Peter Alonso": 624413, "Rafael Devers": 646240,
+  "Raisel Iglesias": 694192, "Ramon Laureano": 694192, "Randy Arozarena": 668227,
+  "Ranger Suarez": 694192, "Riley Greene": 682985, "Robbie Ray": 571918,
+  "Roki Sasaki": 694192, "Roman Anthony": 694192, "Ronald Acuna Jr.": 660670,
+  "Royce Lewis": 668615, "Ryan Helsley": 694192, "Ryan Jeffers": 680777,
+  "Ryan Mountcastle": 663996, "Ryan Pepiot": 694192, "Ryan Weathers": 694192,
+  "Ryne Nelson": 669388, "Salvador Perez": 521692, "Sandy Alcantara": 645261,
+  "Seiya Suzuki": 673548, "Shane Baz": 694192, "Shane McClanahan": 694192,
+  "Shea Langeliers": 669127, "Shohei Ohtani": 660271, "Shota Imanaga": 694192,
+  "Sonny Gray": 543243, "Spencer Strider": 675911, "Spencer Torkelson": 679529,
+  "Steven Kwan": 694192, "TJ Rumfield": 694192, "Taj Bradley": 694192,
+  "Tanner Bibee": 694192, "Tarik Skubal": 694192, "Tatsuya Imai": 694192,
+  "Taylor Ward": 621585, "Teoscar Hernandez": 606192, "Trea Turner": 607208,
+  "Trevor Megill": 670006, "Trevor Rogers": 669432, "Trevor Story": 596115,
+  "Tyler Glasnow": 607192, "Tyler Soderstrom": 694192, "Vinnie Pasquantino": 686665,
+  "Vladimir Guerrero Jr.": 665489, "Will Smith": 645261, "Will Warren": 694192,
+  "Willi Castro": 694192, "William Contreras": 676083, "Willson Contreras": 572233,
+  "Willy Adames": 642715, "Wilyer Abreu": 694192, "Wyatt Langford": 694192,
+  "Xander Bogaerts": 571771, "Xavier Edwards": 678663, "Yainer Diaz": 694192,
+  "Yandy Diaz": 650490, "Yordan Alvarez": 670541, "Yoshinobu Yamamoto": 694192,
+  "Zac Gallen": 668678, "Zach Neto": 694192, "Zack Wheeler": 554430,
+};
+
+// ════════════════════════════════════════════════════════════
+// APP STATE
+// ════════════════════════════════════════════════════════════
+
+let currentHalf = '1H';
+let currentTeam = 'Ballpark Franks';
+let statsCache = {};   // { playerName: { hitter|pitcher stats } }
+let teamStats  = {};   // computed per team
+let loadState  = { loaded: 0, total: 0, errors: 0 };
+
+// ════════════════════════════════════════════════════════════
+// MLB API CALLS
+// ════════════════════════════════════════════════════════════
+
+async function fetchPlayerStats(playerName, playerId, isPitcher) {
+  const season = 2026;
+  const group  = isPitcher ? 'pitching' : 'hitting';
+  const url    = `${MLB_API}/people/${playerId}/stats?stats=season&season=${season}&group=${group}&sportId=1`;
+  
+  try {
+    const res  = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const splits = data?.stats?.[0]?.splits;
+    if (!splits || splits.length === 0) return null;
+    return splits[0].stat;
+  } catch(e) {
+    return null;
+  }
+}
+
+// Search player by name to find MLB ID
+async function searchPlayerById(name, mlbTeam) {
+  // Try search endpoint
+  const search = encodeURIComponent(name);
+  const url = `${MLB_API}/people/search?names=${search}&sportIds=1`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const people = data?.people;
+    if (!people || people.length === 0) return null;
+    // Try to match by team
+    const match = people.find(p => p.currentTeam?.abbreviation === mlbTeam) || people[0];
+    return match?.id || null;
+  } catch(e) {
+    return null;
+  }
+}
+
+// Get stats for date range (for half-season splits)
+async function fetchPlayerStatsByDate(playerId, isPitcher, startDate, endDate) {
+  const group = isPitcher ? 'pitching' : 'hitting';
+  const url = `${MLB_API}/people/${playerId}/stats?stats=byDateRange&startDate=${startDate}&endDate=${endDate}&group=${group}&sportId=1`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const splits = data?.stats?.[0]?.splits;
+    if (!splits || splits.length === 0) return null;
+    return splits[0].stat;
+  } catch(e) {
+    return null;
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// STAT LOADING ORCHESTRATION
+// ════════════════════════════════════════════════════════════
+
+const CACHE_KEY = 'rlw_stats_2026';
+const HALF_CACHE_KEY = h => `rlw_stats_2026_${h}`;
+
+function loadCachedStats() {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+    const { ts, data } = JSON.parse(cached);
+    if (Date.now() - ts < CACHE_TTL_MS) return data;
+    return null;
+  } catch(e) { return null; }
+}
+
+function saveCachedStats(data) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+  } catch(e) {}
+}
+
+function getDateRangeForHalf(half) {
+  const today = new Date();
+  const fmt = d => d.toISOString().split('T')[0];
+  if (half === '1H') {
+    return { start: '2026-03-26', end: fmt(new Date(Math.min(today, ALL_STAR_DATE))) };
+  } else if (half === '2H') {
+    return { start: fmt(ALL_STAR_DATE), end: fmt(today) };
+  } else {
+    return { start: '2026-03-26', end: fmt(today) };
+  }
+}
+
+async function loadAllStats(force = false) {
+  setStatus('load', 'Checking cache...');
+  
+  if (!force) {
+    const cached = loadCachedStats();
+    if (cached) {
+      statsCache = cached;
+      setStatus('ok', `Stats loaded from cache · ${Object.keys(cached).length} players`);
+      updateLastUpdated();
+      computeTeamStats();
+      renderAll();
+      hideLoader();
+      return;
+    }
+  }
+
+  // Get players that need stats (not MiLB)
+  const activePlayers = ROSTER.filter(p => !p[5]);
+  loadState = { loaded: 0, total: activePlayers.length, errors: 0 };
+  
+  setStatus('load', `Fetching stats for ${activePlayers.length} players...`);
+  setLoaderMsg('Fetching MLB stats...');
+  setProgress(5);
+
+  // Resolve player IDs (use known IDs or search)
+  const resolvedIds = {};
+  for (const p of activePlayers) {
+    const name = p[1];
+    if (PLAYER_IDS[name] && PLAYER_IDS[name] !== 694192) {
+      resolvedIds[name] = PLAYER_IDS[name];
+    }
+    // Will search for 694192 placeholders during stat fetch
+  }
+
+  // Fetch stats in batches
+  const BATCH_SIZE = 15;
+  const { start, end } = getDateRangeForHalf('FULL');
+  
+  for (let i = 0; i < activePlayers.length; i += BATCH_SIZE) {
+    const batch = activePlayers.slice(i, i + BATCH_SIZE);
+    
+    await Promise.all(batch.map(async (p) => {
+      const [pos, name, mlbTeam, salary, fantasyTeam, isMilb, ohtaniHO] = p;
+      const isPitcher = pos === 'P';
+      // Skip pitching stats for Ohtani
+      const fetchPitching = isPitcher && !ohtaniHO;
+      const fetchHitting  = !isPitcher || ohtaniHO;
+      
+      let playerId = resolvedIds[name] || PLAYER_IDS[name];
+      
+      // If placeholder ID, try searching
+      if (!playerId || playerId === 694192) {
+        playerId = await searchPlayerById(name, mlbTeam);
+        if (playerId) resolvedIds[name] = playerId;
+      }
+      
+      if (!playerId) {
+        statsCache[name] = { found: false };
+        loadState.errors++;
+        loadState.loaded++;
+        return;
+      }
+      
+      let stat = null;
+      // Fetch by date range for proper splits
+      if (fetchPitching) {
+        stat = await fetchPlayerStatsByDate(playerId, true, start, end);
+      } else if (fetchHitting) {
+        stat = await fetchPlayerStatsByDate(playerId, false, start, end);
+      }
+      
+      if (stat) {
+        statsCache[name] = { found: true, id: playerId, stat, isPitcher: fetchPitching };
+      } else {
+        statsCache[name] = { found: false, id: playerId };
+        loadState.errors++;
+      }
+      
+      loadState.loaded++;
+    }));
+    
+    const pct = Math.round((i + batch.length) / activePlayers.length * 90) + 5;
+    setProgress(pct);
+    setLoaderMsg(`Loading stats... ${loadState.loaded}/${loadState.total}`);
+    setStatus('load', `Loading ${loadState.loaded}/${loadState.total} players (${loadState.errors} errors)...`);
+  }
+  
+  saveCachedStats(statsCache);
+  setProgress(100);
+  updateLastUpdated();
+  
+  computeTeamStats();
+  renderAll();
+  
+  const msg = `Stats updated · ${loadState.total - loadState.errors}/${loadState.total} players loaded`;
+  setStatus('ok', msg);
+  setLoaderMsg('Done!');
+  
+  setTimeout(hideLoader, 500);
+}
+
+// ════════════════════════════════════════════════════════════
+// BEST-BALL STAT COMPUTATION
+// ════════════════════════════════════════════════════════════
+
+function getPlayerStatForHalf(name, half) {
+  // If we have full-season stats, we need to re-fetch for splits
+  // For now return full-season stats (split fetching can be added)
+  return statsCache[name]?.stat || null;
+}
+
+function computeTeamStats() {
+  teamStats = {};
+  
+  for (const team of TEAMS) {
+    const roster = ROSTER.filter(p => p[4] === team && !p[5]); // active MLB only
+    const pitchers = roster.filter(p => p[0] === 'P');
+    const hitters  = roster.filter(p => p[0] !== 'P');
+    
+    // ── PITCHERS: Best Ball picks best 9 by ERA ──────────
+    const pitcherStats = pitchers.map(p => {
+      const s = statsCache[p[1]]?.stat;
+      return {
+        name: p[1],
+        ohtaniHO: p[6],
+        w: s?.wins || 0,
+        sv: s?.saves || 0,
+        k: s?.strikeOuts || 0,
+        era: s?.era ? parseFloat(s.era) : 99,
+        whip: s?.whip ? parseFloat(s.whip) : 9.99,
+        ip: s?.inningsPitched ? parseFloat(s.inningsPitched) : 0,
+        hasStats: !!s,
+      };
+    }).filter(p => !p.ohtaniHO); // exclude Ohtani pitcher
+
+    // Sort by ERA (ascending), take best 9
+    const sorted = [...pitcherStats].sort((a, b) => {
+      if (!a.hasStats && !b.hasStats) return 0;
+      if (!a.hasStats) return 1;
+      if (!b.hasStats) return -1;
+      return a.era - b.era;
+    });
+    const best9 = sorted.slice(0, 9);
+    
+    // Compute IP-weighted ERA/WHIP
+    const totalIP  = best9.reduce((s, p) => s + p.ip, 0);
+    const weightedERA  = totalIP > 0 ? best9.reduce((s, p) => s + p.era * p.ip, 0) / totalIP : 99;
+    const weightedWHIP = totalIP > 0 ? best9.reduce((s, p) => s + p.whip * p.ip, 0) / totalIP : 9.99;
+    
+    const totW   = best9.reduce((s, p) => s + p.w, 0);
+    const totSV  = best9.reduce((s, p) => s + p.sv, 0);
+    const totK   = best9.reduce((s, p) => s + p.k, 0);
+    const wspts  = totW + totSV * 0.5;
+    
+    // ── HITTERS: Best Ball picks best 2 per pos, best 6 OF ──
+    const POS_GROUPS = { C: 2, '1B': 2, '2B': 2, 'SS': 2, '3B': 2, OF: 6 };
+    
+    let totAB = 0, totH = 0, tot2B = 0, tot3B = 0, totHR = 0;
+    let totR = 0, totRBI = 0, totSB = 0;
+    
+    for (const [pos, slots] of Object.entries(POS_GROUPS)) {
+      const pool = hitters.filter(p => p[0] === pos);
+      const withStats = pool.map(p => {
+        const s = statsCache[p[1]]?.stat;
+        // Include Ohtani hitting stats
+        const ohtaniS = p[6] ? statsCache[p[1]]?.stat : null;
+        const stat = s || ohtaniS;
+        return {
+          name: p[1],
+          ab:  stat?.atBats || 0,
+          h:   stat?.hits || 0,
+          d2:  stat?.doubles || 0,
+          d3:  stat?.triples || 0,
+          hr:  stat?.homeRuns || 0,
+          r:   stat?.runs || 0,
+          rbi: stat?.rbi || 0,
+          sb:  stat?.stolenBases || 0,
+          score: (stat?.runs || 0) + (stat?.homeRuns || 0) + (stat?.rbi || 0),
+        };
+      });
+      
+      // Sort by composite score desc, take top N slots
+      withStats.sort((a, b) => b.score - a.score);
+      const starters = withStats.slice(0, slots);
+      
+      starters.forEach(p => {
+        totAB  += p.ab;
+        totH   += p.h;
+        tot2B  += p.d2;
+        tot3B  += p.d3;
+        totHR  += p.hr;
+        totR   += p.r;
+        totRBI += p.rbi;
+        totSB  += p.sb;
+      });
+    }
+    
+    // Also add Ohtani hitting
+    const ohtaniOnTeam = ROSTER.find(p => p[1] === 'Shohei Ohtani' && p[4] === team);
+    if (ohtaniOnTeam) {
+      const os = statsCache['Shohei Ohtani']?.stat;
+      if (os) {
+        totAB  += os.atBats || 0;
+        totH   += os.hits || 0;
+        tot2B  += os.doubles || 0;
+        tot3B  += os.triples || 0;
+        totHR  += os.homeRuns || 0;
+        totR   += os.runs || 0;
+        totRBI += os.rbi || 0;
+        totSB  += os.stolenBases || 0;
+      }
+    }
+    
+    const avg = totAB > 0 ? totH / totAB : 0;
+    
+    teamStats[team] = {
+      avg, R: totR, XBH: tot2B + tot3B, HR: totHR, RBI: totRBI, SB: totSB,
+      WS: wspts, K: totK, ERA: weightedERA < 50 ? weightedERA : 0, WHIP: weightedWHIP < 5 ? weightedWHIP : 0,
+      W: totW, SV: totSV,
+      best9Pitchers: best9.map(p => p.name),
+    };
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// RENDERING
+// ════════════════════════════════════════════════════════════
+
+const CATS = [
+  { key: 'avg',  label: 'AVG',   fmt: v => v.toFixed(3),      lower: false },
+  { key: 'R',    label: 'R',     fmt: v => v,                  lower: false },
+  { key: 'XBH',  label: '2B+3B', fmt: v => v,                  lower: false },
+  { key: 'HR',   label: 'HR',    fmt: v => v,                  lower: false },
+  { key: 'RBI',  label: 'RBI',   fmt: v => v,                  lower: false },
+  { key: 'SB',   label: 'SB',    fmt: v => v,                  lower: false },
+  { key: 'WS',   label: 'W+S',   fmt: v => v.toFixed(1),       lower: false },
+  { key: 'K',    label: 'K',     fmt: v => v,                  lower: false },
+  { key: 'ERA',  label: 'ERA',   fmt: v => v.toFixed(2),       lower: true  },
+  { key: 'WHIP', label: 'WHIP',  fmt: v => v.toFixed(3),       lower: true  },
+];
+
+function rankTeams() {
+  // Score each category 8 (best) → 1 (worst)
+  const scores = {};
+  TEAMS.forEach(t => { scores[t] = 0; });
+  
+  CATS.forEach(cat => {
+    const vals = TEAMS.map(t => ({ team: t, val: teamStats[t]?.[cat.key] || 0 }));
+    vals.sort((a, b) => cat.lower ? a.val - b.val : b.val - a.val);
+    vals.forEach((v, i) => { scores[v.team] += (8 - i); });
+  });
+  
+  return TEAMS.slice().sort((a, b) => scores[b] - scores[a]).map(t => ({
+    team: t, score: scores[t], stats: teamStats[t] || {}
+  }));
+}
+
+function getCatRanks() {
+  const ranks = {};
+  CATS.forEach(cat => {
+    const vals = TEAMS.map(t => ({ team: t, val: teamStats[t]?.[cat.key] || 0 }));
+    vals.sort((a, b) => cat.lower ? a.val - b.val : b.val - a.val);
+    vals.forEach((v, i) => {
+      if (!ranks[v.team]) ranks[v.team] = {};
+      ranks[v.team][cat.key] = i + 1; // 1 = best
+    });
+  });
+  return ranks;
+}
+
+function renderStandings() {
+  const ranked = rankTeams();
+  const catRanks = getCatRanks();
+  
+  const rows = ranked.map((entry, i) => {
+    const { team, score, stats } = entry;
+    const rankClass = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '';
+    const myTeamClass = team === MY_TEAM ? 'my-team' : '';
+    
+    const catCells = CATS.map(cat => {
+      const rank = catRanks[team]?.[cat.key] || 8;
+      const val  = stats[cat.key];
+      const display = val != null ? cat.fmt(val) : '—';
+      const rankTag = rank === 1 ? `<span class="cat-rank r1">#1</span>` 
+                   : rank === 8 ? `<span class="cat-rank r8">#8</span>` 
+                   : '';
+      return `<td>${display}${rankTag}</td>`;
+    }).join('');
+    
+    return `
+      <tr class="${myTeamClass}">
+        <td>
+          <span class="rank-badge ${rankClass}">${i + 1}</span>
+          ${team}${team === MY_TEAM ? ' ⚾' : ''}
+        </td>
+        ${catCells}
+        <td class="score-pts">${score}/80</td>
+      </tr>
+    `;
+  }).join('');
+  
+  document.getElementById('standings-body').innerHTML = rows || 
+    '<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--muted)">No stats loaded yet — click Refresh Stats</td></tr>';
+}
+
+function renderCategories() {
+  const catRanks = getCatRanks();
+  
+  const cards = CATS.map(cat => {
+    const vals = TEAMS.map(t => ({ team: t, val: teamStats[t]?.[cat.key] || 0 }));
+    vals.sort((a, b) => cat.lower ? a.val - b.val : b.val - a.val);
+    
+    const maxVal = cat.lower 
+      ? Math.max(...vals.map(v => v.val)) 
+      : Math.max(...vals.map(v => v.val));
+    const minVal = cat.lower 
+      ? Math.min(...vals.filter(v => v.val > 0).map(v => v.val)) 
+      : 0;
+    
+    const bars = vals.map((v, i) => {
+      const isMy = v.team === MY_TEAM;
+      const pct = maxVal > 0 
+        ? cat.lower 
+          ? ((maxVal - v.val) / (maxVal - minVal + 0.001)) * 100
+          : (v.val / maxVal) * 100
+        : 0;
+      const nameShort = v.team.replace('Ballpark Franks', 'Ballpark Franks').slice(0, 18);
+      return `
+        <div class="cat-bar-row">
+          <div class="cat-bar-name ${isMy ? 'my' : ''}">${nameShort}</div>
+          <div class="cat-bar-outer">
+            <div class="cat-bar-inner ${isMy ? 'my' : ''}" style="width:${Math.max(pct,2)}%"></div>
+          </div>
+          <div class="cat-bar-val">${cat.fmt(v.val)}</div>
+        </div>
+      `;
+    }).join('');
+    
+    const type = cat.lower ? '↓ lower better' : '↑ higher better';
+    return `
+      <div class="cat-card">
+        <h3>${cat.label} <span class="cat-type">${type}</span></h3>
+        ${bars}
+      </div>
+    `;
+  }).join('');
+  
+  document.getElementById('cat-grid').innerHTML = cards;
+}
+
+function renderRosters(team) {
+  const roster = ROSTER.filter(p => p[4] === team);
+  const pitchers = roster.filter(p => p[0] === 'P');
+  const hitters  = roster.filter(p => p[0] !== 'P');
+  const best9    = teamStats[team]?.best9Pitchers || [];
+  
+  document.getElementById('pitcher-count').textContent = `(${pitchers.filter(p=>!p[5]).length} MLB / ${pitchers.filter(p=>p[5]).length} MiLB)`;
+  document.getElementById('hitter-count').textContent  = `(${hitters.filter(p=>!p[5]).length} MLB / ${hitters.filter(p=>p[5]).length} MiLB)`;
+  
+  function makeRow(p) {
+    const [pos, name, mlbTeam, salary, ft, isMilb, ohtaniHO] = p;
+    const s = statsCache[name]?.stat;
+    const isBB = best9.includes(name);
+    const posKey = pos === '1B' ? 'B1' : pos === '2B' ? 'B2' : pos === '3B' ? 'B3' : pos;
+    
+    let statsHtml = '';
+    if (isMilb) {
+      statsHtml = `<span style="color:var(--muted);font-size:10px;font-family:'DM Mono',monospace;">MiLB</span>`;
+    } else if (!s) {
+      statsHtml = `<span class="loading-dots" style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;">···</span>`;
+    } else if (pos === 'P' && !ohtaniHO) {
+      const w = s.wins || 0, sv = s.saves || 0, k = s.strikeOuts || 0;
+      const era = s.era || '—', whip = s.whip || '—';
+      statsHtml = `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">${w}W ${sv}SV ${k}K <span style="color:var(--muted)">${era} ERA ${whip} WHIP</span></span>`;
+    } else {
+      const avg = s.avg || '.000';
+      const hr = s.homeRuns || 0, r = s.runs || 0, rbi = s.rbi || 0, sb = s.stolenBases || 0;
+      const xbh = (s.doubles||0) + (s.triples||0);
+      statsHtml = `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">${avg} <span style="color:var(--muted)">${r}R ${xbh}XBH ${hr}HR ${rbi}RBI ${sb}SB</span></span>`;
+    }
+    
+    return `
+      <div class="player-row ${isMilb ? 'milb' : ''} ${isBB ? 'active-bb' : ''}">
+        <div class="pos-tag ${posKey}">${pos}</div>
+        <div class="player-name">${name}<span class="team-abbr">${mlbTeam}</span></div>
+        <div>${isBB ? '<span class="bb-tag">BB</span>' : ''}</div>
+        <div class="player-stats">${statsHtml}</div>
+      </div>
+    `;
+  }
+  
+  document.getElementById('pitcher-rows').innerHTML = pitchers.map(makeRow).join('');
+  document.getElementById('hitter-rows').innerHTML  = hitters.map(makeRow).join('');
+}
+
+function renderAll() {
+  renderStandings();
+  renderCategories();
+  renderRosters(currentTeam);
+}
+
+// ════════════════════════════════════════════════════════════
+// UI HELPERS
+// ════════════════════════════════════════════════════════════
+
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function setHalf(half) {
+  currentHalf = half;
+  document.querySelectorAll('.half-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + half).classList.add('active');
+  
+  const now = new Date();
+  const info = half === '1H' 
+    ? 'First half stats: Opening Day → All-Star Break'
+    : half === '2H'
+    ? 'Second half stats: All-Star Break → End of Season'
+    : 'Full season stats';
+  document.getElementById('controls-info').textContent = info;
+  
+  // Re-fetch with appropriate date range
+  refreshStats();
+}
+
+async function refreshStats() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('loading');
+  btn.textContent = '⟳ Loading...';
+  await loadAllStats(true);
+  btn.classList.remove('loading');
+  btn.textContent = '⟳ Refresh Stats';
+}
+
+function setStatus(type, msg) {
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot ' + type;
+  document.getElementById('status-msg').textContent = msg;
+}
+
+function setProgress(pct) {
+  document.getElementById('prog').style.width = pct + '%';
+}
+
+function setLoaderMsg(msg) {
+  document.getElementById('loader-msg').textContent = msg;
+}
+
+function hideLoader() {
+  document.getElementById('loading-overlay').classList.add('hidden');
+}
+
+function updateLastUpdated() {
+  const now = new Date();
+  document.getElementById('last-updated').textContent = 
+    `Last updated: ${now.toLocaleTimeString()} on ${now.toLocaleDateString()}`;
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+
+function initTeamSelector() {
+  const sel = document.getElementById('team-selector');
+  sel.innerHTML = TEAMS.map(t => 
+    `<div class="team-pill ${t === currentTeam ? 'active' : ''}" onclick="selectTeam('${t}')">${t}</div>`
+  ).join('');
+}
+
+function selectTeam(team) {
+  currentTeam = team;
+  document.querySelectorAll('.team-pill').forEach(p => {
+    p.classList.toggle('active', p.textContent === team);
+  });
+  renderRosters(team);
+}
+
+async function init() {
+  setProgress(10);
+  setLoaderMsg('Building roster data...');
+  
+  initTeamSelector();
+  
+  setProgress(20);
+  setLoaderMsg('Connecting to MLB Stats API...');
+  
+  await loadAllStats(false);
+}
+
+init();
+</script>
+</body>
+</html>
