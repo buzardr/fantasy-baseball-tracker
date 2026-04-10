@@ -1114,7 +1114,33 @@ const ROSTER = [
 
 const MLB_API   = 'https://statsapi.mlb.com/api/v1';
 const SPORT_ID  = 1; // MLB
+// MLB team abbreviation → numeric team ID
+const TEAM_IDS = {
+  ARI:109, ATL:144, BAL:110, BOS:111, CHC:112, CWS:145, CIN:113,
+  CLE:114, COL:115, DET:116, HOU:117, KC:118,  LAA:108, LAD:119,
+  MIA:146, MIL:158, MIN:142, NYM:121, NYY:147, ATH:133, PHI:143,
+  PIT:134, SD:135,  SF:137,  SEA:136, STL:138, TB:139,  TEX:140,
+  TOR:141, WAS:120,
+};
 
+// Cache of active 26-man rosters keyed by team abbrev — refreshed each stat load
+let activeRosterCache = {};
+
+async function fetchActiveRoster(teamAbbr) {
+  if (activeRosterCache[teamAbbr]) return activeRosterCache[teamAbbr];
+  const teamId = TEAM_IDS[teamAbbr];
+  if (!teamId) return new Set();
+  const url = `${MLB_API}/teams/${teamId}/roster?season=2026&rosterType=active`;
+  try {
+    const res  = await fetch(url);
+    if (!res.ok) return new Set();
+    const data = await res.json();
+    // Build a Set of normalised names on the active roster
+    const names = new Set((data.roster || []).map(e => e.person.fullName.toLowerCase()));
+    activeRosterCache[teamAbbr] = names;
+    return names;
+  } catch(e) { return new Set(); }
+}
 // ── Persistent player-ID cache (localStorage, never expires) ──
 const ID_STORE_KEY = 'rlw_player_ids_v3';
 
@@ -1359,7 +1385,7 @@ const KNOWN_IDS = {
 "Logan Webb|SF": 657277,
 "Luis Arraez|SF": 650333,
 "Luis Castillo|SEA": 112116,
-"Luis Garcia|WAS": 150193,
+"Luis Garcia|WAS": 671277,
 "Luis Pena|MIL": 821270,
 "Luis Robert Jr.|NYM": 673357,
 "Luis Severino|ATH": 622663,
@@ -1688,8 +1714,13 @@ async function loadAllStats(force = false) {
     if (!idStore[key]) idStore[key] = id;
   }
 
+  // ── Phase 0: Fetch active 26-man rosters for all unique teams ──
+  activeRosterCache = {};
+  const allTeams = [...new Set(ROSTER.map(p => p[2]).filter(Boolean))];
+  setLoaderMsg('Checking active MLB rosters...');
+  await Promise.all(allTeams.map(t => fetchActiveRoster(t)));
 
-  const activePlayers = ROSTER.filter(p => !p[5]); // exclude MiLB
+  const activePlayers = ROSTER; // all players now
   loadState = { loaded: 0, total: activePlayers.length, errors: 0 };
 
   setLoaderMsg('Resolving player IDs...');
@@ -1799,7 +1830,7 @@ function computeTeamStats() {
   teamStats = {};
 
   for (const team of TEAMS) {
-    const roster   = ROSTER.filter(p => p[4] === team && !p[5]); // active MLB only
+    const roster   = ROSTER.filter(p => p[4] === team); // active roster check via API
     const pitchers = roster.filter(p => p[0] === 'P');
     const hitters  = roster.filter(p => p[0] !== 'P');
 
@@ -2053,7 +2084,12 @@ function renderRosters(team) {
     const posKey = pos === '1B' ? 'B1' : pos === '2B' ? 'B2' : pos === '3B' ? 'B3' : pos;
 
     let statsHtml = '';
-    if (isMilb) {
+    // Determine true status: check live active roster, fall back to isMilb flag
+    const rosterNames = activeRosterCache[mlbTeam] || new Set();
+    const isOnMLBRoster = rosterNames.has(name.toLowerCase());
+    const showAsMilb = !isOnMLBRoster && isMilb;
+
+    if (showAsMilb) {
       statsHtml = `<span style="color:var(--muted);font-size:10px;font-family:'DM Mono',monospace;">MiLB</span>`;
     } else if (!s) {
       statsHtml = `<span class="loading-dots" style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;">···</span>`;
@@ -2069,7 +2105,7 @@ function renderRosters(team) {
     }
 
     return `
-      <div class="player-row ${isMilb ? 'milb' : ''} ${isBB ? 'active-bb' : ''}">
+      <div class="player-row ${showAsMilb ? 'milb' : ''} ${isBB ? 'active-bb' : ''}">
         <div class="pos-tag ${posKey}">${pos}</div>
         <div class="player-name">${name}<span class="team-abbr">${mlbTeam}</span></div>
         <div>${isBB ? '<span class="bb-tag">BB</span>' : ''}</div>
