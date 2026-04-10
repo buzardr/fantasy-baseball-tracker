@@ -893,8 +893,8 @@ const ROSTER = [
   ['SS','C.J. Abrams','WAS',3.5,'Motwin Shufflers',false,false],
   ['SS','Willy Adames','SF',1,'Motwin Shufflers',false,false],
   ['SS','Otto Lopez','MIA',2,'Motwin Shufflers',false,false],
-  ['SS','Jordan Lawlar','ARI',0,'Motwin Shufflers',true,false],
-  ['SS','Carson Williams','TB',0,'Motwin Shufflers',true,false],
+  ['SS','Jordan Lawlar','ARI',0,'Motwin Shufflers',false,false],
+  ['SS','Carson Williams','TB',0,'Motwin Shufflers',false,false],
   ['SS','Josuar De Jesus Gonzalez','SF',0,'Motwin Shufflers',true,false],
   ['3B','Kazuma Okamoto','TOR',3,'Motwin Shufflers',false,false],
   ['3B','Maikel Garcia','KC',6.5,'Motwin Shufflers',false,false],
@@ -1312,7 +1312,7 @@ const KNOWN_IDS = {
 "Jackson Merrill|SD": 701538,
 "Jacob deGrom|TEX": 594798,
 "Jacob Misiorowski|MIL": 694819,
-"Jacob Wilson|ATH": 607111,
+"Jacob Wilson|ATH": 805779,
 "Jaison Chourio|CLE": 702693,
 "Jake Burger|TEX": 669394,
 "Jake Meyers|HOU": 676694,
@@ -1384,7 +1384,7 @@ const KNOWN_IDS = {
 "Logan Henderson|MIL": 701656,
 "Logan Webb|SF": 657277,
 "Luis Arraez|SF": 650333,
-"Luis Castillo|SEA": 112116,
+"Luis Castillo|SEA": 622491,
 "Luis Garcia|WAS": 671277,
 "Luis Pena|MIL": 821270,
 "Luis Robert Jr.|NYM": 673357,
@@ -2192,7 +2192,7 @@ function updateLastUpdated() {
 function initTeamSelector() {
   const sel = document.getElementById('team-selector');
   sel.innerHTML = TEAMS.map(t => 
-    `<div class="team-pill ${t === currentTeam ? 'active' : ''}" onclick="selectTeam('${t}')">${t}</div>`
+    `<div class="team-pill ${t === currentTeam ? 'active' : ''}" data-team="${t}" onclick="selectTeam(this.dataset.team)">${t}</div>`
   ).join('');
 }
 
