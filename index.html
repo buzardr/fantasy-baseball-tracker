@@ -1116,7 +1116,7 @@ const MLB_API   = 'https://statsapi.mlb.com/api/v1';
 const SPORT_ID  = 1; // MLB
 
 // ── Persistent player-ID cache (localStorage, never expires) ──
-const ID_STORE_KEY = 'rlw_player_ids_v2';
+const ID_STORE_KEY = 'rlw_player_ids_v3';
 
 function loadIdStore() {
   try { return JSON.parse(localStorage.getItem(ID_STORE_KEY) || '{}'); }
@@ -1632,7 +1632,7 @@ let loadState   = { loaded: 0, total: 0, errors: 0 };
 
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
-function statCacheKey(half) { return `rlw_stats_2026_${half}`; }
+function statCacheKey(half) { return `rlw_stats_2026_${half}_v2`; }
 
 function loadCachedStats(half) {
   try {
@@ -1807,9 +1807,10 @@ function computeTeamStats() {
     const pitcherStats = pitchers
       .filter(p => !p[6]) // exclude Ohtani's pitcher slot
       .map(p => {
-        const s = getStat(p[1], p[2]);;
+        const s = getStat(p[1], p[2]);
         return {
           name:     p[1],
+          key:      playerKey(p[1], p[2]),
           w:        s?.wins         || 0,
           sv:       s?.saves        || 0,
           k:        s?.strikeOuts   || 0,
@@ -1847,9 +1848,10 @@ function computeTeamStats() {
     for (const [pos, slots] of Object.entries(POS_GROUPS)) {
       const pool = hitters.filter(p => p[0] === pos);
       const withStats = pool.map(p => {
-        const s = getStat(p[1], p[2]);;
+        const s = getStat(p[1], p[2]);
         return {
           name: p[1],
+          key:  playerKey(p[1], p[2]),
           ab:   s?.atBats      || 0,
           h:    s?.hits        || 0,
           d2:   s?.doubles     || 0,
@@ -1865,7 +1867,7 @@ function computeTeamStats() {
 
       withStats.sort((a, b) => b.score - a.score);
       const starters = withStats.slice(0, slots);
-      starters.forEach(p => { bestHitters.push(p.name); });
+      starters.forEach(p => { bestHitters.push(p.key); });
 
       starters.forEach(p => {
         totAB  += p.ab;  totH   += p.h;
@@ -1878,7 +1880,7 @@ function computeTeamStats() {
     // Ohtani hitting: he's listed as OF with ohtaniHO=true — add his hitting stats
     const ohtaniEntry = ROSTER.find(p => p[1] === 'Shohei Ohtani' && p[4] === team);
     if (ohtaniEntry) {
-      const os = getStat('Shohei Ohtani');
+      const os = getStat('Shohei Ohtani', 'LAD');
       if (os) {
         totAB  += os.atBats      || 0;
         totH   += os.hits        || 0;
@@ -1888,7 +1890,7 @@ function computeTeamStats() {
         totR   += os.runs        || 0;
         totRBI += os.rbi         || 0;
         totSB  += os.stolenBases || 0;
-        bestHitters.push('Shohei Ohtani');
+        bestHitters.push(playerKey('Shohei Ohtani', 'LAD'));
       }
     }
 
@@ -1900,7 +1902,7 @@ function computeTeamStats() {
       ERA:  weightedERA  > 0 && weightedERA  < 50 ? weightedERA  : 0,
       WHIP: weightedWHIP > 0 && weightedWHIP < 5  ? weightedWHIP : 0,
       W: totW, SV: totSV,
-      best9Pitchers: best9.map(p => p.name),
+      best9Pitchers: best9.map(p => p.key),
       bestHitters,
     };
   }
@@ -2044,9 +2046,9 @@ function renderRosters(team) {
 
   function makeRow(p) {
     const [pos, name, mlbTeam, salary, ft, isMilb, ohtaniHO] = p;
-    const s      = getStat(name);
-    const isBBp  = best9.includes(name);
-    const isBBh  = bestH.includes(name);
+    const s      = getStat(name, mlbTeam);
+    const isBBp  = best9.includes(playerKey(name, mlbTeam));
+    const isBBh  = bestH.includes(playerKey(name, mlbTeam));
     const isBB   = isBBp || isBBh;
     const posKey = pos === '1B' ? 'B1' : pos === '2B' ? 'B2' : pos === '3B' ? 'B3' : pos;
 
