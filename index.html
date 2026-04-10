@@ -1127,77 +1127,375 @@ function saveIdStore(store) {
   catch(e) {}
 }
 
+function playerKey(name, team) {
+  return `${name}|${team}`;
+}
+
+
 // Seed with IDs we already know are correct (reduces API calls)
 const KNOWN_IDS = {
-  "Aaron Judge": 592450, "Aaron Nola": 605400, "Adley Rutschman": 668939,
-  "Adolis Garcia": 666969, "Alec Bohm": 664761, "Alec Burleson": 683737,
-  "Alek Thomas": 671107, "Alex Bregman": 608324, "Andres Gimenez": 665926,
-  "Andrew Abbott": 682526, "Andy Pages": 681624, "Aroldis Chapman": 547973,
-  "Austin Riley": 663586, "Ben Rice": 691852, "Bo Bichette": 666182,
-  "Bo Naylor": 672584, "Bobby Witt Jr.": 677951, "Brandon Lowe": 641578,
-  "Brandon Nimmo": 607043, "Brandon Woodruff": 622491, "Brendan Donovan": 680977,
-  "Brent Rooker": 667670, "Brenton Doyle": 681584, "Brice Turang": 682847,
-  "Bryan Abreu": 650556, "Bryan Reynolds": 668804, "Bryan Woo": 692120,
-  "Bryce Harper": 547180, "Bryce Miller": 694563, "Bryson Stott": 681082,
-  "Byron Buxton": 621439, "C.J. Abrams": 682928, "Cade Smith": 666205,
-  "Cal Raleigh": 663728, "Cam Smith": 694201, "Carlos Correa": 621043,
-  "Carlos Estevez": 615698, "Carlos Rodon": 607074, "Carlos Santana": 467793,
-  "Chandler Simpson": 694652, "Chase Burns": 694297, "Chris Sale": 519242,
-  "Christian Walker": 572039, "Christian Yelich": 592885, "Clay Holmes": 641933,
-  "Coby Mayo": 676775, "Cody Bellinger": 641355, "Cole Ragans": 669270,
-  "Colson Montgomery": 699699, "Corbin Burnes": 669456, "Corbin Carroll": 682998,
-  "Corey Seager": 608369, "Cristian Javier": 664299, "Cristopher Sanchez": 657545,
-  "Daniel Palencia": 676715, "Dansby Swanson": 621020, "Daulton Varsho": 661388,
-  "David Bednar": 676440, "Devin Williams": 642547, "Dillon Dingler": 686668,
-  "Drake Baldwin": 701200, "Drew Rasmussen": 656756, "Dylan Cease": 656302,
-  "Edgar Quero": 700361, "Edward Cabrera": 661403, "Edwin Diaz": 621242,
-  "Elly De La Cruz": 682829, "Emerson Hancock": 694158, "Ernie Clement": 676967,
-  "Eugenio Suarez": 553993, "Eury Perez": 694038, "Ezequiel Tovar": 678662,
-  "Fernando Tatis Jr.": 665487, "Framber Valdez": 664285, "Francisco Lindor": 596019,
-  "Freddie Freeman": 518692, "Gabriel Moreno": 683003, "Garrett Crochet": 680757,
-  "George Kirby": 669923, "George Springer": 543807, "Geraldo Perdomo": 664056,
-  "Gerrit Cole": 543037, "Giancarlo Stanton": 519317, "Gleyber Torres": 650402,
-  "Gunnar Henderson": 683002, "Heliot Ramos": 671218, "Hunter Brown": 671764,
-  "Hunter Greene": 668881, "Ian Happ": 664023, "Isaac Paredes": 670623,
-  "Ivan Herrera": 672356, "J.P. Crawford": 641487, "J.T. Realmuto": 592663,
-  "Jac Caglianone": 701665, "Jack Flaherty": 656427, "Jack Leiter": 682668,
-  "Jackson Holliday": 694973, "Jackson Merrill": 693978, "Jacob Wilson": 699560,
-  "Jacob deGrom": 594798, "Jake Burger": 669394, "Jake Meyers": 669482,
-  "Jakob Marsee": 701156, "Jarren Duran": 665923, "Javier Baez": 595879,
-  "Jazz Chisholm Jr.": 665750, "Jeff Hoffman": 621107, "Jeff McNeil": 657020,
-  "Jeremy Pena": 665197, "Jesus Luzardo": 660271, "Jhoan Duran": 657514,
-  "Jo Adell": 668976, "Joe Ryan": 656557, "Jonathan Aranda": 677800,
-  "Jordan Walker": 676475, "Jorge Soler": 578428, "Jose Altuve": 514888,
-  "Jose Caballero": 678880, "Jose Ramirez": 608566, "Jose Soriano": 672580,
-  "Josh Hader": 623352, "Josh Naylor": 647304, "Juan Soto": 665742,
-  "Julio Rodriguez": 677594, "Justin Topa": 668015, "Kenley Jansen": 445276,
-  "Ketel Marte": 606466, "Kevin Gausman": 592332, "Kodai Senga": 677569,
-  "Kris Bubic": 663903, "Kyle Bradish": 669152, "Kyle Schwarber": 656941,
-  "Kyle Stowers": 680870, "Kyle Teel": 701532, "Kyle Tucker": 663656,
-  "Logan Gilbert": 669302, "Logan Webb": 657277, "Luis Arraez": 650559,
-  "Luis Robert Jr.": 673357, "Luke Raley": 663837, "MacKenzie Gore": 663738,
-  "Maikel Garcia": 671435, "Manny Machado": 592518, "Marcus Semien": 543760,
-  "Mason Miller": 672882, "Matt Brash": 670047, "Matt Chapman": 571745,
-  "Matt Olson": 621566, "Matthew Boyd": 571945, "Max Fried": 594777,
-  "Max Muncy": 571970, "Merrill Kelly": 594482, "Michael King": 641745,
-  "Mike Trout": 545361, "Miquel Vargas": 672695, "Mookie Betts": 605141,
-  "Nathan Eovaldi": 547888, "Nathaniel Lowe": 663993, "Nick Castellanos": 592206,
-  "Nick Kurtz": 701597, "Nick Lodolo": 669854, "Nick Pivetta": 601713,
-  "Nico Hoerner": 663538, "Nolan Arenado": 571448, "Nolan Gorman": 669060,
-  "Otto Lopez": 672355, "Ozzie Albies": 645277, "Paul Goldschmidt": 502671,
-  "Paul Sewald": 622261, "Pete Fairbanks": 622530, "Peter Alonso": 624413,
-  "Rafael Devers": 646240, "Randy Arozarena": 668227, "Riley Greene": 682985,
-  "Robbie Ray": 571918, "Ronald Acuna Jr.": 660670, "Royce Lewis": 668615,
-  "Ryan Jeffers": 680777, "Ryan Mountcastle": 663996, "Ryne Nelson": 669388,
-  "Salvador Perez": 521692, "Sandy Alcantara": 645261, "Seiya Suzuki": 673548,
-  "Shea Langeliers": 669127, "Shohei Ohtani": 660271, "Sonny Gray": 543243,
-  "Spencer Strider": 675911, "Spencer Torkelson": 679529, "Taylor Ward": 621585,
-  "Teoscar Hernandez": 606192, "Trea Turner": 607208, "Trevor Megill": 670006,
-  "Trevor Rogers": 669432, "Trevor Story": 596115, "Tyler Glasnow": 607192,
-  "Vinnie Pasquantino": 686665, "Vladimir Guerrero Jr.": 665489,
-  "William Contreras": 676083, "Willson Contreras": 572233, "Willy Adames": 642715,
-  "Xander Bogaerts": 571771, "Xavier Edwards": 678663, "Yandy Diaz": 650490,
-  "Yordan Alvarez": 670541, "Zack Wheeler": 554430,
+  "Aaron Judge|NYY": 592450,
+"Aaron Nola|PHI": 605400,
+"Adley Rutschman|BAL": 668939,
+"Adolis Garcia|PHI": 666969,
+"Adrian Del Castillo|ARI": 680728,
+"Agustin Ramirez|MIA": 682663,
+"Aidan Miller|PHI": 805795,
+"Alec Bohm|PHI": 664761,
+"Alec Burleson|STL": 676475,
+"Alek Thomas|ARI": 677950,
+"Alex Bregman|CHC": 608324,
+"Alex Freeland|LAD": 690976,
+"Alfredo Duno|CIN": 806957,
+"Andres Gimenez|TOR": 665926,
+"Andres Munoz|SEA": 662253,
+"Andrew Abbott|CIN": 671096,
+"Andrew Painter|PHI": 691725,
+"Andy Pages|LAD": 681624,
+"Angel Genao|CLE": 694197,
+"Arjun Nimmala|TOR": 805796,
+"Aroldis Chapman|BOS": 547973,
+"Austin Riley|ATL": 663586,
+"Austin Wells|NYY": 669224,
+"Ben Rice|NYY": 700250,
+"Ben Williamson|TB": 810938,
+"Bo Bichette|NYM": 666182,
+"Bo Naylor|CLE": 666310,
+"Bobby Witt Jr.|KC": 677951,
+"Braden Montgomery|CWS": 695731,
+"Brady House|WAS": 691781,
+"Brandon Lowe|PIT": 664040,
+"Brandon Nimmo|TEX": 607043,
+"Brandon Woodruff|MIL": 605540,
+"Brendan Donovan|SEA": 680977,
+"Brent Rooker|ATH": 667670,
+"Brenton Doyle|COL": 686668,
+"Brice Turang|MIL": 668930,
+"Bryan Abreu|HOU": 650556,
+"Bryan Reynolds|PIT": 668804,
+"Bryan Woo|SEA": 693433,
+"Bryce Eldridge|SF": 805811,
+"Bryce Harper|PHI": 547180,
+"Bryce Miller|SEA": 682243,
+"Bryce Rainer|DET": 800614,
+"Bryson Stott|PHI": 681082,
+"Bubba Chandler|PIT": 696149,
+"Byron Buxton|MIN": 621439,
+"C.J. Abrams|WAS": 682928,
+"Cade Horton|CHC": 690990,
+"Cade Smith|CLE": 671922,
+"Cal Raleigh|SEA": 663728,
+"Caleb Durbin|BOS": 702332,
+"Cam Collier|CIN": 702253,
+"Cam Schlittler|NYY": 693645,
+"Cam Smith|HOU": 701358,
+"Carlos Correa|HOU": 621043,
+"Carlos Estevez|KC": 608032,
+"Carlos Rodon|NYY": 607074,
+"Carlos Santana|ARI": 467793,
+"Carson Williams|TB": 700246,
+"Carter Jensen|KC": 695600,
+"Ceddanne Rafaela|BOS": 678882,
+"Chandler Simpson|TB": 802415,
+"Charlie Condon|COL": 809707,
+"Chase Burns|CIN": 695505,
+"Chase DeLauter|CLE": 800050,
+"Chase Petty|CIN": 695534,
+"Chris Sale|ATL": 519242,
+"Christian Walker|HOU": 572233,
+"Christian Yelich|MIL": 592885,
+"Clay Holmes|NYM": 605280,
+"Coby Mayo|BAL": 691723,
+"Cody Bellinger|NYY": 641355,
+"Cole Ragans|KC": 666142,
+"Cole Young|SEA": 702284,
+"Colson Montgomery|CWS": 695657,
+"Colt Emerson|SEA": 806068,
+"Colt Keith|DET": 690993,
+"Connelly Early|BOS": 813349,
+"Cooper Pratt|MIL": 806198,
+"Corbin Burnes|ARI": 669203,
+"Corbin Carroll|ARI": 682998,
+"Corey Seager|TEX": 608369,
+"Cristian Javier|HOU": 664299,
+"Cristopher Sanchez|PHI": 650911,
+"Daniel Palencia|CHC": 694037,
+"Dansby Swanson|CHC": 621020,
+"Daulton Varsho|TOR": 662139,
+"David Bednar|NYY": 670280,
+"Daylen Lile|WAS": 695734,
+"Devin Williams|NYM": 642207,
+"Dillon Dingler|DET": 693307,
+"Drake Baldwin|ATL": 686948,
+"Drew Rasmussen|TB": 656876,
+"Dylan Cease|TOR": 656302,
+"Dylan Crews|WAS": 686611,
+"Edgar Quero|CWS": 700337,
+"Edgardo Henriquez|LAD": 683618,
+"Eduardo Quintero|LAD": 808234,
+"Eduardo Tait|MIN": 806953,
+"Edward Cabrera|CHC": 665795,
+"Edwin Diaz|LAD": 621242,
+"Elly De La Cruz|CIN": 682829,
+"Emerson Hancock|SEA": 676106,
+"Emmanuel Rodriguez|MIN": 691181,
+"Emmet Sheehan|LAD": 686218,
+"Ernie Clement|TOR": 676391,
+"Esteban Mejia|BAL": 800354,
+"Ethan Salas|SD": 806956,
+"Eugenio Suarez|CIN": 553993,
+"Eury Perez|MIA": 691587,
+"Ezequiel Tovar|COL": 678662,
+"Felnin Celesten|SEA": 806958,
+"Fernando Tatis Jr.|SD": 665487,
+"Framber Valdez|DET": 664285,
+"Francisco Alvarez|NYM": 682626,
+"Francisco Lindor|NYM": 596019,
+"Franklin Arias|BOS": 808265,
+"Freddie Freeman|LAD": 518692,
+"Freddy Peralta|NYM": 642547,
+"Gabriel Moreno|ARI": 672515,
+"Garrett Crochet|BOS": 676979,
+"Gavin Williams|CLE": 668909,
+"George Kirby|SEA": 669923,
+"George Lombard Jr.|NYY": 806146,
+"George Springer|TOR": 543807,
+"Geraldo Perdomo|ARI": 672695,
+"Gerrit Cole|NYY": 543037,
+"Giancarlo Stanton|NYY": 519317,
+"Gleyber Torres|DET": 650402,
+"Grayson Rodriguez|LAA": 680570,
+"Gunnar Henderson|BAL": 683002,
+"Hagen Smith|CWS": 696146,
+"Harry Ford|WAS": 695670,
+"Heliot Ramos|SF": 671218,
+"Hunter Brown|HOU": 686613,
+"Hunter Goodman|COL": 696100,
+"Hunter Greene|CIN": 668881,
+"Ian Happ|CHC": 664023,
+"Isaac Paredes|HOU": 670623,
+"Ivan Herrera|STL": 671056,
+"J.P. Crawford|SEA": 641487,
+"J.T. Realmuto|PHI": 592663,
+"Jac Caglianone|KC": 695506,
+"Jack Flaherty|DET": 656427,
+"Jack Leiter|TEX": 683004,
+"Jackson Chourio|MIL": 694192,
+"Jackson Ferris|LAD": 701328,
+"Jackson Holliday|BAL": 702616,
+"Jackson Merrill|SD": 701538,
+"Jacob deGrom|TEX": 594798,
+"Jacob Misiorowski|MIL": 694819,
+"Jacob Wilson|ATH": 607111,
+"Jaison Chourio|CLE": 702693,
+"Jake Burger|TEX": 669394,
+"Jake Meyers|HOU": 676694,
+"Jakob Marsee|MIA": 805300,
+"James Wood|WAS": 695578,
+"Jarlin Susana|WAS": 703186,
+"Jarren Duran|BOS": 680776,
+"Jasson Dominguez|NYY": 691176,
+"Javier Baez|DET": 595879,
+"Jazz Chisholm Jr.|NYY": 665862,
+"Jeferson Quero|MIL": 691620,
+"Jeff Hoffman|TOR": 656546,
+"Jeff McNeil|ATH": 643446,
+"Jefferson Rojas|CHC": 800473,
+"Jeremy Pena|HOU": 665161,
+"Jesus Luzardo|PHI": 666200,
+"Jesus Made|MIL": 815908,
+"Jett Williams|MIL": 702518,
+"Jhoan Duran|PHI": 661395,
+"JJ Bleday|CIN": 668709,
+"JJ Wetherholt|STL": 802139,
+"Jo Adell|LAA": 666176,
+"Joe Mack|MIA": 118086,
+"Joe Ryan|MIN": 657746,
+"Jonah Tong|NYM": 804636,
+"Jonathan Aranda|TB": 666018,
+"Jonathan India|KC": 663697,
+"Jonny Farmelo|SEA": 806071,
+"Jordan Lawlar|ARI": 691783,
+"Jordan Walker|STL": 691023,
+"Jorge Soler|LAA": 624585,
+"Jose Altuve|HOU": 514888,
+"Jose Caballero|NYY": 676609,
+"Jose Ramirez|CLE": 608070,
+"Jose Soriano|LAA": 667755,
+"Josh Hader|HOU": 623352,
+"Josh Naylor|SEA": 647304,
+"Josuar De Jesus Gonzalez|SF": 829034,
+"Josue Briceno|DET": 800522,
+"Josue De Paula|LAD": 800543,
+"Juan Soto|NYM": 665742,
+"Julio Rodriguez|SEA": 677594,
+"Junior Caminero|TB": 691406,
+"Justin Topa|MIN": 623437,
+"Kade Anderson|SEA": 807739,
+"Kazuma Okamoto|TOR": 672960,
+"Kenley Jansen|DET": 445276,
+"Ketel Marte|ARI": 606466,
+"Kevin Alcantara|CHC": 682634,
+"Kevin Gausman|TOR": 592332,
+"Kevin McGonigle|DET": 805808,
+"Kodai Senga|NYM": 673540,
+"Konnor Griffin|PIT": 804606,
+"Kris Bubic|KC": 663460,
+"Kristian Campbell|BOS": 692225,
+"Kyle Bradish|BAL": 680694,
+"Kyle Harrison|MIL": 690986,
+"Kyle Manzardo|CLE": 700932,
+"Kyle Schwarber|PHI": 656941,
+"Kyle Stowers|MIA": 669065,
+"Kyle Teel|CWS": 691019,
+"Kyle Tucker|LAD": 663656,
+"Lawrence Butler|ATH": 671732,
+"Lazaro Montes|SEA": 703155,
+"Lenyn Sosa|CWS": 672820,
+"Leo De Vries|ATH": 815888,
+"Liam Hicks|MIA": 689414,
+"Logan Gilbert|SEA": 669302,
+"Logan Henderson|MIL": 701656,
+"Logan Webb|SF": 657277,
+"Luis Arraez|SF": 650333,
+"Luis Castillo|SEA": 112116,
+"Luis Garcia|WAS": 150193,
+"Luis Pena|MIL": 821270,
+"Luis Robert Jr.|NYM": 673357,
+"Luis Severino|ATH": 622663,
+"Luke Keaschall|MIN": 807712,
+"Luke Raley|SEA": 670042,
+"MacKenzie Gore|TEX": 669022,
+"Maikel Garcia|KC": 672580,
+"Manny Machado|SD": 592518,
+"Marcelo Mayer|BOS": 691785,
+"Marcus Semien|NYM": 543760,
+"Mason Miller|SD": 695243,
+"Masyn Winn|STL": 691026,
+"Matt Brash|SEA": 666374,
+"Matt Chapman|SF": 656305,
+"Matt McLain|CIN": 680574,
+"Matt Olson|ATL": 621566,
+"Matthew Boyd|CHC": 571510,
+"Max Clark|DET": 703601,
+"Max Fried|NYY": 608331,
+"Max Meyer|MIA": 676974,
+"Max Muncy|LAD": 571970,
+"Max Muncy|ATH": 571970,
+"Merrill Kelly|ARI": 518876,
+"Michael Busch|CHC": 683737,
+"Michael Harris II|ATL": 671739,
+"Michael King|SD": 650633,
+"Mick Abel|MIN": 690953,
+"Mike Trout|LAA": 545361,
+"Miquel Vargas|CWS": 678246,
+"Mitch Keller|PIT": 656605,
+"Moises Ballesteros|CHC": 694208,
+"Mookie Betts|LAD": 605141,
+"Munetaka Murakami|CWS": 808959,
+"Nathan Eovaldi|TEX": 543135,
+"Nathaniel Lowe|CIN": 663993,
+"Nick Castellanos|SD": 592206,
+"Nick Fortes|TB": 663743,
+"Nick Kurtz|ATH": 701762,
+"Nick Lodolo|CIN": 666157,
+"Nick Pivetta|SD": 601713,
+"Nico Hoerner|CHC": 663538,
+"Noah Cameron|KC": 702070,
+"Noah Schultz|CWS": 702273,
+"Noelvi Marte|CIN": 682622,
+"Nolan Arenado|ARI": 571448,
+"Nolan Gorman|STL": 669357,
+"Nolan McLean|NYM": 690997,
+"Oneil Cruz|PIT": 665833,
+"Otto Lopez|MIA": 672640,
+"Owen Caissie|MIA": 683357,
+"Ozzie Albies|ATL": 645277,
+"Parker Messick|CLE": 800048,
+"Paul Goldschmidt|NYY": 502671,
+"Paul Sewald|ARI": 623149,
+"Paul Skenes|PIT": 694973,
+"Pete Crow-Armstrong|CHC": 691718,
+"Pete Fairbanks|MIA": 664126,
+"Peter Alonso|BAL": 624413,
+"Quinn Mathews|STL": 687273,
+"Rafael Devers|SF": 646240,
+"Raisel Iglesias|ATL": 628452,
+"Ramon Laureano|SD": 657656,
+"Randy Arozarena|SEA": 668227,
+"Ranger Suarez|BOS": 624133,
+"Riley Greene|DET": 682985,
+"Robbie Ray|SF": 592662,
+"Roki Sasaki|LAD": 808963,
+"Roman Anthony|BOS": 701350,
+"Ronald Acuna Jr.|ATL": 660670,
+"Royce Lewis|MIN": 668904,
+"Ryan Helsley|BAL": 664854,
+"Ryan Jeffers|MIN": 680777,
+"Ryan Mountcastle|BAL": 663624,
+"Ryan Pepiot|TB": 686752,
+"Ryan Sloan|SEA": 815549,
+"Ryan Weathers|NYY": 677960,
+"Ryne Nelson|ARI": 669194,
+"Sal Stewart|CIN": 701398,
+"Salvador Perez|KC": 521692,
+"Samuel Basallo|BAL": 694212,
+"Sandy Alcantara|MIA": 645261,
+"Sebastian Walcott|TEX": 806964,
+"Seiya Suzuki|CHC": 673548,
+"Shane Baz|BAL": 669358,
+"Shane McClanahan|TB": 663556,
+"Shea Langeliers|ATH": 669127,
+"Shohei Ohtani|LAD": 660271,
+"Shota Imanaga|CHC": 684007,
+"Slade Caldwell|ARI": 815154,
+"Sonny Gray|BOS": 543243,
+"Spencer Strider|ATL": 675911,
+"Spencer Torkelson|DET": 679529,
+"Steven Kwan|CLE": 680757,
+"Taj Bradley|MIN": 671737,
+"Tanner Bibee|CLE": 676440,
+"Tarik Skubal|DET": 669373,
+"Tatsuya Imai|HOU": 837227,
+"Taylor Ward|BAL": 621493,
+"Teoscar Hernandez|LAD": 606192,
+"Thomas White|MIA": 806258,
+"Tink Hence|STL": 693311,
+"TJ Rumfield|COL": 681198,
+"Tommy Troy|ARI": 694371,
+"Travis Bazzana|CLE": 683953,
+"Travis Sykora|WAS": 805809,
+"Trea Turner|PHI": 607208,
+"Trevor Megill|MIL": 656730,
+"Trevor Rogers|BAL": 669432,
+"Trevor Story|BOS": 596115,
+"Trey Yesavage|TOR": 702056,
+"Tyler Fitzgerald|": 666149,
+"Tyler Glasnow|LAD": 607192,
+"Tyler Soderstrom|ATH": 691016,
+"Vinnie Pasquantino|KC": 686469,
+"Vladimir Guerrero Jr.|TOR": 665489,
+"Walker Jenkins|MIN": 805805,
+"Will Smith|LAD": 519293,
+"Will Warren|NYY": 701542,
+"Willi Castro|COL": 650489,
+"William Contreras|MIL": 661388,
+"Willson Contreras|BOS": 575929,
+"Willy Adames|SF": 642715,
+"Wilyer Abreu|BOS": 677800,
+"Wyatt Langford|TEX": 694671,
+"Xander Bogaerts|SD": 593428,
+"Xavier Edwards|MIA": 669364,
+"Xavier Isaac|TB": 800060,
+"Yainer Diaz|HOU": 673237,
+"Yandy Diaz|TB": 650490,
+"Yordan Alvarez|HOU": 670541,
+"Yoshinobu Yamamoto|LAD": 808967,
+"Zac Gallen|ARI": 668678,
+"Zach Neto|LAA": 687263,
+"Zack Gelof|ATH": 680869,
+"Zack Wheeler|PHI": 554430,
+"Zyhir Hope|LAD": 814307
 };
 
 // Normalize name for matching: lowercase, strip punctuation, collapse spaces
@@ -1242,7 +1540,15 @@ async function resolvePlayerId(name, mlbTeamRoster) {
     
     if (people.length > 0) {
       // Try exact normalized name match first
-      let match = people.find(p => normName(p.fullName || '') === normalizedTarget);
+      let match = people.find(p => {
+        const targetAbbr = TEAM_ABBR_MAP[mlbTeamRoster] || mlbTeamRoster;
+
+        return (
+          normName(p.fullName || '') === normalizedTarget &&
+          p.currentTeam?.abbreviation === targetAbbr
+        );
+      });
+
       
       // If no exact match, try matching by team abbreviation
       if (!match && mlbTeamRoster) {
@@ -1378,9 +1684,10 @@ async function loadAllStats(force = false) {
   // ── Phase 1: Resolve all player IDs ──────────────────────
   const idStore   = loadIdStore();
   // Seed with known-correct IDs (only overwrites missing entries)
-  for (const [name, id] of Object.entries(KNOWN_IDS)) {
-    if (!idStore[name]) idStore[name] = id;
+  for (const [key, id] of Object.entries(KNOWN_IDS)) {
+    if (!idStore[key]) idStore[key] = id;
   }
+
 
   const activePlayers = ROSTER.filter(p => !p[5]); // exclude MiLB
   loadState = { loaded: 0, total: activePlayers.length, errors: 0 };
@@ -1390,7 +1697,11 @@ async function loadAllStats(force = false) {
   setStatus('load', 'Resolving player IDs from MLB API...');
 
   // Find players missing from ID store
-  const needsSearch = activePlayers.filter(p => !idStore[p[1]]);
+  const needsSearch = activePlayers.filter(p => {
+    const key = playerKey(p[1], p[2]);
+    return !idStore[key];
+  });
+
   
   if (needsSearch.length > 0) {
     setLoaderMsg(`Searching ${needsSearch.length} new players...`);
@@ -1401,10 +1712,13 @@ async function loadAllStats(force = false) {
       const batch = needsSearch.slice(i, i + ID_BATCH);
       await Promise.all(batch.map(async (p) => {
         const [, name, mlbTeam] = p;
+        const key = playerKey(name, mlbTeam);
+
         const found = await resolvePlayerId(name, mlbTeam);
-        if (found) idStore[name] = found;
-        // If not found, store null so we don't re-search next time
-        else idStore[name] = null;
+
+        if (found) idStore[key] = found;
+        else idStore[key] = null;
+
       }));
       const pct = Math.round(((i + batch.length) / needsSearch.length) * 20) + 5;
       setProgress(pct);
@@ -1428,10 +1742,11 @@ async function loadAllStats(force = false) {
       const isPitcher     = pos === 'P';
       // Ohtani is listed as OF with ohtaniHO=true — fetch hitting only, never pitching
       const needsPitching = isPitcher && !ohtaniHO;
-      const playerId      = idStore[name];
+      const key = playerKey(name, mlbTeam);
+      const playerId = idStore[key];  
 
       if (!playerId) {
-        newCache[name] = { found: false, id: null };
+        newCache[key] = { found: false, id: null };
         loadState.errors++;
         loadState.loaded++;
         return;
@@ -1441,9 +1756,9 @@ async function loadAllStats(force = false) {
       const stat  = await fetchStatsByDateRange(playerId, group, start, end);
 
       if (stat) {
-        newCache[name] = { found: true, id: playerId, stat, isPitcher: needsPitching };
+        newCache[key] = { found: true, id: playerId, stat, isPitcher: needsPitching };
       } else {
-        newCache[name] = { found: false, id: playerId };
+        newCache[key] = { found: false, id: playerId };
         loadState.errors++;
       }
       loadState.loaded++;
@@ -1475,9 +1790,10 @@ async function loadAllStats(force = false) {
 // ════════════════════════════════════════════════════════════
 
 // Helper: look up a player's stat object from the current half's cache
-function getStat(name) {
-  return statsCache[name]?.stat || null;
+function getStat(name, team) {
+  return statsCache[playerKey(name, team)]?.stat || null;
 }
+
 
 function computeTeamStats() {
   teamStats = {};
@@ -1491,7 +1807,7 @@ function computeTeamStats() {
     const pitcherStats = pitchers
       .filter(p => !p[6]) // exclude Ohtani's pitcher slot
       .map(p => {
-        const s = getStat(p[1]);
+        const s = getStat(p[1], p[2]);;
         return {
           name:     p[1],
           w:        s?.wins         || 0,
@@ -1531,7 +1847,7 @@ function computeTeamStats() {
     for (const [pos, slots] of Object.entries(POS_GROUPS)) {
       const pool = hitters.filter(p => p[0] === pos);
       const withStats = pool.map(p => {
-        const s = getStat(p[1]);
+        const s = getStat(p[1], p[2]);;
         return {
           name: p[1],
           ab:   s?.atBats      || 0,
