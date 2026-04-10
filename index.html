@@ -1711,7 +1711,7 @@ async function loadAllStats(force = false) {
   const idStore   = loadIdStore();
   // Seed with known-correct IDs (only overwrites missing entries)
   for (const [key, id] of Object.entries(KNOWN_IDS)) {
-    if (!idStore[key]) idStore[key] = id;
+    idStore[key] = id;  // KNOWN_IDS always overwrites cached IDs
   }
 
   // ── Phase 0: Fetch active 26-man rosters for all unique teams ──
