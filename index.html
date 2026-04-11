@@ -379,7 +379,7 @@
 
   .player-row {
     display: grid;
-    grid-template-columns: 36px 140px 36px auto;
+    grid-template-columns: 36px 140px 36px 42px auto;
     align-items: center;
     padding: 7px 16px;
     border-bottom: 1px solid var(--border);
@@ -2104,11 +2104,16 @@ function renderRosters(team) {
       statsHtml = `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">${avg} <span style="color:var(--muted)">${r}R ${xbh}XBH ${hr}HR ${rbi}RBI ${sb}SB</span></span>`;
     }
 
+    const salaryHtml = (!isMilb && salary > 0)
+      ? `<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">$${salary}</span>`
+      : '';
+
     return `
-      <div class="player-row ${showAsMilb ? 'milb' : ''} ${isBB ? 'active-bb' : ''}">
+      <div class="player-row ${isMilb ? 'milb' : ''} ${isBB ? 'active-bb' : ''}">
         <div class="pos-tag ${posKey}">${pos}</div>
         <div class="player-name">${name}<span class="team-abbr">${mlbTeam}</span></div>
         <div>${isBB ? '<span class="bb-tag">BB</span>' : ''}</div>
+        <div>${salaryHtml}</div>
         <div class="player-stats">${statsHtml}</div>
       </div>
     `;
