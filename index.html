@@ -1179,11 +1179,11 @@ function playerKey(name, team) {
 }
 
 // Fetch full roster for a team — returns map of normName → { status, statusDate, note, id }
-// Strip accent marks for reliable name matching between our ROSTER
-// (plain ASCII) and MLB API names which use accented characters.
-// e.g. "Edwin Díaz" -> "edwin diaz", "Luis García" -> "luis garcia"
-function stripAccents(str) {
-  return str.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+// Normalize names for matching: strip accent marks and lowercase.
+// MLB API returns accented names (e.g. "Edwin Díaz", "Luis García Jr.")
+// while our ROSTER uses plain ASCII ("Edwin Diaz", "Luis Garcia").
+function normalizeName(s) {
+  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 }
 
 async function fetchFullRoster(teamAbbr) {
@@ -1191,51 +1191,39 @@ async function fetchFullRoster(teamAbbr) {
   if (!teamId) return {};
   const map = {};
   try {
-    // Call 1: active 26-man roster -> white names
+    // Call 1: active 26-man -> white names
     const activeUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=active&season=2026`;
     const activeRes = await fetch(activeUrl);
     if (activeRes.ok) {
       const activeData = await activeRes.json();
       for (const entry of (activeData.roster || [])) {
-        const norm = stripAccents(entry.person.fullName);
-        map[norm] = { status: 'Active', statusDate: '', note: '', id: entry.person.id };
+        // Store under both full name and name-without-suffix for Jr./Sr. mismatches
+        const full  = normalizeName(entry.person.fullName);
+        const short = full.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
+        const rec   = { status: 'Active', statusDate: '', note: '', id: entry.person.id };
+        map[full]  = rec;
+        map[short] = rec;
       }
     }
-    // Call 2: full 40-man roster -> find 10-day/15-day IL players
+    // Call 2: full 40-man -> catches 10-day/15-day/60-day IL players
+    // 60-day IL players are removed from active 26-man but still on 40-man roster
     const fullUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`;
     const fullRes = await fetch(fullUrl);
     if (fullRes.ok) {
       const fullData = await fullRes.json();
       for (const entry of (fullData.roster || [])) {
-        const norm   = stripAccents(entry.person.fullName);
         const status = entry.status?.description || '';
         if (status.includes('Injured List')) {
-          map[norm] = {
+          const full  = normalizeName(entry.person.fullName);
+          const short = full.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
+          const rec   = {
             status,
             statusDate: entry.statusDate || '',
             note:       entry.injuryNotes || entry.note || '',
             id:         entry.person.id,
           };
-        }
-      }
-    }
-    // Call 3: injuries endpoint catches 60-day IL players removed from 40-man
-    const injUrl = `${MLB_API}/teams/${teamId}/injuries?season=2026`;
-    const injRes = await fetch(injUrl);
-    if (injRes.ok) {
-      const injData = await injRes.json();
-      for (const entry of (injData.roster || injData.injuries || [])) {
-        const person = entry.person || entry.player;
-        if (!person) continue;
-        const norm   = stripAccents(person.fullName);
-        const status = entry.status?.description || entry.injuryStatus || '60-Day Injured List';
-        if (status.includes('Injured List') || status.includes('IL')) {
-          map[norm] = {
-            status: status.includes('Injured List') ? status : '60-Day Injured List',
-            statusDate: entry.statusDate || entry.date || '',
-            note:       entry.injuryNotes || entry.note || entry.injuryType || '',
-            id:         person.id,
-          };
+          map[full]  = rec;
+          map[short] = rec;
         }
       }
     }
@@ -1494,7 +1482,7 @@ const KNOWN_IDS = {
 "Logan Webb|SF": 657277,
 "Luis Arraez|SF": 650333,
 "Luis Castillo|SEA": 622491,
-"Luis Garcia|WAS": 671277,
+"Luis Garcia Jr.|WAS": 671277, "Luis Garcia|WAS": 671277,
 "Luis Pena|MIL": 821270,
 "Luis Robert Jr.|NYM": 673357,
 "Luis Severino|ATH": 622663,
@@ -2174,7 +2162,7 @@ function renderRosters(team) {
   // Count Active / IL / MiLB for each group using live roster data
   function getRosterStatus(name, mlbTeam) {
     const teamMap  = rosterStatusCache[mlbTeam] || {};
-    const entry    = teamMap[stripAccents(name)];
+    const entry    = teamMap[normalizeName(name)];
     if (!entry) return 'milb';
     const s = entry.status || '';
     if (s === 'Active') return 'active';
@@ -2184,7 +2172,7 @@ function renderRosters(team) {
 
   function getILInfo(name, mlbTeam) {
     const teamMap = rosterStatusCache[mlbTeam] || {};
-    const entry   = teamMap[stripAccents(name)];
+    const entry   = teamMap[normalizeName(name)];
     if (!entry) return null;
     const type    = entry.status || '';
     const date    = entry.statusDate
@@ -2204,14 +2192,10 @@ function renderRosters(team) {
   const pCounts = countGroup(pitchers);
   const hCounts = countGroup(hitters);
 
-  const legend = `&nbsp;·&nbsp;<span style="color:var(--text)">●</span> Active&nbsp;
-    <span style="color:#ef5350">●</span> IL&nbsp;
-    <span style="color:var(--muted)">●</span> MiLB`;
-
   document.getElementById('pitcher-count').innerHTML =
-    `Active:${pCounts.active} · <span style="color:#ef5350">IL:${pCounts.il}</span> · MiLB:${pCounts.milb}${legend}`;
+    `Active:${pCounts.active} · <span style="color:#ef5350">IL:${pCounts.il}</span> · MiLB:${pCounts.milb}`;
   document.getElementById('hitter-count').innerHTML =
-    `Active:${hCounts.active} · <span style="color:#ef5350">IL:${hCounts.il}</span> · MiLB:${hCounts.milb}${legend}`;
+    `Active:${hCounts.active} · <span style="color:#ef5350">IL:${hCounts.il}</span> · MiLB:${hCounts.milb}`;
 
   function makeRow(p) {
     const [pos, name, mlbTeam, salary, ft, isMilbFlag, ohtaniHO] = p;
