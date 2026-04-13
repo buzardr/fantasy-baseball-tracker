@@ -1205,8 +1205,7 @@ async function fetchFullRoster(teamAbbr) {
         map[short] = rec;
       }
     }
-    // Call 2: full 40-man -> catches 10-day/15-day/60-day IL players
-    // 60-day IL players are removed from active 26-man but still on 40-man roster
+    // Call 2: fullRoster (40-man) -> catches 10-day/15-day IL
     const fullUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`;
     const fullRes = await fetch(fullUrl);
     if (fullRes.ok) {
@@ -1227,31 +1226,58 @@ async function fetchFullRoster(teamAbbr) {
         }
       }
     }
+    // Call 3: allRoster type catches 60-day IL players removed from 40-man
+    const allUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=allRoster&season=2026`;
+    const allRes = await fetch(allUrl);
+    if (allRes.ok) {
+      const allData = await allRes.json();
+      for (const entry of (allData.roster || [])) {
+        const status = entry.status?.description || '';
+        if (status.includes('Injured List')) {
+          const full  = normalizeName(entry.person.fullName);
+          const short = full.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
+          // Only set if not already marked active (don't downgrade active players)
+          if (!map[full] || map[full].status !== 'Active') {
+            const rec = {
+              status,
+              statusDate: entry.statusDate || '',
+              note:       entry.injuryNotes || entry.note || '',
+              id:         entry.person.id,
+            };
+            map[full]  = rec;
+            map[short] = rec;
+          }
+        }
+      }
+    }
   } catch(e) {}
   return map;
 }
 
 // Fetch MiLB stats across all levels in one call
 async function fetchMiLBStats(playerId, isPitcher) {
-  const group = isPitcher ? 'pitching' : 'hitting';
-  const url   = `${MLB_API}/people/${playerId}/stats?stats=season&season=2026` +
-                `&group=${group}&sportIds=11,12,13,14`;
-  try {
-    const res  = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const stArr = data?.stats || [];
-    if (stArr.length === 0) return null;
-    // Find highest level with stats (lowest sportId number = highest level)
-    const withData = stArr
-      .filter(s => s.splits && s.splits.length > 0)
-      .sort((a, b) => (a.sport?.id || 99) - (b.sport?.id || 99));
-    if (withData.length === 0) return null;
-    const best = withData[0];
-    const levelMap = { 11: 'AAA', 12: 'AA', 13: 'High-A', 14: 'A' };
-    const level = levelMap[best.sport?.id] || 'MiLB';
-    return { stat: best.splits[0].stat, level };
-  } catch(e) { return null; }
+  const group    = isPitcher ? 'pitching' : 'hitting';
+  // Cascade from AAA (11) down to A (14) — return first level with stats
+  const levels   = [
+    { id: 11, label: 'AAA' },
+    { id: 12, label: 'AA' },
+    { id: 13, label: 'High-A' },
+    { id: 14, label: 'A' },
+  ];
+  for (const lvl of levels) {
+    try {
+      const url = `${MLB_API}/people/${playerId}/stats?stats=season&season=2026` +
+                  `&group=${group}&sportId=${lvl.id}`;
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const data   = await res.json();
+      const stArr  = data?.stats || [];
+      const grp    = stArr.find(s => s.group?.displayName?.toLowerCase() === group) || stArr[0];
+      const splits = grp?.splits || [];
+      if (splits.length > 0) return { stat: splits[0].stat, level: lvl.label };
+    } catch(e) { continue; }
+  }
+  return null;
 }
 
 
@@ -1756,7 +1782,7 @@ let loadState   = { loaded: 0, total: 0, errors: 0 };
 
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
-function statCacheKey(half) { return `rlw_stats_2026_${half}_v2`; }
+function statCacheKey(half) { return `rlw_stats_2026_${half}_v3`; }
 
 function loadCachedStats(half) {
   try {
