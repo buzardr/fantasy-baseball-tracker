@@ -1179,31 +1179,37 @@ function playerKey(name, team) {
 }
 
 // Fetch full roster for a team — returns map of normName → { status, statusDate, note, id }
+// Strip accent marks for reliable name matching between our ROSTER
+// (plain ASCII) and MLB API names which use accented characters.
+// e.g. "Edwin Díaz" -> "edwin diaz", "Luis García" -> "luis garcia"
+function stripAccents(str) {
+  return str.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
 async function fetchFullRoster(teamAbbr) {
   const teamId = TEAM_IDS[teamAbbr];
   if (!teamId) return {};
   const map = {};
   try {
-    // Call 1: active 26-man roster -> these get 'Active' status
+    // Call 1: active 26-man roster -> white names
     const activeUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=active&season=2026`;
     const activeRes = await fetch(activeUrl);
     if (activeRes.ok) {
       const activeData = await activeRes.json();
       for (const entry of (activeData.roster || [])) {
-        const norm = entry.person.fullName.toLowerCase();
+        const norm = stripAccents(entry.person.fullName);
         map[norm] = { status: 'Active', statusDate: '', note: '', id: entry.person.id };
       }
     }
-    // Call 2: full 40-man roster -> find IL players specifically
+    // Call 2: full 40-man roster -> find 10-day/15-day IL players
     const fullUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`;
     const fullRes = await fetch(fullUrl);
     if (fullRes.ok) {
       const fullData = await fullRes.json();
       for (const entry of (fullData.roster || [])) {
-        const norm   = entry.person.fullName.toLowerCase();
+        const norm   = stripAccents(entry.person.fullName);
         const status = entry.status?.description || '';
         if (status.includes('Injured List')) {
-          // Override or add IL players — even if not on active roster
           map[norm] = {
             status,
             statusDate: entry.statusDate || '',
@@ -1211,7 +1217,26 @@ async function fetchFullRoster(teamAbbr) {
             id:         entry.person.id,
           };
         }
-        // Optioned/assigned players not in active map -> not in map -> 'milb' via getRosterStatus
+      }
+    }
+    // Call 3: injuries endpoint catches 60-day IL players removed from 40-man
+    const injUrl = `${MLB_API}/teams/${teamId}/injuries?season=2026`;
+    const injRes = await fetch(injUrl);
+    if (injRes.ok) {
+      const injData = await injRes.json();
+      for (const entry of (injData.roster || injData.injuries || [])) {
+        const person = entry.person || entry.player;
+        if (!person) continue;
+        const norm   = stripAccents(person.fullName);
+        const status = entry.status?.description || entry.injuryStatus || '60-Day Injured List';
+        if (status.includes('Injured List') || status.includes('IL')) {
+          map[norm] = {
+            status: status.includes('Injured List') ? status : '60-Day Injured List',
+            statusDate: entry.statusDate || entry.date || '',
+            note:       entry.injuryNotes || entry.note || entry.injuryType || '',
+            id:         person.id,
+          };
+        }
       }
     }
   } catch(e) {}
@@ -2149,7 +2174,7 @@ function renderRosters(team) {
   // Count Active / IL / MiLB for each group using live roster data
   function getRosterStatus(name, mlbTeam) {
     const teamMap  = rosterStatusCache[mlbTeam] || {};
-    const entry    = teamMap[name.toLowerCase()];
+    const entry    = teamMap[stripAccents(name)];
     if (!entry) return 'milb';
     const s = entry.status || '';
     if (s === 'Active') return 'active';
@@ -2159,7 +2184,7 @@ function renderRosters(team) {
 
   function getILInfo(name, mlbTeam) {
     const teamMap = rosterStatusCache[mlbTeam] || {};
-    const entry   = teamMap[name.toLowerCase()];
+    const entry   = teamMap[stripAccents(name)];
     if (!entry) return null;
     const type    = entry.status || '';
     const date    = entry.statusDate
@@ -2179,13 +2204,14 @@ function renderRosters(team) {
   const pCounts = countGroup(pitchers);
   const hCounts = countGroup(hitters);
 
-  const legend = `<span style="font-size:9px;color:var(--muted);margin-left:8px;letter-spacing:0.5px;">
-    ⬜ Active &nbsp; <span style="color:#ef5350">⬜ IL</span> &nbsp; — MiLB</span>`;
+  const legend = `&nbsp;·&nbsp;<span style="color:var(--text)">●</span> Active&nbsp;
+    <span style="color:#ef5350">●</span> IL&nbsp;
+    <span style="color:var(--muted)">●</span> MiLB`;
 
   document.getElementById('pitcher-count').innerHTML =
-    `<span>Active:${pCounts.active} · <span style="color:#ef5350">IL:${pCounts.il}</span> · MiLB:${pCounts.milb}</span>${legend}`;
+    `Active:${pCounts.active} · <span style="color:#ef5350">IL:${pCounts.il}</span> · MiLB:${pCounts.milb}${legend}`;
   document.getElementById('hitter-count').innerHTML =
-    `<span>Active:${hCounts.active} · <span style="color:#ef5350">IL:${hCounts.il}</span> · MiLB:${hCounts.milb}</span>`;
+    `Active:${hCounts.active} · <span style="color:#ef5350">IL:${hCounts.il}</span> · MiLB:${hCounts.milb}${legend}`;
 
   function makeRow(p) {
     const [pos, name, mlbTeam, salary, ft, isMilbFlag, ohtaniHO] = p;
