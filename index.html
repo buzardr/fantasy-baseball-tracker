@@ -1205,41 +1205,35 @@ async function fetchFullRoster(teamAbbr) {
         map[short] = rec;
       }
     }
-    // Call 2: fullRoster (40-man) -> catches 10-day/15-day IL
+    // Call 2: fullRoster (40-man) -> catches 10/15/60-day IL
     const fullUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`;
     const fullRes = await fetch(fullUrl);
     if (fullRes.ok) {
       const fullData = await fullRes.json();
-      for (const entry of (fullData.roster || [])) {
-        const status = entry.status?.description || '';
-        if (status.includes('Injured List')) {
-          const full  = normalizeName(entry.person.fullName);
-          const short = full.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
-          const rec   = {
-            status,
-            statusDate: entry.statusDate || '',
-            note:       entry.injuryNotes || entry.note || '',
-            id:         entry.person.id,
-          };
-          map[full]  = rec;
-          map[short] = rec;
-        }
+      // Debug: log TOR and ATH roster to console so we can see IL status values
+      if (teamAbbr === 'TOR' || teamAbbr === 'ATH') {
+        console.log(`[${teamAbbr}] fullRoster entries:`,
+          (fullData.roster || []).map(e => ({
+            name: e.person.fullName,
+            status: e.status?.description,
+            code: e.status?.code,
+            date: e.statusDate,
+          }))
+        );
       }
-    }
-    // Call 3: allRoster type catches 60-day IL players removed from 40-man
-    const allUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=allRoster&season=2026`;
-    const allRes = await fetch(allUrl);
-    if (allRes.ok) {
-      const allData = await allRes.json();
-      for (const entry of (allData.roster || [])) {
-        const status = entry.status?.description || '';
-        if (status.includes('Injured List')) {
+      for (const entry of (fullData.roster || [])) {
+        const status = entry.status?.description || entry.status?.code || '';
+        const isIL = status.includes('Injured List') || status.includes('Disabled List')
+                     || status.includes('IL') || ['D7','D10','D15','D60'].includes(status);
+        if (isIL) {
+          const label = status.includes('Injured') || status.includes('Disabled')
+            ? status
+            : `${status}-Day Injured List`;
           const full  = normalizeName(entry.person.fullName);
           const short = full.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
-          // Only set if not already marked active (don't downgrade active players)
           if (!map[full] || map[full].status !== 'Active') {
             const rec = {
-              status,
+              status: label,
               statusDate: entry.statusDate || '',
               note:       entry.injuryNotes || entry.note || '',
               id:         entry.person.id,
@@ -1250,7 +1244,13 @@ async function fetchFullRoster(teamAbbr) {
         }
       }
     }
-  } catch(e) {}
+  } catch(e) {
+    console.error(`fetchFullRoster error for ${teamAbbr}:`, e);
+  }
+  // Debug: log what we stored for TOR and ATH
+  if (teamAbbr === 'TOR' || teamAbbr === 'ATH') {
+    console.log(`[${teamAbbr}] rosterStatusCache built:`, map);
+  }
   return map;
 }
 
@@ -2192,7 +2192,7 @@ function renderRosters(team) {
     if (!entry) return 'milb';
     const s = entry.status || '';
     if (s === 'Active') return 'active';
-    if (s.includes('Injured List')) return 'il';
+    if (s.includes('Injured List') || s.includes('Disabled List') || s.includes('IL')) return 'il';
     return 'milb';
   }
 
