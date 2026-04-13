@@ -1205,33 +1205,24 @@ async function fetchFullRoster(teamAbbr) {
         map[short] = rec;
       }
     }
-    // Call 2: fullRoster (40-man) -> catches 10/15/60-day IL
+    // Call 2: fullRoster (40-man) -> catches all IL players
+    // API returns status like "Injured 10-Day", "Injured 60-Day", "Injured - Full Season"
     const fullUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`;
     const fullRes = await fetch(fullUrl);
     if (fullRes.ok) {
       const fullData = await fullRes.json();
-      // Debug: log TOR and ATH roster to console so we can see IL status values
-      if (teamAbbr === 'TOR' || teamAbbr === 'ATH') {
-        console.log(`[${teamAbbr}] fullRoster entries:`,
-          (fullData.roster || []).map(e => ({
-            name: e.person.fullName,
-            status: e.status?.description,
-            code: e.status?.code,
-            date: e.statusDate,
-          }))
-        );
-      }
       for (const entry of (fullData.roster || [])) {
-        const status = entry.status?.description || entry.status?.code || '';
-        const isIL = status.includes('Injured List') || status.includes('Disabled List')
-                     || status.includes('IL') || ['D7','D10','D15','D60'].includes(status);
+        const status = entry.status?.description || '';
+        const code   = entry.status?.code || '';
+        // Match any injury status — API uses "Injured X-Day" not "X-Day Injured List"
+        const isIL = status.startsWith('Injured') || code.startsWith('D') || code === 'ILF';
         if (isIL) {
-          const label = status.includes('Injured') || status.includes('Disabled')
-            ? status
-            : `${status}-Day Injured List`;
           const full  = normalizeName(entry.person.fullName);
           const short = full.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
           if (!map[full] || map[full].status !== 'Active') {
+            // Build a clean label from the code: D10 -> "10-Day IL", ILF -> "Full Season IL"
+            const codeLabels = { D7:'7-Day IL', D10:'10-Day IL', D15:'15-Day IL', D60:'60-Day IL', ILF:'Full Season IL' };
+            const label = codeLabels[code] || status;
             const rec = {
               status: label,
               statusDate: entry.statusDate || '',
@@ -1248,10 +1239,10 @@ async function fetchFullRoster(teamAbbr) {
     console.error(`fetchFullRoster error for ${teamAbbr}:`, e);
   }
   // Debug: log what we stored for TOR and ATH
-  if (teamAbbr === 'TOR' || teamAbbr === 'ATH') {
-    console.log(`[${teamAbbr}] rosterStatusCache built:`, map);
-  }
-  return map;
+  //if (teamAbbr === 'TOR' || teamAbbr === 'ATH') {
+  //  console.log(`[${teamAbbr}] rosterStatusCache built:`, map);
+  //}
+  //return map;
 }
 
 // Fetch MiLB stats across all levels in one call
@@ -2192,7 +2183,7 @@ function renderRosters(team) {
     if (!entry) return 'milb';
     const s = entry.status || '';
     if (s === 'Active') return 'active';
-    if (s.includes('Injured List') || s.includes('Disabled List') || s.includes('IL')) return 'il';
+    if (s.endsWith('IL') || s.startsWith('Injured') || s === 'Full Season IL') return 'il';
     return 'milb';
   }
 
