@@ -1204,14 +1204,6 @@ async function fetchFullRoster(teamAbbr) {
         map[full]  = rec;
         map[short] = rec;
       }
-      // Debug: log ATL active roster to see exactly how Harris is stored
-      if (teamAbbr === 'ATL') {
-        console.log('[ATL] active roster map keys:', Object.keys(map));
-        const h = Object.keys(map).filter(k => k.includes('harris'));
-        console.log('[ATL] harris keys found:', h);
-        console.log('[ATL] lookup "michael harris ii":', map['michael harris ii']);
-        console.log('[ATL] lookup "michael harris":', map['michael harris']);
-      }
     }
     // Call 2: fullRoster (40-man) -> catches all IL players
     // API returns status like "Injured 10-Day", "Injured 60-Day", "Injured - Full Season"
@@ -2191,13 +2183,20 @@ function renderRosters(team) {
     const short    = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
     // Try full name first, then suffix-stripped (handles "Michael Harris II" vs "Michael Harris")
     const entry    = teamMap[norm] || teamMap[short];
-    // Debug for Harris
-    if (name.toLowerCase().includes('harris') && mlbTeam === 'ATL') {
-      console.log('[Harris debug] norm:', norm, 'short:', short);
-      console.log('[Harris debug] teamMap keys with harris:', Object.keys(teamMap).filter(k => k.includes('harris')));
-      console.log('[Harris debug] entry found:', entry);
+    if (entry) {
+      // found on listed team
+    } else {
+      // Player may have been traded — search all team caches
+      for (const otherTeam of Object.values(rosterStatusCache)) {
+        const e = otherTeam[norm] || otherTeam[short];
+        if (e) {
+          const s2 = e.status || '';
+          if (s2 === 'Active') return 'active';
+          if (s2.endsWith('IL') || s2.startsWith('Injured') || s2 === 'Full Season IL') return 'il';
+        }
+      }
+      return 'milb';
     }
-    if (!entry) return 'milb';
     const s = entry.status || '';
     if (s === 'Active') return 'active';
     if (s.endsWith('IL') || s.startsWith('Injured') || s === 'Full Season IL') return 'il';
