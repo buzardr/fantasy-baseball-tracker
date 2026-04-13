@@ -192,3 +192,485 @@ console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError 
 JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
 console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
 tLang' was resolved", (void 0), 587))
+1775977383996	geckodriver	INFO	Listening on 127.0.0.1:52203
+1775977387653	mozrunner::runner	INFO	Running command: "C:\\P1775977388139	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "-headless" "--remote-debugging-port" "52207" "-no-remote" "-Dynamically enable window occlusion 0
+1775977388986	Marionette	INFO	Marionette enabled
+1775977389258	MarionetDynamically enable window occlusion 0
+1775977390476	Marionette	INFO	Marionette enabled
+1775977390764	Marionette	INFO	Listening on port 52218
+WebDriver BiDi listening on[GFX1-]: Calling WaitFlushedEvent::Run: is delayed: 2007
+console.error: RSLoader: 
+  Failed to retrieve recipes from Remote Settings
+  Message: Error: Could not sync nimbus-desktop-console.error: RSLoader: 
+  Failed to retrieve recipes from Remote Settings
+  Message: Error: Could not sync nimbus-desktop-experiments: get-exception
+  Stack:
+    RemoteSettingsSyncError@resource://nimbus/lib/RemoteSettingsExp1775977396902	Marionette	INFO	Stopped listening on port 52215
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+VALUE) [nsIWinTaskbar.getTaskbarProgress]"  nsresult: "0x80070057 (NS_ERROR_ILLEGAL_VALUE)"  location: "JS frame :: moz-src:///browser/components/downloads/DownloadsTaskbar.sys.mjs :: #windowsAttachIndicator :: line 183"  data: no]
+1775977397145	Marionette	INFO	Stopped listening on port 52218
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+1776009116533	geckodriver	INFO	Listening on 127.0.0.1:53614
+1776009119616	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "-headless" "--remote-debugging-port" "53617" "-no-remote" "-profile" "C:\\Users\\ryan\\AppData\\Local\\Temp\\rust_mozproDynamically enable window occlusion 0
+177600912060Dynamically enable window occlusion 0
+1776009121721	Marionette	INFO	Marionette enabled
+1776009121912	Marionette	INFO	Listening on port 53627
+WebDriver BiDi listening on ws://127.0.0.1:53617
+1776009122079	RemoteAgent	WARN	TLS ceconsole.error: "Experiment visual-card-updates has unknown featureId: newtabRefinedCardsLayout"
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://universal.bullhornstaffing.com."
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://universal.bullhornstaffing.com."
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornSTAFFING/MosaicBackgroundLoaderNovo.cfm?ClearLocalStorage=TRUE, line 2330: ReferenceError: e is not defined
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON dataJavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest33.bullhornstaffing.com/rest-services/3r0jjd/services/Export?cacheId=a7591661-cfc2-40dc-afce-546318644a09&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+1776009790014	Marionette	INFO	Stopped listening on port 53627
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+roperty name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=f3a606345, line 680: unreachable code after return statement
+1776009365095	Marionette	WARN	Ignoring event 'DOMContentLoaded' because document has an invalid readyState of 'complete'.
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=f3a606345, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://cls33.bullhornstaffing.com/BullhornStaffing/BullhornReporting/LoadJasperReport.cfm?reportUUID=826858B2-DFE2-0FBB-794DF137D6544803&extension=XLS" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+1776009547000	Marionette	INFO	Stopped listening on port 53626
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+1776009566350	geckodriver	INFO	Listening on 127.0.0.1:53922
+1776009569417	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--remote-debugging-port" "53923" "-no-remote" "-profile" "C:\\Users\\ryan\\AppData\\Local\\Temp\\rust_mozprofileLssqOO"
+Dynamically enable window occlusion 0
+1776009570341	Marionette	INFO	Marionette enabled
+1776009570590	Marionette	INFO	Listening on port 53928
+WebDriver BiDi listening on ws://127.0.0.1:53923
+1776009570829	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+console.error: "Experiment visual-card-updates has unknown featureId: newtabRefinedCardsLayout"
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://universal.bullhornstaffing.com."
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://universal.bullhornstaffing.com."
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+1776009662490	RemoteAgent	WARN	TimedPromise timed out after 500 ms: stacktrace:
+TimedPromise/<@chrome://remote/content/shared/Sync.sys.mjs:448:24
+TimedPromise@chrome://remote/content/shared/Sync.sys.mjs:432:10
+interaction.flushEventLoop@chrome://remote/content/marionette/interaction.sys.mjs:465:10
+webdriverClickElement@chrome://remote/content/marionette/interaction.sys.mjs:218:33
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=f3a606345, line 680: unreachable code after return statement
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/BullhornReporting/ReportSpecifications.cfm?reportingID=11&CFID=21085727&CFTOKEN=bcf64ce64cd86ec5-826C6F49-C8F4-E1C6-CE2F1C68AEE710BB, line 331: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=f3a606345, line 680: unreachable code after return statement
+1776009853712	Marionette	WARN	Ignoring event 'DOMContentLoaded' because document has an invalid readyState of 'complete'.
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=f3a606345, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://cls33.bullhornstaffing.com/BullhornStaffing/BullhornReporting/LoadJasperReport.cfm?reportUUID=826FD377-FFB9-3BB5-8FBD7E006AC45620&extension=XLS" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://cls33.bullhornstaffing.com/BullhornStaffing/BullhornReporting/LoadJasperReport.cfm?reportUUID=826FD377-FFB9-3BB5-8FBD7E006AC45620&extension=XLS" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+1776010076954	Marionette	INFO	Stopped listening on port 53928
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+rnstaffing.com."
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://universal.bullhornstaffing.com."
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornSTAFFING/MosaicBackgroundLoaderNovo.cfm?ClearLocalStorage=TRUE, line 2330: ReferenceError: e is not defined
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=f3a606345, line 680: unreachable code after return statement
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/BullhornReporting/ReportSpecifications.cfm?reportingID=14&CFID=20153415&CFTOKEN=44039577fe117877-8272F05E-E782-D499-9DA6B98116065C25, line 331: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected douJavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest33.bullhornstaffing.com/rest-services/3r0jjd/services/Export?cacheId=4f4fa0ee-b1b2-4bbf-8556-c55ef5196048&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest33.bullhornstaffing.com/rest-services/3r0jjd/services/Export?cacheId=4f4fa0ee-b1b2-4bbf-8556-c55ef5196048&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+1776010943352	Marionette	INFO	Stopped listening on port 54270
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+indowsJumpLists: "Failed to fetch favicon for " "https://rest33.bullhornstaffing.com/rest-services/3r0jjd/services/Export?cacheId=c31ce183-c6bd-411e-b033-f7cb21e7cb66&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest33.bullhornstaffing.com/rest-services/3r0jjd/services/Export?cacheId=c31ce183-c6bd-411e-b033-f7cb21e7cb1776010874417	Marionette	INFO	Stopped listening on port 54240
+Dynamically enable window occlusion 1
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0)))
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
+st33.bullhornstaffing.com/rest-services/3r0jjd/services/Export?cacheId=c31ce183-c6bd-411e-b033-f7cb21e7cb66&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+1776011839200	Marionette	INFO	Stopped listening on port 54395
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+1776038951564	geckodriver	INFO	Listening on 127.0.0.1:50119
+1776038955128	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--remote-debugging-port" "50120" "-no-remote" "-profile" "C:\\Users\\ryan\\AppData\\Local\\Temp\\rust_mozprofile2o4K1h"
+Dynamically enable window occlusion 0
+1776038957126	Marionette	INFO	Marionette enabled
+1776038957504	Marionette	INFO	Listening on port 50142
+WebDriver BiDi listening on ws://127.0.0.1:50120
+1776038958002	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+[GFX1-]: Calling WaitFlushedEvent::Run: is delayed: 2428
+console.error: "Experiment visual-card-updates has unknown featureId: newtabRefinedCardsLayout"
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://cls33.bullhornstaffing.com."
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://cls33.bullhornstaffing.com."
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHAutoComplete.js?v=2e54451, line 58: ReferenceError: ActiveXObject is not defined
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm, line 812: SyntaxError: expected expression, got ','
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm, line 850: ReferenceError: googleAnalyticsInfo is not defined
+1776038990052	Marionette	WARN	Ignoring event 'DOMContentLoaded' because document has an invalid readyState of 'complete'.
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/scripts/BHAutoComplete.js?v=2e54451, line 58: ReferenceError: ActiveXObject is not defined
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm?BH___ENCR=TRUE&CLIENTLOGIN=TRUE&DSTEND=11%2F1&CAPTUREDTIMEZONE=true&DSTSTART=3%2F8&GMTOFFSETMINS=%2D480&SOURCE=ats&RECOGNIZESDST=true&CLOSEONFINISH=FALSE, line 837: SyntaxError: expected expression, got ','
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm?BH___ENCR=TRUE&CLIENTLOGIN=TRUE&DSTEND=11%2F1&CAPTUREDTIMEZONE=true&DSTSTART=3%2F8&GMTOFFSETMINS=%2D480&SOURCE=ats&RECOGNIZESDST=true&CLOSEONFINISH=FALSE, line 875: ReferenceError: googleAnalyticsInfo is not defined
+console.error: [Exception... "Component is not available"  nsresult: "0x80040111 (NS_ERROR_NOT_AVAILABLE)"  location: "<unknown>"  data: no]
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornSTAFFING/MosaicBackgroundLoaderNovo.cfm?ClearLocalStorage=TRUE, line 2294: ReferenceError: e is not defined
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=fc0997c5-433c-440b-8838-ec5f2dc28696&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+1776040167512	RemoteAgent	WARN	TimedPromise timed out after 500 ms: stacktrace:
+TimedPromise/<@chrome://remote/content/shared/Sync.sys.mjs:448:24
+TimedPromise@chrome://remote/content/shared/Sync.sys.mjs:432:10
+interaction.flushEventLoop@chrome://remote/content/marionette/interaction.sys.mjs:465:10
+webdriverClickElement@chrome://remote/content/marionette/interaction.sys.mjs:218:33
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+1776041202789	RemoteAgent	WARN	TimedPromise timed out after 500 ms: stacktrace:
+TimedPromise/<@chrome://remote/content/shared/Sync.sys.mjs:448:24
+TimedPromise@chrome://remote/content/shared/Sync.sys.mjs:432:10
+interaction.flushEventLoop@chrome://remote/content/marionette/interaction.sys.mjs:465:10
+webdriverClickElement@chrome://remote/content/marionette/interaction.sys.mjs:218:33
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+1776041771194	Marionette	INFO	Stopped listening on port 50142
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 151 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls44.bullhornstaffing.com/BullhornStaffing/BullhornReporting/ReportSpecifications.cfm?reportingID=12&CFID=20249259&CFTOKEN=f9fc83175fc7a771-84327F74-F451-CAE5-F71A543C8C0AA80C, line 405: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+1776039557323	Marionette	WARN	Ignoring event 'DOMContentLoaded' because document has an invalid readyState of 'complete'.
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://cls44.bullhornstaffing.com/BullhornStaffing/BullhornReporting/LoadJasperReport.cfm?reportUUID=843507E7-C1DC-9A22-0E5A1F88109DA7B3&extension=XLS" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+1776039707897	Marionette	INFO	Stopped listening on port 50775
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+1776039723023	geckodriver	INFO	Listening on 127.0.0.1:50994
+1776039726169	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--remote-debugging-port" "50995" "-no-remote" "-profile" "C:\\Users\\ryan\\AppData\\Local\\Temp\\rust_mozprofile8ckwEt"
+Dynamically enable window occlusion 0
+1776039726970	Marionette	INFO	Marionette enabled
+1776039727164	Marionette	INFO	Listening on port 51002
+WebDriver BiDi listening on ws://127.0.0.1:50995
+1776039727340	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+console.error: "Experiment visual-card-updates has unknown featureId: newtabRefinedCardsLayout"
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://universal.bullhornstaffing.com."
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://universal.bullhornstaffing.com."
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornSTAFFING/MosaicBackgroundLoaderNovo.cfm?ClearLocalStorage=TRUE, line 2342: ReferenceError: e is not defined
+JavaScript warning: https://cls44.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript warning: https://cls44.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls44.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript warning: https://cls44.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls44.bullhornstaffing.com/BullhornStaffing/BullhornReporting/ReportSpecifications.cfm?reportingID=15&CFID=19526673&CFTOKEN=af0e4555ade8c2b8-84380978-E736-3246-EDBE5E163F76E0E8, line 405: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+1776039878889	Marionette	WARN	Ignoring event 'DOMContentLoaded' because document has an invalid readyState of 'complete'.
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+1776039934778	Marionette	INFO	Stopped listening on port 51002
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+1776043611476	geckodriver	INFO	Listening on 127.0.0.1:53597
+1776043614622	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--remote-debugging-port" "53598" "-no-remote" "-profile" "C:\\Users\\ryan\\AppData\\Local\\Temp\\rust_mozprofilezootrO"
+Dynamically enable window occlusion 0
+1776043616003	Marionette	INFO	Marionette enabled
+1776043616218	Marionette	INFO	Listening on port 53603
+WebDriver BiDi listening on ws://127.0.0.1:53598
+1776043616714	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+[GFX1-]: Calling WaitFlushedEvent::Run: is delayed: 2005
+console.error: "Experiment visual-card-updates has unknown featureId: newtabRefinedCardsLayout"
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://cls33.bullhornstaffing.com."
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://cls33.bullhornstaffing.com."
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHAutoComplete.js?v=2e54451, line 58: ReferenceError: ActiveXObject is not defined
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm, line 812: SyntaxError: expected expression, got ','
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm, line 850: ReferenceError: googleAnalyticsInfo is not defined
+1776043679781	Marionette	WARN	Ignoring event 'DOMContentLoaded' because document has an invalid readyState of 'complete'.
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/scripts/BHAutoComplete.js?v=2e54451, line 58: ReferenceError: ActiveXObject is not defined
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm?BH___ENCR=TRUE&CLIENTLOGIN=TRUE&DSTEND=11%2F1&RECOGNIZESDST=true&CLOSEONFINISH=FALSE&GMTOFFSETMINS=%2D480&SOURCE=ats&CAPTUREDTIMEZONE=true&DSTSTART=3%2F8, line 837: SyntaxError: expected expression, got ','
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm?BH___ENCR=TRUE&CLIENTLOGIN=TRUE&DSTEND=11%2F1&RECOGNIZESDST=true&CLOSEONFINISH=FALSE&GMTOFFSETMINS=%2D480&SOURCE=ats&CAPTUREDTIMEZONE=true&DSTSTART=3%2F8, line 875: ReferenceError: googleAnalyticsInfo is not defined
+console.error: [Exception... "Component is not available"  nsresult: "0x80040111 (NS_ERROR_NOT_AVAILABLE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://app.bullhornstaffing.com/" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+1776043969996	Marionette	INFO	Stopped listening on port 53603
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+console.error: RemoteSecuritySettings: 
+  failed to download CRLite filter
+Object
+  - prototype Object
+    - columnNumber = 11
+    - data = null
+    - filename = resource://gre/modules/ServiceRequest.sys.mjs
+    - lineNumber = 126
+    - location = {"name":"open","filename":"resource://gre/modules/ServiceRequest.sys.mjs","sourceId":27,"lineNumber":126,"columnNumber":11,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch/<","sourceId":26,"lineNumber":284,"columnNumber":15,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch","sourceId":26,"lineNumber":235,"columnNumber":12,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Attachments.sys.mjs","name":"_fetchAttachment","sourceId":25,"lineNumber":560,"columnNumber":35,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Attachments.sys.mjs","name":"downloadAsBytes","sourceId":25,"lineNumber":537,"columnNumber":35,"asyncCause":null,"asyncCaller":null,"caller":null,"formattedStack":"downloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"fetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"fetch/<@resource://services-settings/Utils.sys.mjs:284:15\nfetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"open@resource://gre/modules/ServiceRequest.sys.mjs:126:11\nfetch/<@resource://services-settings/Utils.sys.mjs:284:15\nfetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}}
+    - message = 
+    - name = 
+    - result = 2152071198
+    - stack = open@resource://gre/modules/ServiceRequest.sys.mjs:126:11|fetch/<@resource://services-settings/Utils.sys.mjs:284:15|fetch@resource://services-settings/Utils.sys.mjs:235:12|_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35|downloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35|
+  - prototype Object
+console.error: RemoteSecuritySettings: 
+  failed to download CRLite filter
+Object
+  - prototype Object
+    - columnNumber = 11
+    - data = null
+    - filename = resource://gre/modules/ServiceRequest.sys.mjs
+    - lineNumber = 126
+    - location = {"name":"open","filename":"resource://gre/modules/ServiceRequest.sys.mjs","sourceId":27,"lineNumber":126,"columnNumber":11,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch/<","sourceId":26,"lineNumber":284,"columnNumber":15,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch","sourceId":26,"lineNumber":235,"columnNumber":12,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Attachments.sys.mjs","name":"_fetchAttachment","sourceId":25,"lineNumber":560,"columnNumber":35,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Attachments.sys.mjs","name":"downloadAsBytes","sourceId":25,"lineNumber":537,"columnNumber":35,"asyncCause":null,"asyncCaller":null,"caller":null,"formattedStack":"downloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"fetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"fetch/<@resource://services-settings/Utils.sys.mjs:284:15\nfetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"open@resource://gre/modules/ServiceRequest.sys.mjs:126:11\nfetch/<@resource://services-settings/Utils.sys.mjs:284:15\nfetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}}
+    - message = 
+    - name = 
+    - result = 2152071198
+    - stack = open@resource://gre/modules/ServiceRequest.sys.mjs:126:11|fetch/<@resource://services-settings/Utils.sys.mjs:284:15|fetch@resource://services-settings/Utils.sys.mjs:235:12|_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35|downloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35|
+  - prototype Object
+console.error: RemoteSecuritySettings: 
+  failed to download CRLite filter
+Object
+  - prototype Object
+    - columnNumber = 11
+    - data = null
+    - filename = resource://gre/modules/ServiceRequest.sys.mjs
+    - lineNumber = 126
+    - location = {"name":"open","filename":"resource://gre/modules/ServiceRequest.sys.mjs","sourceId":27,"lineNumber":126,"columnNumber":11,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch/<","sourceId":26,"lineNumber":284,"columnNumber":15,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch","sourceId":26,"lineNumber":235,"columnNumber":12,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Attachments.sys.mjs","name":"_fetchAttachment","sourceId":25,"lineNumber":560,"columnNumber":35,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Attachments.sys.mjs","name":"downloadAsBytes","sourceId":25,"lineNumber":537,"columnNumber":35,"asyncCause":null,"asyncCaller":null,"caller":null,"formattedStack":"downloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"fetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"fetch/<@resource://services-settings/Utils.sys.mjs:284:15\nfetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"open@resource://gre/modules/ServiceRequest.sys.mjs:126:11\nfetch/<@resource://services-settings/Utils.sys.mjs:284:15\nfetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}}
+    - message = 
+    - name = 
+    - result = 2152071198
+    - stack = open@resource://gre/modules/ServiceRequest.sys.mjs:126:11|fetch/<@resource://services-settings/Utils.sys.mjs:284:15|fetch@resource://services-settings/Utils.sys.mjs:235:12|_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35|downloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35|
+  - prototype Object
+console.error: RemoteSecuritySettings: 
+  failed to download CRLite filter
+Object
+  - prototype Object
+    - columnNumber = 11
+    - data = null
+    - filename = resource://gre/modules/ServiceRequest.sys.mjs
+    - lineNumber = 126
+    - location = {"name":"open","filename":"resource://gre/modules/ServiceRequest.sys.mjs","sourceId":27,"lineNumber":126,"columnNumber":11,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch/<","sourceId":26,"lineNumber":284,"columnNumber":15,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch","sourceId":26,"lineNumber":235,"columnNumber":12,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Attachments.sys.mjs","name":"_fetchAttachment","sourceId":25,"lineNumber":560,"columnNumber":35,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Attachments.sys.mjs","name":"downloadAsBytes","sourceId":25,"lineNumber":537,"columnNumber":35,"asyncCause":null,"asyncCaller":null,"caller":null,"formattedStack":"downloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"fetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"fetch/<@resource://services-settings/Utils.sys.mjs:284:15\nfetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"open@resource://gre/modules/ServiceRequest.sys.mjs:126:11\nfetch/<@resource://services-settings/Utils.sys.mjs:284:15\nfetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}}
+    - message = 
+    - name = 
+    - result = 2152071198
+    - stack = open@resource://gre/modules/ServiceRequest.sys.mjs:126:11|fetch/<@resource://services-settings/Utils.sys.mjs:284:15|fetch@resource://services-settings/Utils.sys.mjs:235:12|_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35|downloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35|
+  - prototype Object
+console.error: RemoteSecuritySettings: 
+  failed to download CRLite filter
+Object
+  - prototype Object
+    - columnNumber = 11
+    - data = null
+    - filename = resource://gre/modules/ServiceRequest.sys.mjs
+    - lineNumber = 126
+    - location = {"name":"open","filename":"resource://gre/modules/ServiceRequest.sys.mjs","sourceId":27,"lineNumber":126,"columnNumber":11,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch/<","sourceId":26,"lineNumber":284,"columnNumber":15,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch","sourceId":26,"lineNumber":235,"columnNumber":12,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Attachments.sys.mjs","name":"_fetchAttachment","sourceId":25,"lineNumber":560,"columnNumber":35,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Attachments.sys.mjs","name":"downloadAsBytes","sourceId":25,"lineNumber":537,"columnNumber":35,"asyncCause":null,"asyncCaller":null,"caller":null,"formattedStack":"downloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"fetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"fetch/<@resource://services-settings/Utils.sys.mjs:284:15\nfetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"open@resource://gre/modules/ServiceRequest.sys.mjs:126:11\nfetch/<@resource://services-settings/Utils.sys.mjs:284:15\nfetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}}
+    - message = 
+    - name = 
+    - result = 2152071198
+    - stack = open@resource://gre/modules/ServiceRequest.sys.mjs:126:11|fetch/<@resource://services-settings/Utils.sys.mjs:284:15|fetch@resource://services-settings/Utils.sys.mjs:235:12|_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35|downloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35|
+  - prototype Object
+console.error: RemoteSecuritySettings: 
+  failed to download CRLite filter
+Object
+  - prototype Object
+    - columnNumber = 11
+    - data = null
+    - filename = resource://gre/modules/ServiceRequest.sys.mjs
+    - lineNumber = 126
+    - location = {"name":"open","filename":"resource://gre/modules/ServiceRequest.sys.mjs","sourceId":27,"lineNumber":126,"columnNumber":11,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch/<","sourceId":26,"lineNumber":284,"columnNumber":15,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch","sourceId":26,"lineNumber":235,"columnNumber":12,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Attachments.sys.mjs","name":"_fetchAttachment","sourceId":25,"lineNumber":560,"columnNumber":35,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Attachments.sys.mjs","name":"downloadAsBytes","sourceId":25,"lineNumber":537,"columnNumber":35,"asyncCause":null,"asyncCaller":null,"caller":null,"formattedStack":"downloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"fetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"fetch/<@resource://services-settings/Utils.sys.mjs:284:15\nfetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}},"formattedStack":"open@resource://gre/modules/ServiceRequest.sys.mjs:126:11\nfetch/<@resource://services-settings/Utils.sys.mjs:284:15\nfetch@resource://services-settings/Utils.sys.mjs:235:12\n_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35\ndownloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35\n","nativeSavedFrame":{}}
+    - message = 
+    - name = 
+    - result = 2152071198
+    - stack = open@resource://gre/modules/ServiceRequest.sys.mjs:126:11|fetch/<@resource://services-settings/Utils.sys.mjs:284:15|fetch@resource://services-settings/Utils.sys.mjs:235:12|_fetchAttachment@resource://services-settings/Attachments.sys.mjs:560:35|downloadAsBytes@resource://services-settings/Attachments.sys.mjs:537:35|
+  - prototype Object
+JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+JavaScript error: resource://services-settings/IDBHelpers.sys.mjs, line 16: Error: IndexedDB: security-state/cert-revocations importChanges() IndexedDB:  execute() The application is shutting down
+1776054142003	geckodriver	INFO	Listening on 127.0.0.1:59485
+1776054145102	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--remote-debugging-port" "59486" "-no-remote" "-profile" "C:\\Users\\ryan\\AppData\\Local\\Temp\\rust_mozprofilemQYUVH"
+Dynamically enable window occlusion 0
+1776054146304	Marionette	INFO	Marionette enabled
+1776054146561	Marionette	INFO	Listening on port 59492
+WebDriver BiDi listening on ws://127.0.0.1:59486
+1776054146923	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+console.error: "Experiment visual-card-updates has unknown featureId: newtabRefinedCardsLayout"
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://cls33.bullhornstaffing.com."
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://cls33.bullhornstaffing.com."
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHAutoComplete.js?v=2e54451, line 58: ReferenceError: ActiveXObject is not defined
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm, line 812: SyntaxError: expected expression, got ','
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm, line 850: ReferenceError: googleAnalyticsInfo is not defined
+1776054182311	Marionette	WARN	Ignoring event 'DOMContentLoaded' because document has an invalid readyState of 'complete'.
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/scripts/BHAutoComplete.js?v=2e54451, line 58: ReferenceError: ActiveXObject is not defined
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm?BH___ENCR=TRUE&CLIENTLOGIN=TRUE&GMTOFFSETMINS=%2D480&DSTEND=11%2F1&DSTSTART=3%2F8&CAPTUREDTIMEZONE=true&RECOGNIZESDST=true&CLOSEONFINISH=FALSE&SOURCE=ats, line 837: SyntaxError: expected expression, got ','
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm?BH___ENCR=TRUE&CLIENTLOGIN=TRUE&GMTOFFSETMINS=%2D480&DSTEND=11%2F1&DSTSTART=3%2F8&CAPTUREDTIMEZONE=true&RECOGNIZESDST=true&CLOSEONFINISH=FALSE&SOURCE=ats, line 875: ReferenceError: googleAnalyticsInfo is not defined
+console.error: [Exception... "Component is not available"  nsresult: "0x80040111 (NS_ERROR_NOT_AVAILABLE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornSTAFFING/MosaicBackgroundLoaderNovo.cfm?ClearLocalStorage=TRUE, line 2294: ReferenceError: e is not defined
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=8746b46f-74f6-41b3-9abb-ce9889c92413&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=8746b46f-74f6-41b3-9abb-ce9889c92413&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+1776055331496	Marionette	INFO	Stopped listening on port 59492
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
+JavaScript error: https://app.bullhornstaffing.com/mosaic/lib/montage.js, line 3873: NS_ERROR_NOT_INITIALIZED: 
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+1776055885604	geckodriver	INFO	Listening on 127.0.0.1:60473
+1776055888651	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--remote-debugging-port" "60474" "-no-remote" "-profile" "C:\\Users\\ryan\\AppData\\Local\\Temp\\rust_mozprofilerQyVnL"
+Dynamically enable window occlusion 0
+1776055889545	Marionette	INFO	Marionette enabled
+1776055889779	Marionette	INFO	Listening on port 60504
+WebDriver BiDi listening on ws://127.0.0.1:60474
+1776055889915	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+console.error: "Experiment visual-card-updates has unknown featureId: newtabRefinedCardsLayout"
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://cls33.bullhornstaffing.com."
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://cls33.bullhornstaffing.com."
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHAutoComplete.js?v=2e54451, line 58: ReferenceError: ActiveXObject is not defined
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm, line 812: SyntaxError: expected expression, got ','
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm, line 850: ReferenceError: googleAnalyticsInfo is not defined
+1776055938122	Marionette	WARN	Ignoring event 'DOMContentLoaded' because document has an invalid readyState of 'complete'.
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/scripts/BHAutoComplete.js?v=2e54451, line 58: ReferenceError: ActiveXObject is not defined
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm?BH___ENCR=TRUE&CLIENTLOGIN=TRUE&SOURCE=ats&CLOSEONFINISH=FALSE&DSTSTART=3%2F8&RECOGNIZESDST=true&GMTOFFSETMINS=%2D480&DSTEND=11%2F1&CAPTUREDTIMEZONE=true, line 837: SyntaxError: expected expression, got ','
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm?BH___ENCR=TRUE&CLIENTLOGIN=TRUE&SOURCE=ats&CLOSEONFINISH=FALSE&DSTSTART=3%2F8&RECOGNIZESDST=true&GMTOFFSETMINS=%2D480&DSTEND=11%2F1&CAPTUREDTIMEZONE=true, line 875: ReferenceError: googleAnalyticsInfo is not defined
+console.error: [Exception... "Component is not available"  nsresult: "0x80040111 (NS_ERROR_NOT_AVAILABLE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+1776056044269	RemoteAgent	WARN	TimedPromise timed out after 500 ms: stacktrace:
+TimedPromise/<@chrome://remote/content/shared/Sync.sys.mjs:448:24
+TimedPromise@chrome://remote/content/shared/Sync.sys.mjs:432:10
+interaction.flushEventLoop@chrome://remote/content/marionette/interaction.sys.mjs:465:10
+webdriverClickElement@chrome://remote/content/marionette/interaction.sys.mjs:218:33
+1776056189833	Marionette	INFO	Stopped listening on port 60504
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+1776056496312	geckodriver	INFO	Listening on 127.0.0.1:61052
+1776056499371	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--remote-debugging-port" "61053" "-no-remote" "-profile" "C:\\Users\\ryan\\AppData\\Local\\Temp\\rust_mozprofileeuDAIv"
+Dynamically enable window occlusion 0
+1776056500517	Marionette	INFO	Marionette enabled
+1776056500762	Marionette	INFO	Listening on port 61058
+WebDriver BiDi listening on ws://127.0.0.1:61053
+1776056501199	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+console.error: "Experiment visual-card-updates has unknown featureId: newtabRefinedCardsLayout"
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://cls33.bullhornstaffing.com."
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://cls33.bullhornstaffing.com."
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHAutoComplete.js?v=2e54451, line 58: ReferenceError: ActiveXObject is not defined
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm, line 812: SyntaxError: expected expression, got ','
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm, line 850: ReferenceError: googleAnalyticsInfo is not defined
+1776056536247	Marionette	WARN	Ignoring event 'DOMContentLoaded' because document has an invalid readyState of 'complete'.
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/scripts/BHAutoComplete.js?v=2e54451, line 58: ReferenceError: ActiveXObject is not defined
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm?BH___ENCR=TRUE&CLIENTLOGIN=TRUE&DSTSTART=3%2F8&SOURCE=ats&CAPTUREDTIMEZONE=true&GMTOFFSETMINS=%2D480&DSTEND=11%2F1&RECOGNIZESDST=true&CLOSEONFINISH=FALSE, line 837: SyntaxError: expected expression, got ','
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm?BH___ENCR=TRUE&CLIENTLOGIN=TRUE&DSTSTART=3%2F8&SOURCE=ats&CAPTUREDTIMEZONE=true&GMTOFFSETMINS=%2D480&DSTEND=11%2F1&RECOGNIZESDST=true&CLOSEONFINISH=FALSE, line 875: ReferenceError: googleAnalyticsInfo is not defined
+console.error: [Exception... "Component is not available"  nsresult: "0x80040111 (NS_ERROR_NOT_AVAILABLE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript warning: https://app.bullhornstaffing.com/chunk-VOS57NWS.js, line 896: unreachable code after return statement
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornSTAFFING/MosaicBackgroundLoaderNovo.cfm?ClearLocalStorage=TRUE, line 2294: ReferenceError: e is not defined
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=e63f058f-4ab2-4862-a816-6579a9a673c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=e63f058f-4ab2-4862-a816-6579a9a673c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=e63f058f-4ab2-4862-a816-6579a9a673c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=e63f058f-4ab2-4862-a816-6579a9a673c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=f8be17c3-3e08-4fee-8eb9-876bcc7856c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=e63f058f-4ab2-4862-a816-6579a9a673c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+1776057737197	RemoteAgent	WARN	TimedPromise timed out after 500 ms: stacktrace:
+TimedPromise/<@chrome://remote/content/shared/Sync.sys.mjs:448:24
+TimedPromise@chrome://remote/content/shared/Sync.sys.mjs:432:10
+interaction.flushEventLoop@chrome://remote/content/marionette/interaction.sys.mjs:465:10
+webdriverClickElement@chrome://remote/content/marionette/interaction.sys.mjs:218:33
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=f8be17c3-3e08-4fee-8eb9-876bcc7856c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=e63f058f-4ab2-4862-a816-6579a9a673c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=f8be17c3-3e08-4fee-8eb9-876bcc7856c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=e63f058f-4ab2-4862-a816-6579a9a673c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=f8be17c3-3e08-4fee-8eb9-876bcc7856c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=e63f058f-4ab2-4862-a816-6579a9a673c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=0e3ccb8c-7b77-49b3-a5e5-8546be1e2e0b&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=f8be17c3-3e08-4fee-8eb9-876bcc7856c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=e63f058f-4ab2-4862-a816-6579a9a673c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=0e3ccb8c-7b77-49b3-a5e5-8546be1e2e0b&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=f8be17c3-3e08-4fee-8eb9-876bcc7856c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=e63f058f-4ab2-4862-a816-6579a9a673c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=0e3ccb8c-7b77-49b3-a5e5-8546be1e2e0b&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=f8be17c3-3e08-4fee-8eb9-876bcc7856c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=e63f058f-4ab2-4862-a816-6579a9a673c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=29d0f7c5-6e14-4957-9bd8-e7fde491abac&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=b5603628-5b64-48c1-9b0f-99b91fa3d969&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=0e3ccb8c-7b77-49b3-a5e5-8546be1e2e0b&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=f8be17c3-3e08-4fee-8eb9-876bcc7856c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=29d0f7c5-6e14-4957-9bd8-e7fde491abac&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=b5603628-5b64-48c1-9b0f-99b91fa3d969&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=0e3ccb8c-7b77-49b3-a5e5-8546be1e2e0b&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=f8be17c3-3e08-4fee-8eb9-876bcc7856c8&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=3b9e77b1-6338-4a85-b16e-39f1d9336167&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=29d0f7c5-6e14-4957-9bd8-e7fde491abac&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=b5603628-5b64-48c1-9b0f-99b91fa3d969&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=0e3ccb8c-7b77-49b3-a5e5-8546be1e2e0b&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+1776059940214	Marionette	INFO	Stopped listening on port 61058
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))

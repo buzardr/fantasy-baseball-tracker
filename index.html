@@ -390,6 +390,27 @@
   .player-row:last-child { border-bottom: none; }
   .player-row:hover { background: rgba(255,255,255,0.02); }
   .player-row.milb { opacity: 0.45; }
+  .player-row.il { opacity: 1; }
+  .player-name.il { color: #ef5350; cursor: help; }
+  .player-name.milb-name { color: var(--muted); }
+  .il-tooltip {
+    display: none;
+    position: absolute;
+    background: #1e2830;
+    border: 1px solid #ef5350;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #ef9a9a;
+    white-space: nowrap;
+    z-index: 50;
+    margin-top: 2px;
+    pointer-events: none;
+  }
+  .player-name.il:hover + .il-tooltip,
+  .player-name.il:focus + .il-tooltip { display: block; }
+  .il-wrapper { position: relative; display: contents; }
   .player-row.active-bb { background: rgba(0,200,83,0.04); }
 
   .pos-tag {
@@ -656,7 +677,7 @@
     <div class="team-selector" id="team-selector"></div>
     <div class="roster-split">
       <div class="roster-panel" id="roster-pitchers">
-        <div class="roster-panel-header">Pitchers <span id="pitcher-count"></span></div>
+        <div class="roster-panel-header">Pitchers <span id="pitcher-count" style="font-size:9px;letter-spacing:0.5px;"></span></div>
         <div id="pitcher-rows"></div>
       </div>
       <div class="roster-panel" id="roster-hitters">
@@ -1157,6 +1178,51 @@ function playerKey(name, team) {
   return `${name}|${team}`;
 }
 
+// Fetch full roster for a team — returns map of normName → { status, statusDate, note, id }
+async function fetchFullRoster(teamAbbr) {
+  const teamId = TEAM_IDS[teamAbbr];
+  if (!teamId) return {};
+  const url = `${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`;
+  try {
+    const res  = await fetch(url);
+    if (!res.ok) return {};
+    const data = await res.json();
+    const map  = {};
+    for (const entry of (data.roster || [])) {
+      const p       = entry.person;
+      const norm    = p.fullName.toLowerCase();
+      const status  = entry.status?.description || 'Active';
+      const date    = entry.statusDate || '';
+      const note    = entry.injuryNotes || '';
+      map[norm] = { status, statusDate: date, note, id: p.id };
+    }
+    return map;
+  } catch(e) { return {}; }
+}
+
+// Fetch MiLB stats across all levels in one call
+async function fetchMiLBStats(playerId, isPitcher) {
+  const group = isPitcher ? 'pitching' : 'hitting';
+  const url   = `${MLB_API}/people/${playerId}/stats?stats=season&season=2026` +
+                `&group=${group}&sportIds=11,12,13,14`;
+  try {
+    const res  = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const stArr = data?.stats || [];
+    if (stArr.length === 0) return null;
+    // Find highest level with stats (lowest sportId number = highest level)
+    const withData = stArr
+      .filter(s => s.splits && s.splits.length > 0)
+      .sort((a, b) => (a.sport?.id || 99) - (b.sport?.id || 99));
+    if (withData.length === 0) return null;
+    const best = withData[0];
+    const levelMap = { 11: 'AAA', 12: 'AA', 13: 'High-A', 14: 'A' };
+    const level = levelMap[best.sport?.id] || 'MiLB';
+    return { stat: best.splits[0].stat, level };
+  } catch(e) { return null; }
+}
+
 
 // Seed with IDs we already know are correct (reduces API calls)
 const KNOWN_IDS = {
@@ -1647,6 +1713,7 @@ let currentHalf = '1H';
 let currentTeam = 'Ballpark Franks';
 let statsCache  = {};  // { playerName: { found, id, stat, isPitcher } } — per active half
 let teamStats   = {};
+let rosterStatusCache = {}; // { "Name|Team": { status, statusDate, note } }
 let loadState   = { loaded: 0, total: 0, errors: 0 };
 
 // ════════════════════════════════════════════════════════════
@@ -1693,12 +1760,12 @@ function getDateRange(half) {
 async function loadAllStats(force = false) {
   setStatus('load', 'Checking cache...');
 
-  // Try stats cache for current half
   if (!force) {
     const cached = loadCachedStats(currentHalf);
     if (cached) {
       statsCache = cached;
-      setStatus('ok', `Loaded from cache · ${Object.keys(cached).length} players · ${currentHalf}`);
+      const n = Object.values(cached).filter(v => v.found).length;
+      setStatus('ok', `Loaded from cache · ${n} players with stats · ${currentHalf}`);
       updateLastUpdated();
       computeTeamStats();
       renderAll();
@@ -1707,74 +1774,56 @@ async function loadAllStats(force = false) {
     }
   }
 
-  // ── Phase 1: Resolve all player IDs ──────────────────────
-  const idStore   = loadIdStore();
-  // Seed with known-correct IDs (only overwrites missing entries)
+  // ── Phase 0: Fetch full rosters for all teams (active/IL/MiLB status) ──
+  setLoaderMsg('Fetching team rosters...');
+  setProgress(5);
+  rosterStatusCache = {};
+  const allTeams = [...new Set(ROSTER.map(p => p[2]).filter(Boolean))];
+  const rosterMaps = await Promise.all(allTeams.map(t => fetchFullRoster(t)));
+  allTeams.forEach((t, i) => { rosterStatusCache[t] = rosterMaps[i]; });
+  setProgress(15);
+
+  // ── Phase 1: Resolve player IDs ──────────────────────────
+  const idStore = loadIdStore();
   for (const [key, id] of Object.entries(KNOWN_IDS)) {
-    idStore[key] = id;  // KNOWN_IDS always overwrites cached IDs
+    idStore[key] = id; // KNOWN_IDS always wins
   }
 
-  // ── Phase 0: Fetch active 26-man rosters for all unique teams ──
-  activeRosterCache = {};
-  const allTeams = [...new Set(ROSTER.map(p => p[2]).filter(Boolean))];
-  setLoaderMsg('Checking active MLB rosters...');
-  await Promise.all(allTeams.map(t => fetchActiveRoster(t)));
+  const allPlayers = ROSTER;
+  loadState = { loaded: 0, total: allPlayers.length, errors: 0 };
 
-  const activePlayers = ROSTER; // all players now
-  loadState = { loaded: 0, total: activePlayers.length, errors: 0 };
-
-  setLoaderMsg('Resolving player IDs...');
-  setProgress(5);
-  setStatus('load', 'Resolving player IDs from MLB API...');
-
-  // Find players missing from ID store
-  const needsSearch = activePlayers.filter(p => {
-    const key = playerKey(p[1], p[2]);
-    return !idStore[key];
-  });
-
-  
+  const needsSearch = allPlayers.filter(p => !idStore[playerKey(p[1], p[2])]);
   if (needsSearch.length > 0) {
-    setLoaderMsg(`Searching ${needsSearch.length} new players...`);
-    
-    // Search in batches of 8 to avoid overwhelming the API
+    setLoaderMsg(`Searching ${needsSearch.length} player IDs...`);
     const ID_BATCH = 8;
     for (let i = 0; i < needsSearch.length; i += ID_BATCH) {
       const batch = needsSearch.slice(i, i + ID_BATCH);
       await Promise.all(batch.map(async (p) => {
-        const [, name, mlbTeam] = p;
-        const key = playerKey(name, mlbTeam);
-
-        const found = await resolvePlayerId(name, mlbTeam);
-
-        if (found) idStore[key] = found;
-        else idStore[key] = null;
-
+        const key   = playerKey(p[1], p[2]);
+        const found = await resolvePlayerId(p[1], p[2]);
+        idStore[key] = found || null;
       }));
-      const pct = Math.round(((i + batch.length) / needsSearch.length) * 20) + 5;
-      setProgress(pct);
+      setProgress(15 + Math.round(((i + batch.length) / needsSearch.length) * 10));
     }
-    saveIdStore(idStore); // persist for future loads
+    saveIdStore(idStore);
   }
 
   setProgress(25);
-  setLoaderMsg('Fetching season stats...');
+  setLoaderMsg('Fetching MLB stats...');
 
-  // ── Phase 2: Fetch stats for all active players ──────────
+  // ── Phase 2: Fetch MLB stats for all players ──────────────
   const { start, end } = getDateRange(currentHalf);
-  const newCache = {};
-  const STAT_BATCH = 12;
+  const newCache  = {};
+  const STAT_BATCH = 10;
 
-  for (let i = 0; i < activePlayers.length; i += STAT_BATCH) {
-    const batch = activePlayers.slice(i, i + STAT_BATCH);
-
+  for (let i = 0; i < allPlayers.length; i += STAT_BATCH) {
+    const batch = allPlayers.slice(i, i + STAT_BATCH);
     await Promise.all(batch.map(async (p) => {
       const [pos, name, mlbTeam, , , , ohtaniHO] = p;
-      const isPitcher     = pos === 'P';
-      // Ohtani is listed as OF with ohtaniHO=true — fetch hitting only, never pitching
-      const needsPitching = isPitcher && !ohtaniHO;
-      const key = playerKey(name, mlbTeam);
-      const playerId = idStore[key];  
+      const needsPitching = pos === 'P' && !ohtaniHO;
+      const group         = needsPitching ? 'pitching' : 'hitting';
+      const key           = playerKey(name, mlbTeam);
+      const playerId      = idStore[key];
 
       if (!playerId) {
         newCache[key] = { found: false, id: null };
@@ -1783,38 +1832,43 @@ async function loadAllStats(force = false) {
         return;
       }
 
-      const group = needsPitching ? 'pitching' : 'hitting';
-      const stat  = await fetchStatsByDateRange(playerId, group, start, end);
-
+      const stat = await fetchStatsByDateRange(playerId, group, start, end);
       if (stat) {
         newCache[key] = { found: true, id: playerId, stat, isPitcher: needsPitching };
       } else {
-        newCache[key] = { found: false, id: playerId };
+        // No MLB stats — try MiLB stats
+        const milbResult = await fetchMiLBStats(playerId, needsPitching);
+        if (milbResult) {
+          newCache[key] = { found: false, id: playerId, milbStat: milbResult.stat,
+                            milbLevel: milbResult.level, isPitcher: needsPitching };
+        } else {
+          newCache[key] = { found: false, id: playerId };
+        }
         loadState.errors++;
       }
       loadState.loaded++;
     }));
 
-    const pct = Math.round(((i + batch.length) / activePlayers.length) * 70) + 25;
+    const pct = 25 + Math.round(((i + batch.length) / allPlayers.length) * 73);
     setProgress(pct);
-    setLoaderMsg(`Fetching stats... ${loadState.loaded}/${loadState.total}`);
-    setStatus('load', `Loading ${loadState.loaded}/${loadState.total} · ${loadState.errors} not found`);
+    setLoaderMsg(`Stats: ${loadState.loaded}/${loadState.total}`);
+    setStatus('load', `Loading ${loadState.loaded}/${loadState.total}...`);
   }
 
   statsCache = newCache;
   saveCachedStats(currentHalf, newCache);
   setProgress(100);
   updateLastUpdated();
-
   computeTeamStats();
   renderAll();
 
-  const found  = loadState.total - loadState.errors;
-  setStatus('ok', `${found}/${loadState.total} players loaded · ${currentHalf} · click Refresh to update`);
+  const found = allPlayers.length - loadState.errors;
+  setStatus('ok', `${found} MLB · ${loadState.errors} MiLB/IL · ${currentHalf}`);
   setLoaderMsg('Done!');
   setTimeout(hideLoader, 500);
 }
 
+ 
 
 // ════════════════════════════════════════════════════════════
 // BEST-BALL STAT COMPUTATION
@@ -1830,7 +1884,8 @@ function computeTeamStats() {
   teamStats = {};
 
   for (const team of TEAMS) {
-    const roster   = ROSTER.filter(p => p[4] === team); // active roster check via API
+    const roster   = ROSTER.filter(p => p[4] === team &&
+                       statsCache[playerKey(p[1], p[2])]?.found === true);
     const pitchers = roster.filter(p => p[0] === 'P');
     const hitters  = roster.filter(p => p[0] !== 'P');
 
@@ -2072,49 +2127,129 @@ function renderRosters(team) {
   const best9    = teamStats[team]?.best9Pitchers || [];
   const bestH    = teamStats[team]?.bestHitters   || [];
 
-  document.getElementById('pitcher-count').textContent = `(${pitchers.filter(p=>!p[5]).length} MLB / ${pitchers.filter(p=>p[5]).length} MiLB)`;
-  document.getElementById('hitter-count').textContent  = `(${hitters.filter(p=>!p[5]).length} MLB / ${hitters.filter(p=>p[5]).length} MiLB)`;
+  // Count Active / IL / MiLB for each group using live roster data
+  function getRosterStatus(name, mlbTeam) {
+    const teamMap  = rosterStatusCache[mlbTeam] || {};
+    const entry    = teamMap[name.toLowerCase()];
+    if (!entry) return 'milb';
+    const s = entry.status || '';
+    if (s === 'Active') return 'active';
+    if (s.includes('Injured List')) return 'il';
+    return 'milb';
+  }
+
+  function getILInfo(name, mlbTeam) {
+    const teamMap = rosterStatusCache[mlbTeam] || {};
+    const entry   = teamMap[name.toLowerCase()];
+    if (!entry) return null;
+    const type    = entry.status || '';
+    const date    = entry.statusDate
+      ? new Date(entry.statusDate).toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' })
+      : '';
+    const note    = entry.note || '';
+    return { type, date, note };
+  }
+
+  function countGroup(group) {
+    const active = group.filter(p => getRosterStatus(p[1], p[2]) === 'active').length;
+    const il     = group.filter(p => getRosterStatus(p[1], p[2]) === 'il').length;
+    const milb   = group.filter(p => getRosterStatus(p[1], p[2]) === 'milb').length;
+    return { active, il, milb };
+  }
+
+  const pCounts = countGroup(pitchers);
+  const hCounts = countGroup(hitters);
+
+  const legend = `<span style="font-size:9px;color:var(--muted);margin-left:8px;letter-spacing:0.5px;">
+    ⬜ Active &nbsp; <span style="color:#ef5350">⬜ IL</span> &nbsp; — MiLB</span>`;
+
+  document.getElementById('pitcher-count').innerHTML =
+    `<span>Active:${pCounts.active} · <span style="color:#ef5350">IL:${pCounts.il}</span> · MiLB:${pCounts.milb}</span>${legend}`;
+  document.getElementById('hitter-count').innerHTML =
+    `<span>Active:${hCounts.active} · <span style="color:#ef5350">IL:${hCounts.il}</span> · MiLB:${hCounts.milb}</span>`;
 
   function makeRow(p) {
-    const [pos, name, mlbTeam, salary, ft, isMilb, ohtaniHO] = p;
-    const s      = getStat(name, mlbTeam);
-    const isBBp  = best9.includes(playerKey(name, mlbTeam));
-    const isBBh  = bestH.includes(playerKey(name, mlbTeam));
-    const isBB   = isBBp || isBBh;
-    const posKey = pos === '1B' ? 'B1' : pos === '2B' ? 'B2' : pos === '3B' ? 'B3' : pos;
+    const [pos, name, mlbTeam, salary, ft, isMilbFlag, ohtaniHO] = p;
+    const cacheEntry  = statsCache[playerKey(name, mlbTeam)];
+    const s           = cacheEntry?.found ? cacheEntry.stat : null;
+    const milbStat    = cacheEntry?.milbStat || null;
+    const milbLevel   = cacheEntry?.milbLevel || 'MiLB';
+    const rStatus     = getRosterStatus(name, mlbTeam);
+    const isActive    = rStatus === 'active';
+    const isIL        = rStatus === 'il';
+    const isTrueMiLB  = rStatus === 'milb';
+    const isBBp       = best9.includes(playerKey(name, mlbTeam));
+    const isBBh       = bestH.includes(playerKey(name, mlbTeam));
+    const isBB        = isBBp || isBBh;
+    const posKey      = pos === '1B' ? 'B1' : pos === '2B' ? 'B2' : pos === '3B' ? 'B3' : pos;
 
-    let statsHtml = '';
-    // Determine true status: check live active roster, fall back to isMilb flag
-    const rosterNames = activeRosterCache[mlbTeam] || new Set();
-    const isOnMLBRoster = rosterNames.has(name.toLowerCase());
-    const showAsMilb = !isOnMLBRoster && isMilb;
+    // Name color class
+    const nameClass = isIL ? 'il' : isTrueMiLB ? 'milb-name' : '';
 
-    if (showAsMilb) {
-      statsHtml = `<span style="color:var(--muted);font-size:10px;font-family:'DM Mono',monospace;">MiLB</span>`;
-    } else if (!s) {
-      statsHtml = `<span class="loading-dots" style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;">···</span>`;
-    } else if (pos === 'P' && !ohtaniHO) {
-      const w = s.wins || 0, sv = s.saves || 0, k = s.strikeOuts || 0;
-      const era = s.era || '—', whip = s.whip || '—';
-      statsHtml = `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">${w}W ${sv}SV ${k}K <span style="color:var(--muted)">${era} ERA ${whip} WHIP</span></span>`;
-    } else {
-      const avg = s.avg || '.000';
-      const hr  = s.homeRuns || 0, r = s.runs || 0, rbi = s.rbi || 0, sb = s.stolenBases || 0;
-      const xbh = (s.doubles || 0) + (s.triples || 0);
-      statsHtml = `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">${avg} <span style="color:var(--muted)">${r}R ${xbh}XBH ${hr}HR ${rbi}RBI ${sb}SB</span></span>`;
+    // IL tooltip
+    let tooltipHtml = '';
+    if (isIL) {
+      const info = getILInfo(name, mlbTeam);
+      if (info) {
+        const parts = [info.type];
+        if (info.date) parts.push(`placed ${info.date}`);
+        if (info.note) parts.push(info.note);
+        tooltipHtml = `<div class="il-tooltip">${parts.join(' · ')}</div>`;
+      }
     }
 
-    const salaryHtml = (!isMilb && salary > 0)
+    // Stats display
+    let statsHtml = '';
+    if (s) {
+      // Has MLB stats — show in white regardless of current roster status
+      if (pos === 'P' && !ohtaniHO) {
+        const w = s.wins || 0, sv = s.saves || 0, k = s.strikeOuts || 0;
+        const era = s.era || '—', whip = s.whip || '—';
+        statsHtml = `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">${w}W ${sv}SV ${k}K <span style="color:var(--muted)">${era} ERA ${whip} WHIP</span></span>`;
+      } else {
+        const avg = s.avg || '.000';
+        const hr = s.homeRuns || 0, r = s.runs || 0, rbi = s.rbi || 0, sb = s.stolenBases || 0;
+        const xbh = (s.doubles || 0) + (s.triples || 0);
+        statsHtml = `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">${avg} <span style="color:var(--muted)">${r}R ${xbh}XBH ${hr}HR ${rbi}RBI ${sb}SB</span></span>`;
+      }
+    } else if (milbStat) {
+      // No MLB stats — show MiLB stats in muted grey with level tag
+      if (pos === 'P' && !ohtaniHO) {
+        const w = milbStat.wins || 0, sv = milbStat.saves || 0, k = milbStat.strikeOuts || 0;
+        const era = milbStat.era || '—', whip = milbStat.whip || '—';
+        statsHtml = `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">(${milbLevel}) ${w}W ${sv}SV ${k}K ${era} ERA ${whip} WHIP</span>`;
+      } else {
+        const avg = milbStat.avg || '.000';
+        const hr = milbStat.homeRuns || 0, r = milbStat.runs || 0, rbi = milbStat.rbi || 0, sb = milbStat.stolenBases || 0;
+        const xbh = (milbStat.doubles || 0) + (milbStat.triples || 0);
+        statsHtml = `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">(${milbLevel}) ${avg} ${r}R ${xbh}XBH ${hr}HR ${rbi}RBI ${sb}SB</span>`;
+      }
+    } else {
+      statsHtml = `<span style="color:var(--muted);font-size:10px;font-family:'DM Mono',monospace;">···</span>`;
+    }
+
+    // MiLB badge — only show if no MLB stats AND truly in minors
+    const milbBadge = (!s && isTrueMiLB)
+      ? `<span style="color:var(--muted);font-size:10px;font-family:'DM Mono',monospace;margin-left:6px;">MiLB</span>`
+      : '';
+
+    // Row dimming: grey if truly MiLB (no MLB stats, not on roster)
+    const rowClass = (!s && isTrueMiLB) ? 'milb' : (isIL ? 'il' : '');
+
+    const salaryHtml = (!isTrueMiLB && salary > 0)
       ? `<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">$${salary}</span>`
       : '';
 
     return `
-      <div class="player-row ${isMilb ? 'milb' : ''} ${isBB ? 'active-bb' : ''}">
+      <div class="player-row ${rowClass} ${isBB ? 'active-bb' : ''}">
         <div class="pos-tag ${posKey}">${pos}</div>
-        <div class="player-name">${name}<span class="team-abbr">${mlbTeam}</span></div>
+        <div class="il-wrapper">
+          <div class="player-name ${nameClass}">${name}<span class="team-abbr">${mlbTeam}</span></div>
+          ${tooltipHtml}
+        </div>
         <div>${isBB ? '<span class="bb-tag">BB</span>' : ''}</div>
         <div>${salaryHtml}</div>
-        <div class="player-stats">${statsHtml}</div>
+        <div class="player-stats">${statsHtml}${milbBadge}</div>
       </div>
     `;
   }
