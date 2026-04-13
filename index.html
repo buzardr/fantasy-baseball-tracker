@@ -677,7 +677,7 @@
     <div class="team-selector" id="team-selector"></div>
     <div class="roster-split">
       <div class="roster-panel" id="roster-pitchers">
-        <div class="roster-panel-header">Pitchers <span id="pitcher-count" style="font-size:9px;letter-spacing:0.5px;"></span></div>
+        <div class="roster-panel-header">Pitchers <span id="pitcher-count"></span></div>
         <div id="pitcher-rows"></div>
       </div>
       <div class="roster-panel" id="roster-hitters">
@@ -1182,22 +1182,40 @@ function playerKey(name, team) {
 async function fetchFullRoster(teamAbbr) {
   const teamId = TEAM_IDS[teamAbbr];
   if (!teamId) return {};
-  const url = `${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`;
+  const map = {};
   try {
-    const res  = await fetch(url);
-    if (!res.ok) return {};
-    const data = await res.json();
-    const map  = {};
-    for (const entry of (data.roster || [])) {
-      const p       = entry.person;
-      const norm    = p.fullName.toLowerCase();
-      const status  = entry.status?.description || 'Active';
-      const date    = entry.statusDate || '';
-      const note    = entry.injuryNotes || '';
-      map[norm] = { status, statusDate: date, note, id: p.id };
+    // Call 1: active 26-man roster -> these get 'Active' status
+    const activeUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=active&season=2026`;
+    const activeRes = await fetch(activeUrl);
+    if (activeRes.ok) {
+      const activeData = await activeRes.json();
+      for (const entry of (activeData.roster || [])) {
+        const norm = entry.person.fullName.toLowerCase();
+        map[norm] = { status: 'Active', statusDate: '', note: '', id: entry.person.id };
+      }
     }
-    return map;
-  } catch(e) { return {}; }
+    // Call 2: full 40-man roster -> find IL players specifically
+    const fullUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`;
+    const fullRes = await fetch(fullUrl);
+    if (fullRes.ok) {
+      const fullData = await fullRes.json();
+      for (const entry of (fullData.roster || [])) {
+        const norm   = entry.person.fullName.toLowerCase();
+        const status = entry.status?.description || '';
+        if (status.includes('Injured List')) {
+          // Override or add IL players — even if not on active roster
+          map[norm] = {
+            status,
+            statusDate: entry.statusDate || '',
+            note:       entry.injuryNotes || entry.note || '',
+            id:         entry.person.id,
+          };
+        }
+        // Optioned/assigned players not in active map -> not in map -> 'milb' via getRosterStatus
+      }
+    }
+  } catch(e) {}
+  return map;
 }
 
 // Fetch MiLB stats across all levels in one call
@@ -1760,9 +1778,8 @@ function getDateRange(half) {
 async function loadAllStats(force = false) {
   setStatus('load', 'Checking cache...');
 
-  // ── Phase 0: Always fetch roster status first ─────────────
-  // Needed for name colors, IL badges, and header counts on every load
-  // including cache hits. Runs 30 parallel calls — fast.
+  // ── Phase 0: Fetch roster status first (always, even on cache hits) ──
+  // Drives name colors, IL badges, and header counts on every load.
   setLoaderMsg('Fetching team rosters...');
   rosterStatusCache = {};
   const allTeams = [...new Set(ROSTER.map(p => p[2]).filter(Boolean))];
