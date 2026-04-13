@@ -1238,11 +1238,7 @@ async function fetchFullRoster(teamAbbr) {
   } catch(e) {
     console.error(`fetchFullRoster error for ${teamAbbr}:`, e);
   }
-  // Debug: log what we stored for TOR and ATH
-  //if (teamAbbr === 'TOR' || teamAbbr === 'ATH') {
-  //  console.log(`[${teamAbbr}] rosterStatusCache built:`, map);
-  //}
-  //return map;
+  return map;
 }
 
 // Fetch MiLB stats across all levels in one call
