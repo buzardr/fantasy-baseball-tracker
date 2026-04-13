@@ -2181,27 +2181,23 @@ function renderRosters(team) {
     const norm  = normalizeName(name);
     const short = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
 
-    // Helper: evaluate a cache entry's status string
-    function statusFromEntry(e) {
-      if (!e) return null;
-      const s = e.status || '';
-      if (s === 'Active') return 'active';
-      if (s.endsWith('IL') || s.startsWith('Injured') || s === 'Full Season IL') return 'il';
-      return null;
-    }
-
-    // 1. Try the player's listed team first
+    // Check listed team first (covers 99% of cases)
     const teamMap = rosterStatusCache[mlbTeam] || {};
     const direct  = teamMap[norm] || teamMap[short];
-    const result  = statusFromEntry(direct);
-    if (result) return result;
+    if (direct) {
+      const s = direct.status || '';
+      if (s === 'Active') return 'active';
+      if (s.endsWith('IL') || s.startsWith('Injured') || s === 'Full Season IL') return 'il';
+      return 'milb';
+    }
 
-    // 2. Traded? Search all other team caches (values are always objects, never undefined)
-    for (const otherMap of Object.values(rosterStatusCache)) {
-      if (!otherMap || otherMap === teamMap) continue;
+    // Not found on listed team — may have been traded.
+    // Only search other teams' ACTIVE 26-man entries (status === 'Active').
+    // We do NOT carry over IL status from a previous team.
+    for (const [abbr, otherMap] of Object.entries(rosterStatusCache)) {
+      if (!otherMap || abbr === mlbTeam) continue;
       const e = otherMap[norm] || otherMap[short];
-      const r = statusFromEntry(e);
-      if (r) return r;
+      if (e && e.status === 'Active') return 'active';
     }
 
     return 'milb';
