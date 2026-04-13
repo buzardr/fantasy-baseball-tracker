@@ -2206,7 +2206,11 @@ function renderRosters(team) {
   // Count Active / IL / MiLB for each group using live roster data
   function getRosterStatus(name, mlbTeam) {
     const teamMap  = rosterStatusCache[mlbTeam] || {};
-    const entry    = teamMap[normalizeName(name)];
+    const norm     = normalizeName(name);
+    const short    = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
+    // Try full normalized name first, then suffix-stripped version
+    // (API may return "Michael Harris" when our ROSTER has "Michael Harris II")
+    const entry    = teamMap[norm] || teamMap[short];
     if (!entry) return 'milb';
     const s = entry.status || '';
     if (s === 'Active') return 'active';
@@ -2216,7 +2220,9 @@ function renderRosters(team) {
 
   function getILInfo(name, mlbTeam) {
     const teamMap = rosterStatusCache[mlbTeam] || {};
-    const entry   = teamMap[normalizeName(name)];
+    const norm    = normalizeName(name);
+    const short   = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
+    const entry   = teamMap[norm] || teamMap[short];
     if (!entry) return null;
     const type    = entry.status || '';
     const date    = entry.statusDate
