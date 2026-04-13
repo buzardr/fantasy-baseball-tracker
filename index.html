@@ -2178,28 +2178,32 @@ function renderRosters(team) {
 
   // Count Active / IL / MiLB for each group using live roster data
   function getRosterStatus(name, mlbTeam) {
-    const teamMap  = rosterStatusCache[mlbTeam] || {};
-    const norm     = normalizeName(name);
-    const short    = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
-    // Try full name first, then suffix-stripped (handles "Michael Harris II" vs "Michael Harris")
-    const entry    = teamMap[norm] || teamMap[short];
-    if (entry) {
-      // found on listed team
-    } else {
-      // Player may have been traded — search all team caches
-      for (const otherTeam of Object.values(rosterStatusCache)) {
-        const e = otherTeam[norm] || otherTeam[short];
-        if (e) {
-          const s2 = e.status || '';
-          if (s2 === 'Active') return 'active';
-          if (s2.endsWith('IL') || s2.startsWith('Injured') || s2 === 'Full Season IL') return 'il';
-        }
-      }
-      return 'milb';
+    const norm  = normalizeName(name);
+    const short = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
+
+    // Helper: evaluate a cache entry's status string
+    function statusFromEntry(e) {
+      if (!e) return null;
+      const s = e.status || '';
+      if (s === 'Active') return 'active';
+      if (s.endsWith('IL') || s.startsWith('Injured') || s === 'Full Season IL') return 'il';
+      return null;
     }
-    const s = entry.status || '';
-    if (s === 'Active') return 'active';
-    if (s.endsWith('IL') || s.startsWith('Injured') || s === 'Full Season IL') return 'il';
+
+    // 1. Try the player's listed team first
+    const teamMap = rosterStatusCache[mlbTeam] || {};
+    const direct  = teamMap[norm] || teamMap[short];
+    const result  = statusFromEntry(direct);
+    if (result) return result;
+
+    // 2. Traded? Search all other team caches (values are always objects, never undefined)
+    for (const otherMap of Object.values(rosterStatusCache)) {
+      if (!otherMap || otherMap === teamMap) continue;
+      const e = otherMap[norm] || otherMap[short];
+      const r = statusFromEntry(e);
+      if (r) return r;
+    }
+
     return 'milb';
   }
 
