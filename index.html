@@ -824,7 +824,7 @@ const ROSTER = [
   ['SS','Bobby Witt Jr.','KC',2.75,'Brave Mistakes',false,false],
   ['SS','Elly De La Cruz','CIN',2.25,'Brave Mistakes',false,false],
   ['SS','Javier Baez','DET',2,'Brave Mistakes',false,false],
-  ['3B','Miquel Vargas','CWS',2.5,'Brave Mistakes',false,false],
+  ['3B','Miguel Vargas','CWS',2.5,'Brave Mistakes',false,false],
   ['3B','Brady House','WAS',0.5,'Brave Mistakes',false,false],
   ['3B','Colt Keith','DET',2,'Brave Mistakes',false,false],
   ['OF','Aaron Judge','NYY',4.75,'Brave Mistakes',false,false],
@@ -1377,7 +1377,7 @@ const KNOWN_IDS = {
 "Emmanuel Rodriguez|MIN": 691181,
 "Emmet Sheehan|LAD": 686218,
 "Ernie Clement|TOR": 676391,
-"Esteban Mejia|BAL": 800354,
+"Esteban Mejia|BAL": 821757,
 "Ethan Salas|SD": 806956,
 "Eugenio Suarez|CIN": 553993,
 "Eury Perez|MIA": 691587,
@@ -1524,7 +1524,7 @@ const KNOWN_IDS = {
 "Michael King|SD": 650633,
 "Mick Abel|MIN": 690953,
 "Mike Trout|LAA": 545361,
-"Miquel Vargas|CWS": 678246,
+"Miguel Vargas|CWS": 678246,
 "Mitch Keller|PIT": 656605,
 "Moises Ballesteros|CHC": 694208,
 "Mookie Betts|LAD": 605141,
@@ -2196,10 +2196,13 @@ function renderRosters(team) {
   }
 
   function countGroup(group) {
-    const active = group.filter(p => getRosterStatus(p[1], p[2]) === 'active').length;
-    const il     = group.filter(p => getRosterStatus(p[1], p[2]) === 'il').length;
-    const milb   = group.filter(p => getRosterStatus(p[1], p[2]) === 'milb').length;
-    return { active, il, milb };
+    const active  = group.filter(p => getRosterStatus(p[1], p[2]) === 'active').length;
+    const il      = group.filter(p => getRosterStatus(p[1], p[2]) === 'il').length;
+    const milb    = group.filter(p => getRosterStatus(p[1], p[2]) === 'milb').length;
+    // MiLB-IL: players with isMilb=true who are also showing IL (injured in minors)
+    // Count them in milb tally too since they still occupy a MiLB draft slot
+    const milbIL  = group.filter(p => p[5] && getRosterStatus(p[1], p[2]) === 'il').length;
+    return { active, il, milb: milb + milbIL };
   }
 
   const pCounts = countGroup(pitchers);
