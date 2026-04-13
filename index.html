@@ -1760,6 +1760,15 @@ function getDateRange(half) {
 async function loadAllStats(force = false) {
   setStatus('load', 'Checking cache...');
 
+  // ── Phase 0: Always fetch roster status first ─────────────
+  // Needed for name colors, IL badges, and header counts on every load
+  // including cache hits. Runs 30 parallel calls — fast.
+  setLoaderMsg('Fetching team rosters...');
+  rosterStatusCache = {};
+  const allTeams = [...new Set(ROSTER.map(p => p[2]).filter(Boolean))];
+  const rosterMaps = await Promise.all(allTeams.map(t => fetchFullRoster(t)));
+  allTeams.forEach((t, i) => { rosterStatusCache[t] = rosterMaps[i]; });
+
   if (!force) {
     const cached = loadCachedStats(currentHalf);
     if (cached) {
@@ -1774,14 +1783,7 @@ async function loadAllStats(force = false) {
     }
   }
 
-  // ── Phase 0: Fetch full rosters for all teams (active/IL/MiLB status) ──
-  setLoaderMsg('Fetching team rosters...');
   setProgress(5);
-  rosterStatusCache = {};
-  const allTeams = [...new Set(ROSTER.map(p => p[2]).filter(Boolean))];
-  const rosterMaps = await Promise.all(allTeams.map(t => fetchFullRoster(t)));
-  allTeams.forEach((t, i) => { rosterStatusCache[t] = rosterMaps[i]; });
-  setProgress(15);
 
   // ── Phase 1: Resolve player IDs ──────────────────────────
   const idStore = loadIdStore();
@@ -1868,7 +1870,7 @@ async function loadAllStats(force = false) {
   setTimeout(hideLoader, 500);
 }
 
- 
+
 
 // ════════════════════════════════════════════════════════════
 // BEST-BALL STAT COMPUTATION
