@@ -824,7 +824,7 @@ const ROSTER = [
   ['SS','Bobby Witt Jr.','KC',2.75,'Brave Mistakes',false,false],
   ['SS','Elly De La Cruz','CIN',2.25,'Brave Mistakes',false,false],
   ['SS','Javier Baez','DET',2,'Brave Mistakes',false,false],
-  ['3B','Miguel Vargas','CWS',2.5,'Brave Mistakes',false,false],
+  ['3B','Miquel Vargas','CWS',2.5,'Brave Mistakes',false,false],
   ['3B','Brady House','WAS',0.5,'Brave Mistakes',false,false],
   ['3B','Colt Keith','DET',2,'Brave Mistakes',false,false],
   ['OF','Aaron Judge','NYY',4.75,'Brave Mistakes',false,false],
@@ -861,7 +861,7 @@ const ROSTER = [
   ['C','Salvador Perez','KC',0.5,"J's",false,false],
   ['C','Harry Ford','WAS',0,"J's",true,false],
   ['C','Joe Mack','MIA',0,"J's",true,false],
-  ['1B','Pete Alonso','BAL',3.75,"J's",false,false],
+  ['1B','Peter Alonso','BAL',3.75,"J's",false,false],
   ['1B','Michael Busch','CHC',1.75,"J's",false,false],
   ['1B','Jonathan Aranda','TB',2,"J's",false,false],
   ['2B','Ketel Marte','ARI',3,"J's",false,false],
@@ -1204,6 +1204,14 @@ async function fetchFullRoster(teamAbbr) {
         map[full]  = rec;
         map[short] = rec;
       }
+      // Debug: log ATL active roster to see exactly how Harris is stored
+      if (teamAbbr === 'ATL') {
+        console.log('[ATL] active roster map keys:', Object.keys(map));
+        const h = Object.keys(map).filter(k => k.includes('harris'));
+        console.log('[ATL] harris keys found:', h);
+        console.log('[ATL] lookup "michael harris ii":', map['michael harris ii']);
+        console.log('[ATL] lookup "michael harris":', map['michael harris']);
+      }
     }
     // Call 2: fullRoster (40-man) -> catches all IL players
     // API returns status like "Injured 10-Day", "Injured 60-Day", "Injured - Full Season"
@@ -1225,8 +1233,8 @@ async function fetchFullRoster(teamAbbr) {
             const label = codeLabels[code] || status;
             const rec = {
               status: label,
-              statusDate: entry.statusDate || entry.injuryDate || entry.date || '',
-              note:       entry.injuryNotes || entry.note || entry.injuryType || '',
+              statusDate: entry.statusDate || '',
+              note:       entry.injuryNotes || entry.note || '',
               id:         entry.person.id,
             };
             map[full]  = rec;
@@ -1238,39 +1246,12 @@ async function fetchFullRoster(teamAbbr) {
   } catch(e) {
     console.error(`fetchFullRoster error for ${teamAbbr}:`, e);
   }
-  // Patch in IL placement dates from transactions API (fullRoster doesn't include dates)
-  try {
-    const today  = new Date().toISOString().split('T')[0];
-    const txUrl  = `${MLB_API}/transactions?teamId=${teamId}&startDate=2026-01-01&endDate=${today}`;
-    const txRes  = await fetch(txUrl);
-    if (txRes.ok) {
-      const txData = await txRes.json();
-      for (const tx of (txData.transactions || [])) {
-        // IL placement transactions have typeCode 'DFA', 'IL', 'TRIL' etc.
-        const typeCode = tx.typeCode || tx.type?.code || '';
-        const isILTx   = typeCode.startsWith('IL') || typeCode === 'TRIL' ||
-                         (tx.description || '').toLowerCase().includes('injured list');
-        if (!isILTx) continue;
-        const personName = normalizeName(tx.person?.fullName || '');
-        const short      = personName.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
-        const txDate     = tx.date || tx.effectiveDate || '';
-        if (txDate && (map[personName] || map[short])) {
-          const entry = map[personName] || map[short];
-          if (entry.status !== 'Active' && !entry.statusDate) {
-            entry.statusDate = txDate;
-            // Also grab description which often has injury details
-            if (!entry.note && tx.description) {
-              entry.note = tx.description;
-            }
-          }
-        }
-      }
-    }
-  } catch(e) {}
-
-  return map;
+  // Debug: log what we stored for TOR and ATH
+  //if (teamAbbr === 'TOR' || teamAbbr === 'ATH') {
+  //  console.log(`[${teamAbbr}] rosterStatusCache built:`, map);
+  //}
+  //return map;
 }
-
 
 // Fetch MiLB stats across all levels in one call
 async function fetchMiLBStats(playerId, isPitcher) {
@@ -1408,7 +1389,7 @@ const KNOWN_IDS = {
 "Emmanuel Rodriguez|MIN": 691181,
 "Emmet Sheehan|LAD": 686218,
 "Ernie Clement|TOR": 676391,
-"Esteban Mejia|BAL": 821757,
+"Esteban Mejia|BAL": 800354,
 "Ethan Salas|SD": 806956,
 "Eugenio Suarez|CIN": 553993,
 "Eury Perez|MIA": 691587,
@@ -1555,7 +1536,7 @@ const KNOWN_IDS = {
 "Michael King|SD": 650633,
 "Mick Abel|MIN": 690953,
 "Mike Trout|LAA": 545361,
-"Miguel Vargas|CWS": 678246,
+"Miquel Vargas|CWS": 678246,
 "Mitch Keller|PIT": 656605,
 "Moises Ballesteros|CHC": 694208,
 "Mookie Betts|LAD": 605141,
@@ -1584,7 +1565,7 @@ const KNOWN_IDS = {
 "Paul Skenes|PIT": 694973,
 "Pete Crow-Armstrong|CHC": 691718,
 "Pete Fairbanks|MIA": 664126,
-"Pete Alonso|BAL": 624413,
+"Peter Alonso|BAL": 624413,
 "Quinn Mathews|STL": 687273,
 "Rafael Devers|SF": 646240,
 "Raisel Iglesias|ATL": 628452,
@@ -2208,9 +2189,14 @@ function renderRosters(team) {
     const teamMap  = rosterStatusCache[mlbTeam] || {};
     const norm     = normalizeName(name);
     const short    = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
-    // Try full normalized name first, then suffix-stripped version
-    // (API may return "Michael Harris" when our ROSTER has "Michael Harris II")
+    // Try full name first, then suffix-stripped (handles "Michael Harris II" vs "Michael Harris")
     const entry    = teamMap[norm] || teamMap[short];
+    // Debug for Harris
+    if (name.toLowerCase().includes('harris') && mlbTeam === 'ATL') {
+      console.log('[Harris debug] norm:', norm, 'short:', short);
+      console.log('[Harris debug] teamMap keys with harris:', Object.keys(teamMap).filter(k => k.includes('harris')));
+      console.log('[Harris debug] entry found:', entry);
+    }
     if (!entry) return 'milb';
     const s = entry.status || '';
     if (s === 'Active') return 'active';
@@ -2233,13 +2219,10 @@ function renderRosters(team) {
   }
 
   function countGroup(group) {
-    const active  = group.filter(p => getRosterStatus(p[1], p[2]) === 'active').length;
-    const il      = group.filter(p => getRosterStatus(p[1], p[2]) === 'il').length;
-    const milb    = group.filter(p => getRosterStatus(p[1], p[2]) === 'milb').length;
-    // MiLB-IL: players with isMilb=true who are also showing IL (injured in minors)
-    // Count them in milb tally too since they still occupy a MiLB draft slot
-    const milbIL  = group.filter(p => p[5] && getRosterStatus(p[1], p[2]) === 'il').length;
-    return { active, il, milb: milb + milbIL };
+    const active = group.filter(p => getRosterStatus(p[1], p[2]) === 'active').length;
+    const il     = group.filter(p => getRosterStatus(p[1], p[2]) === 'il').length;
+    const milb   = group.filter(p => getRosterStatus(p[1], p[2]) === 'milb').length;
+    return { active, il, milb };
   }
 
   const pCounts = countGroup(pitchers);
