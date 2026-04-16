@@ -4088,8 +4088,9 @@ async function renderLineupSubmissions() {
     const status = lineup?.locked
       ? `<span class="locked-badge">✓ SUBMITTED ${new Date(lineup.submittedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`
       : `<span class="pending-badge">PENDING</span>`;
+    // Use data attributes to avoid apostrophe/special char encoding issues
     const autoFillBtn = !lineup?.locked
-      ? `<button class="c-btn" onclick="commAutoFillLineup('${slug}','${team}')" style="padding:3px 8px;font-size:9px;margin:0;">Auto-fill</button>`
+      ? `<button class="c-btn comm-autofill-btn" data-slug="${slug}" data-team="${escapeHtml(team)}" style="padding:3px 8px;font-size:9px;margin:0;">Auto-fill</button>`
       : '';
     return `<div class="lineup-status-row">
       <span style="font-family:'DM Mono',monospace;font-size:10px;">${team}</span>
@@ -4097,6 +4098,12 @@ async function renderLineupSubmissions() {
     </div>`;
   }));
   list.innerHTML = rows.join('');
+  // Attach click handlers after render — avoids encoding issues with team names
+  list.querySelectorAll('.comm-autofill-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      commAutoFillLineup(btn.dataset.slug, btn.dataset.team);
+    });
+  });
 }
 
 // ── Commissioner auto-fill a specific team's lineup ──────────────────────────
