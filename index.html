@@ -392,8 +392,7 @@
   .player-row:hover { background: rgba(255,255,255,0.02); }
   .player-row.milb { opacity: 0.45; }
   .player-row.il { opacity: 1; }
-  .player-name.il    { color: #f5c842; cursor: help; }          /* amber = MLB IL */
-  .player-name.rlwil { color: #ef5350; font-style: italic; cursor: help; } /* red italic = RLWIL */
+  .player-name.il { color: #ef5350; cursor: help; }
   .player-name.milb-name { color: var(--muted); }
   .il-tooltip {
     display: none;
@@ -411,7 +410,9 @@
     pointer-events: none;
   }
   .player-name.il:hover + .il-tooltip,
-  .player-name.il:focus + .il-tooltip { display: block; }
+  .player-name.il:focus + .il-tooltip,
+  .player-name.rlwil:hover + .il-tooltip,
+  .player-name.rlwil:focus + .il-tooltip { display: block; }
   .il-wrapper { position: relative; display: contents; }
   .player-row.active-bb { background: rgba(0,200,83,0.04); }
 
@@ -1044,7 +1045,7 @@
     <div class="standings-grid">
       <table>
         <thead>
-          <tr>
+          <tr id="standings-header-row">
             <th>Team</th>
             <th class="cat-header">AVG</th>
             <th class="cat-header">R</th>
@@ -2538,17 +2539,10 @@ async function loadAllStats(force = false) {
   // 2H stats don't exist until after the All-Star Break
   if (!valid) {
     setStatus('ok', `2H stats not available until after the All-Star Break (~July 14, 2026)`);
-    const msg2H = `<tr><td colspan="14" style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:40px;">
-      2nd Half stats begin after the All-Star Break · ~July 14, 2026
-    </td></tr>`;
-    document.getElementById('standings-body').innerHTML = msg2H;
-    // Clear categories to show empty state
-    const catGrid = document.getElementById('cat-grid');
-    if (catGrid) catGrid.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);padding:40px;text-align:center;grid-column:1/-1;">
-      2nd Half stats begin after the All-Star Break · ~July 14, 2026
-    </div>`;
-    // Reset teamStats so live standings show zeroes
-    teamStats = {};
+    document.getElementById('standings-body').innerHTML =
+      `<tr><td colspan="14" style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:40px;">
+        2nd Half stats begin after the All-Star Break · ~July 14, 2026
+      </td></tr>`;
     hideLoader();
     return;
   }
@@ -2869,6 +2863,11 @@ function renderLockedStandingsTable(data) {
 }
 
 function renderStandings() {
+  // FULL SEASON: show 1H score | 2H score | Combined
+  if (currentHalf === 'FULL') {
+    renderFullSeasonStandings();
+    return;
+  }
   // If 1H standings are locked, use frozen data instead of live stats
   if (lockedStandings1H?.locked && currentHalf === '1H') {
     renderLockedStandingsTable(lockedStandings1H);
@@ -2910,6 +2909,10 @@ function renderStandings() {
 }
 
 function renderCategories() {
+  if (currentHalf === 'FULL') {
+    renderFullSeasonCategories();
+    return;
+  }
   const catRanks = getCatRanks();
   
   const cards = CATS.map(cat => {
@@ -3052,17 +3055,22 @@ function renderRosters(team) {
     const posKey      = pos === '1B' ? 'B1' : pos === '2B' ? 'B2' : pos === '3B' ? 'B3' : pos;
 
     // Name color class
-    const nameClass = isRLWIL ? 'rlwil' : isIL ? 'il' : isTrueMiLB ? 'milb-name' : '';
+    const isMiLBonIL = isMilbFlag && rStatus === 'il'; // MiLB player called up to MLB IL
+    const nameClass = isRLWIL ? 'rlwil' : isIL ? 'il' : isMiLBonIL ? 'il' : isTrueMiLB ? 'milb-name' : '';
 
     // IL tooltip
     let tooltipHtml = '';
-    if (isIL) {
+    if (isRLWIL) {
+      tooltipHtml = `<div class="il-tooltip">RLW IL — stats ineligible this half</div>`;
+    } else if (isIL || isMiLBonIL) {
       const info = getILInfo(name, mlbTeam);
       if (info) {
         const parts = [info.type];
         if (info.date) parts.push(`placed ${info.date}`);
         if (info.note) parts.push(info.note);
         tooltipHtml = `<div class="il-tooltip">${parts.join(' · ')}</div>`;
+      } else {
+        tooltipHtml = `<div class="il-tooltip">On Injured List</div>`;
       }
     }
 
@@ -3123,15 +3131,8 @@ function renderRosters(team) {
     `;
   }
 
-  const POS_ORDER_H = ['C','1B','2B','SS','3B','OF'];
-  const sortedHitters = [...hitters].sort((a,b) => {
-    const ai = POS_ORDER_H.indexOf(a[0]);
-    const bi = POS_ORDER_H.indexOf(b[0]);
-    // Unknown positions (MiLB with same pos) go to end
-    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-  });
   document.getElementById('pitcher-rows').innerHTML = pitchers.map(makeRow).join('');
-  document.getElementById('hitter-rows').innerHTML  = sortedHitters.map(makeRow).join('');
+  document.getElementById('hitter-rows').innerHTML  = hitters.map(makeRow).join('');
 }
 
 function renderAll() {
@@ -3250,6 +3251,137 @@ async function init() {
 }
 
 init();
+
+// ── Full Season categories: sum 1H + 2H points per category ──────────────────
+async function renderFullSeasonCategories() {
+  const locked1H = await fbGet('standings/1h');
+  const locked2H = await fbGet('standings/2h');
+
+  // Per-team per-cat points from each half
+  // We need to recompute cat scores from stored stats
+  function getCatScore(lockedData, cat, team) {
+    if (!lockedData?.stats) return 0;
+    const statsObj = lockedData.stats;
+    const allVals  = TEAMS.map(t => ({ team:t, val: statsObj[t]?.[cat.key] ?? 0 }));
+    const eligible = (cat.key==='ERA'||cat.key==='WHIP')
+      ? allVals.filter(v => v.val > 0 && !statsObj[v.team]?.ipInsufficient)
+      : allVals;
+    if (!eligible.length) return 0;
+    const best  = cat.lower ? Math.min(...eligible.map(v=>v.val)) : Math.max(...eligible.map(v=>v.val));
+    const worst = cat.lower ? Math.max(...eligible.map(v=>v.val)) : Math.min(...eligible.map(v=>v.val));
+    const range = Math.abs(best - worst);
+    const val   = statsObj[team]?.[cat.key] ?? 0;
+    if ((cat.key==='ERA'||cat.key==='WHIP') && (!val || statsObj[team]?.ipInsufficient)) return 0;
+    if (range === 0) return 5;
+    return Math.max(0, Math.min(10, cat.lower
+      ? ((worst-val)/range)*10
+      : ((val-worst)/range)*10));
+  }
+
+  const cards = CATS.map(cat => {
+    // Build combined points per team
+    const vals = TEAMS.map(t => ({
+      team: t,
+      pts1H: locked1H ? getCatScore(locked1H, cat, t) : null,
+      pts2H: locked2H ? getCatScore(locked2H, cat, t) : null,
+    })).map(v => ({ ...v, combined: (v.pts1H??0) + (v.pts2H??0) }));
+
+    vals.sort((a,b) => b.combined - a.combined);
+    const maxCombined = vals[0]?.combined || 1;
+
+    const bars = vals.map(v => {
+      const isMy = v.team === MY_TEAM;
+      const pct  = maxCombined > 0 ? (v.combined / maxCombined) * 100 : 0;
+      const fmt1H = v.pts1H !== null ? v.pts1H.toFixed(1) : '—';
+      const fmt2H = v.pts2H !== null ? v.pts2H.toFixed(1) : '—';
+      return `<div class="cat-bar-row">
+        <div class="cat-bar-name ${isMy?'my':''}">${v.team.slice(0,18)}</div>
+        <div class="cat-bar-outer">
+          <div class="cat-bar-inner ${isMy?'my':''}" style="width:${Math.max(pct,2)}%"></div>
+        </div>
+        <div class="cat-bar-val">${v.combined.toFixed(1)}
+          <span style="color:var(--muted);font-size:9px;margin-left:3px;">(${fmt1H}+${fmt2H})</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    const dirLabel = cat.lower
+      ? `<span class="lower-badge">↓ LOWER BETTER</span>`
+      : `<span class="higher-badge">↑ HIGHER BETTER</span>`;
+
+    return `<div class="cat-card">
+      <div class="cat-card-header">
+        <span class="cat-card-label">${cat.label}</span>${dirLabel}
+      </div>
+      ${bars}
+    </div>`;
+  }).join('');
+
+  document.getElementById('cat-grid').innerHTML = cards;
+}
+
+
+// ── Full Season standings: 1H pts + 2H pts + combined ────────────────────────
+async function renderFullSeasonStandings() {
+  // Update header for full season view
+  const headerRow = document.getElementById('standings-header-row');
+  if (headerRow) {
+    headerRow.innerHTML = `
+      <th>Team</th>
+      <th style="color:var(--muted);">1H Score</th>
+      <th style="color:var(--muted);">2H Score</th>
+      <th style="color:var(--green);">Combined</th>`;
+  }
+
+  // Load locked standings from Firebase
+  const locked1H = await fbGet('standings/1h');
+  const locked2H = await fbGet('standings/2h');
+
+  const rows = TEAMS.map(team => {
+    const score1H  = locked1H?.scores?.[team] ?? null;
+    const score2H  = locked2H?.scores?.[team] ?? null;
+    const combined = (score1H ?? 0) + (score2H ?? 0);
+    const isMy     = team === MY_TEAM;
+
+    // Sort by combined descending
+    return { team, score1H, score2H, combined, isMy };
+  }).sort((a,b) => b.combined - a.combined);
+
+  const rowsHtml = rows.map((r, i) => {
+    const rankClass = i===0?'r1':i===1?'r2':i===2?'r3':'';
+    const fmt = v => v !== null ? `${v.toFixed(1)}/100` : `<span style="color:var(--muted);">—</span>`;
+    return `<tr class="${r.isMy?'my-team':''}">
+      <td><span class="rank-badge ${rankClass}">${i+1}</span>${r.team}${r.isMy?' ⚾':''}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);">${fmt(r.score1H)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);">${fmt(r.score2H)}</td>
+      <td class="score-pts">${fmt(r.combined)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('standings-body').innerHTML = rowsHtml;
+}
+
+// Restore standings header when switching away from FULL
+function restoreStandingsHeader() {
+  const headerRow = document.getElementById('standings-header-row');
+  if (headerRow) {
+    headerRow.innerHTML = `
+      <th>Team</th>
+      <th class="cat-header">AVG</th>
+      <th class="cat-header">R</th>
+      <th class="cat-header">2B+3B</th>
+      <th class="cat-header">HR</th>
+      <th class="cat-header">RBI</th>
+      <th class="cat-header">SB</th>
+      <th class="cat-header">W+S</th>
+      <th class="cat-header">K</th>
+      <th class="cat-header">ERA</th>
+      <th class="cat-header">WHIP</th>
+      <th style="color:var(--muted)">IP</th>
+      <th>Score</th>`;
+  }
+}
+
 
 // ── Post-decision roster summary ──────────────────────────────────────────────
 function renderPostDecisionRoster() {
