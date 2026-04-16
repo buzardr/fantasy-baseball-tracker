@@ -1298,7 +1298,7 @@
         <!-- Roster math tracker -->
         <div id="roster-tracker" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:16px;font-family:'DM Mono',monospace;font-size:10px;line-height:2;">
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">
-            <div>MLB Active: <span id="tracker-active" style="color:var(--green);font-weight:700;">—</span><span style="color:var(--muted);">/25</span></div>
+            <div>MLB Active: <span id="tracker-active" style="color:var(--green);font-weight:700;">—</span><span style="color:var(--muted);">/35 active</span></div>
             <div>On IL: <span id="tracker-il" style="color:#ef5350;font-weight:700;">—</span></div>
             <div>MiLB: <span id="tracker-milb" style="color:var(--muted);font-weight:700;">—</span><span style="color:var(--muted);">/10</span></div>
             <div>MiLB open slots: <span id="tracker-milb-open" style="color:var(--green);font-weight:700;">—</span></div>
@@ -3604,39 +3604,59 @@ function updateRosterTracker(mlbAll, milbAll) {
   const milbReleased = milbAll.filter(p => dec[pk(p)]?.action === 'release').length;
 
   // Active MLB count = starting active (mlbAll minus RLWIL) + rlwilActivated - mlbReleased - mlbPlacedIL + promoted
-  const startingActive = mlbAll.filter(p => !p[7]).length;
-  const newActive = startingActive - mlbReleased - mlbPlacedIL + rlwilActivated + promoted;
-  const newIL     = mlbAll.filter(p => {
-    const a = dec[pk(p)]?.action;
-    // RLWIL players staying on IL (keep-il or no decision yet while still on MLB IL)
-    if (p[7] && a !== 'activate-rlwil' && a !== 'release') return true;
-    // Active roster players being placed on IL
-    if (!p[7] && a === 'place-il') return true;
-    return false;
+  // MLB ROSTER MAX = 35 (25 auction + 10 draft picks), NOT counting IL players
+  // RLWIL players: already parked — don't count toward active 35
+  // Placing a player on IL removes them from active count
+  // Activating a RLWIL player adds them to active count
+
+  // Starting active = all non-MiLB, non-RLWIL players minus any already on MLB IL
+  const startingActive = mlbAll.filter(p => {
+    if (p[7]) return false; // RLWIL — not in active count
+    const st = getRosterStatus(p[1], p[2]);
+    return st !== 'il'; // MLB IL players don't count toward active
   }).length;
-  const newMiLB   = milbAll.length - promoted - milbReleased;
-  const milbOpen  = 10 - newMiLB;
+
+  // Starting IL = RLWIL players + active roster players already on MLB IL
+  const startingIL = mlbAll.filter(p => {
+    if (p[7]) return true; // RLWIL always starts on IL
+    return getRosterStatus(p[1], p[2]) === 'il';
+  }).length;
+
+  // Apply decisions
+  const newActive = startingActive
+    - mlbReleased
+    - mlbPlacedIL          // active→IL: reduces active
+    + rlwilActivated        // RLWIL→active: increases active
+    + promoted;             // MiLB→active: increases active
+
+  const newIL = startingIL
+    + mlbPlacedIL           // active player placed on IL
+    - rlwilActivated        // RLWIL player activated
+    - mlbAll.filter(p => p[7] && dec[pk(p)]?.action === 'release').length; // RLWIL released
+
+  const newMiLB  = milbAll.length - promoted - milbReleased;
+  const milbOpen = 10 - newMiLB;
 
   document.getElementById('tracker-active').textContent = newActive;
   document.getElementById('tracker-il').textContent     = newIL;
   document.getElementById('tracker-milb').textContent   = newMiLB;
-  document.getElementById('tracker-milb-open').textContent = milbOpen > 0 ? milbOpen : 0;
+  document.getElementById('tracker-milb-open').textContent = Math.max(0, milbOpen);
 
-  // Validation message
   const msgEl = document.getElementById('tracker-msg');
-  const activeColor = newActive > 25 ? '#ef5350' : newActive === 25 ? 'var(--green)' : 'var(--gold)';
+  const ROSTER_MAX = 35;
+  const activeColor = newActive > ROSTER_MAX ? '#ef5350' : newActive === ROSTER_MAX ? 'var(--green)' : 'var(--gold)';
   document.getElementById('tracker-active').style.color = activeColor;
 
-  if (newActive > 25) {
-    msgEl.textContent = `⚠ Over roster limit by ${newActive-25} — release or place someone on IL`;
+  if (newActive > ROSTER_MAX) {
+    msgEl.textContent = `⚠ Over roster limit by ${newActive - ROSTER_MAX} — release or place someone on IL`;
     msgEl.style.color = '#ef5350';
   } else if (newMiLB > 10) {
-    msgEl.textContent = `⚠ MiLB roster exceeds 10 — release ${newMiLB-10} MiLB player(s)`;
+    msgEl.textContent = `⚠ MiLB roster exceeds 10 — release ${newMiLB - 10} MiLB player(s)`;
     msgEl.style.color = '#ef5350';
-  } else if (newActive < 25 && promoted > 0) {
-    msgEl.textContent = `${25-newActive} open MLB slot(s) remaining`;
+  } else if (newActive < ROSTER_MAX) {
+    msgEl.textContent = `${ROSTER_MAX - newActive} open MLB slot(s)`;
     msgEl.style.color = 'var(--gold)';
-  } else if (newActive === 25 && newMiLB <= 10) {
+  } else if (newActive === ROSTER_MAX && newMiLB <= 10) {
     msgEl.textContent = '✓ Roster balanced';
     msgEl.style.color = 'var(--green)';
   } else {
@@ -5117,7 +5137,8 @@ function renderMyTeamRoster(roster) {
     }).join('');
   }
 
-  document.getElementById('myteam-roster-list').innerHTML = html;
+  const rosterListEl = document.getElementById('myteam-roster-list');
+  if (rosterListEl) rosterListEl.innerHTML = html;
 }
 
 
