@@ -392,7 +392,8 @@
   .player-row:hover { background: rgba(255,255,255,0.02); }
   .player-row.milb { opacity: 0.45; }
   .player-row.il { opacity: 1; }
-  .player-name.il { color: #ef5350; cursor: help; }
+  .player-name.il    { color: #f5c842; cursor: help; }
+  .player-name.rlwil { color: #ef5350; font-style:italic; cursor:help; }
   .player-name.milb-name { color: var(--muted); }
   .il-tooltip {
     display: none;
@@ -3131,8 +3132,14 @@ function renderRosters(team) {
     `;
   }
 
+  const POS_ORDER_H = ['C','1B','2B','SS','3B','OF'];
+  const sortedHitters = [...hitters].sort((a,b) => {
+    const ai = POS_ORDER_H.indexOf(a[0]);
+    const bi = POS_ORDER_H.indexOf(b[0]);
+    return (ai===-1?99:ai) - (bi===-1?99:bi);
+  });
   document.getElementById('pitcher-rows').innerHTML = pitchers.map(makeRow).join('');
-  document.getElementById('hitter-rows').innerHTML  = hitters.map(makeRow).join('');
+  document.getElementById('hitter-rows').innerHTML  = sortedHitters.map(makeRow).join('');
 }
 
 function renderAll() {
@@ -3257,16 +3264,14 @@ async function renderFullSeasonCategories() {
   const locked1H = await fbGet('standings/1h');
   const locked2H = await fbGet('standings/2h');
 
-  // Per-team per-cat points from each half
-  // We need to recompute cat scores from stored stats
-  function getCatScore(lockedData, cat, team) {
-    if (!lockedData?.stats) return 0;
-    const statsObj = lockedData.stats;
+  // Get per-cat points from a stats object (locked or live)
+  function getCatScore(statsObj, cat, team) {
+    if (!statsObj) return null;
     const allVals  = TEAMS.map(t => ({ team:t, val: statsObj[t]?.[cat.key] ?? 0 }));
     const eligible = (cat.key==='ERA'||cat.key==='WHIP')
       ? allVals.filter(v => v.val > 0 && !statsObj[v.team]?.ipInsufficient)
       : allVals;
-    if (!eligible.length) return 0;
+    if (!eligible.length) return null;
     const best  = cat.lower ? Math.min(...eligible.map(v=>v.val)) : Math.max(...eligible.map(v=>v.val));
     const worst = cat.lower ? Math.max(...eligible.map(v=>v.val)) : Math.min(...eligible.map(v=>v.val));
     const range = Math.abs(best - worst);
@@ -3278,12 +3283,17 @@ async function renderFullSeasonCategories() {
       : ((val-worst)/range)*10));
   }
 
+  // Use locked stats if available, else fall back to live teamStats
+  const stats1H = locked1H?.stats || (Object.keys(teamStats).length ? teamStats : null);
+  const stats2H = locked2H?.stats || null;
+  const label1H = locked1H?.locked ? '1H (locked)' : '1H (live)';
+  const label2H = locked2H?.locked ? '2H (locked)' : '2H (not yet)';
+
   const cards = CATS.map(cat => {
-    // Build combined points per team
     const vals = TEAMS.map(t => ({
       team: t,
-      pts1H: locked1H ? getCatScore(locked1H, cat, t) : null,
-      pts2H: locked2H ? getCatScore(locked2H, cat, t) : null,
+      pts1H: getCatScore(stats1H, cat, t),
+      pts2H: getCatScore(stats2H, cat, t),
     })).map(v => ({ ...v, combined: (v.pts1H??0) + (v.pts2H??0) }));
 
     vals.sort((a,b) => b.combined - a.combined);
@@ -3317,7 +3327,15 @@ async function renderFullSeasonCategories() {
     </div>`;
   }).join('');
 
-  document.getElementById('cat-grid').innerHTML = cards;
+  const catGrid = document.getElementById('cat-grid');
+  if (catGrid) {
+    catGrid.innerHTML = cards;
+    // Show data source note
+    const note = document.createElement('div');
+    note.style.cssText = 'grid-column:1/-1;font-family:"DM Mono",monospace;font-size:9px;color:var(--muted);padding:8px 0;';
+    note.textContent = `Showing: ${label1H} + ${label2H} · Points shown as combined (1H+2H)`;
+    catGrid.prepend(note);
+  }
 }
 
 
