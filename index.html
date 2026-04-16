@@ -2846,11 +2846,13 @@ function renderLockedLineup(lineup, roster) {
 
 function renderLineupSelectors(roster, savedLineup) {
   const container = document.getElementById('lineup-selectors');
-  const pitchers = roster.filter(p => p[0] === 'P' && !p[5] && !p[6]);
+  // Include MiLB-flagged players if they have actual MLB stats (called up mid-season)
+  const hasMLBStats = p => statsCache[playerKey(p[1], p[2])]?.found === true;
+  const pitchers = roster.filter(p => p[0] === 'P' && !p[6] && (!p[5] || hasMLBStats(p)));
   const byPos = {};
   for (const [pos] of Object.entries(POS_SLOTS)) {
     if (pos === 'P') continue;
-    byPos[pos] = roster.filter(p => p[0] === pos && !p[5]);
+    byPos[pos] = roster.filter(p => p[0] === pos && (!p[5] || hasMLBStats(p)));
   }
 
   let html = '';
@@ -2897,7 +2899,8 @@ function autoFillLineup() {
   const bestH  = ts.bestHitters   || [];
 
   // Fill pitcher selects
-  const pitchers = roster.filter(p => p[0]==='P' && !p[6]);
+  const hasMLBStats = p => statsCache[playerKey(p[1], p[2])]?.found === true;
+  const pitchers = roster.filter(p => p[0]==='P' && !p[6] && (!p[5] || hasMLBStats(p)));
   const sortedP  = pitchers.sort((a,b) => {
     const aIdx = best9.indexOf(playerKey(a[1],a[2]));
     const bIdx = best9.indexOf(playerKey(b[1],b[2]));
