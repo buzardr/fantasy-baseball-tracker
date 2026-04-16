@@ -2452,13 +2452,24 @@ function saveCachedStats(half, data) {
 }
 
 function getDateRange(half) {
-  const fmt  = d => d.toISOString().split('T')[0];
+  const fmt   = d => d.toISOString().split('T')[0];
   const today = new Date();
-  const asb   = new Date('2026-07-13'); // All-Star Break
+  const asb   = new Date('2026-07-13'); // All-Star Break (first day of 2H)
   const open  = '2026-03-26';           // Opening Day
-  if (half === '1H') return { start: open,    end: fmt(today < asb ? today : asb) };
-  if (half === '2H') return { start: fmt(asb), end: fmt(today) };
-  return { start: open, end: fmt(today) }; // FULL
+  const beforeASB = today < asb;
+
+  if (half === '1H') return {
+    start: open,
+    end:   fmt(beforeASB ? today : asb),
+    valid: true
+  };
+  if (half === '2H') return {
+    start: '2026-07-14',   // Day after ASB
+    end:   fmt(today),
+    valid: !beforeASB      // Only valid after All-Star Break
+  };
+  // FULL season
+  return { start: open, end: fmt(today), valid: true };
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2521,7 +2532,18 @@ async function loadAllStats(force = false) {
   setLoaderMsg('Fetching MLB stats...');
 
   // ── Phase 2: Fetch MLB stats for all players ──────────────
-  const { start, end } = getDateRange(currentHalf);
+  const { start, end, valid } = getDateRange(currentHalf);
+
+  // 2H stats don't exist until after the All-Star Break
+  if (!valid) {
+    setStatus('ok', `2H stats not available until after the All-Star Break (~July 14, 2026)`);
+    document.getElementById('standings-body').innerHTML =
+      `<tr><td colspan="14" style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:40px;">
+        2nd Half stats begin after the All-Star Break · ~July 14, 2026
+      </td></tr>`;
+    hideLoader();
+    return;
+  }
   const newCache  = {};
   const STAT_BATCH = 10;
 
