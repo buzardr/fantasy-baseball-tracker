@@ -2401,7 +2401,7 @@ function renderCategories() {
                              : Math.max(...(eligibleVals.length ? eligibleVals : vals).map(v=>v.val));
     const worstV = cat.lower ? Math.max(...(eligibleVals.length ? eligibleVals : vals).map(v=>v.val))
                              : Math.min(...(eligibleVals.length ? eligibleVals : vals).map(v=>v.val));
-    const rangeV = bestV - worstV;
+    const rangeV = Math.abs(bestV - worstV);
 
     const bars = vals.map((v, i) => {
       const isMy = v.team === MY_TEAM;
