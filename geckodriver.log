@@ -1312,3 +1312,60 @@ Dynamically enable window occlusion 1
 console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
 JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
 console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+1776312424050	geckodriver	INFO	Listening on 127.0.0.1:52203
+1776312427530	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--remote-debugging-port" "52204" "-no-remote" "-profile" "C:\\Users\\ryan\\AppData\\Local\\Temp\\rust_mozprofile5RXivm"
+Dynamically enable window occlusion 0
+1776312429358	Marionette	INFO	Marionette enabled
+1776312429629	Marionette	INFO	Listening on port 52239
+WebDriver BiDi listening on ws://127.0.0.1:52204
+1776312429762	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+[GFX1-]: Calling WaitFlushedEvent::Run: is delayed: 2083
+console.error: "Experiment visual-card-updates has unknown featureId: newtabRefinedCardsLayout"
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://cls33.bullhornstaffing.com."
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://cls33.bullhornstaffing.com."
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHAutoComplete.js?v=2e54451, line 58: ReferenceError: ActiveXObject is not defined
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm, line 812: SyntaxError: expected expression, got ','
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm, line 850: ReferenceError: googleAnalyticsInfo is not defined
+1776312459480	Marionette	WARN	Ignoring event 'DOMContentLoaded' because document has an invalid readyState of 'complete'.
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/scripts/BHAutoComplete.js?v=2e54451, line 58: ReferenceError: ActiveXObject is not defined
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm?BH___ENCR=TRUE&CLIENTLOGIN=TRUE&SOURCE=ats&DSTSTART=3%2F8&RECOGNIZESDST=true&CLOSEONFINISH=FALSE&CAPTUREDTIMEZONE=true&DSTEND=11%2F1&GMTOFFSETMINS=%2D480, line 837: SyntaxError: expected expression, got ','
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornStaffing/CheckBHLogin.cfm?BH___ENCR=TRUE&CLIENTLOGIN=TRUE&SOURCE=ats&DSTSTART=3%2F8&RECOGNIZESDST=true&CLOSEONFINISH=FALSE&CAPTUREDTIMEZONE=true&DSTEND=11%2F1&GMTOFFSETMINS=%2D480, line 875: ReferenceError: googleAnalyticsInfo is not defined
+console.error: [Exception... "Component is not available"  nsresult: "0x80040111 (NS_ERROR_NOT_AVAILABLE)"  location: "<unknown>"  data: no]
+JavaScript warning: https://app.bullhornstaffing.com/chunk-BLO2XS4A.js, line 896: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://app.bullhornstaffing.com/chunk-BLO2XS4A.js, line 896: unreachable code after return statement
+JavaScript error: https://cls44.bullhornstaffing.com/BullhornSTAFFING/MosaicBackgroundLoaderNovo.cfm?ClearLocalStorage=TRUE, line 2294: ReferenceError: e is not defined
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=d12d5588-e3fd-4d33-8fc8-1cd36e59a41d&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=d12d5588-e3fd-4d33-8fc8-1cd36e59a41d&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=d12d5588-e3fd-4d33-8fc8-1cd36e59a41d&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=d12d5588-e3fd-4d33-8fc8-1cd36e59a41d&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=d12d5588-e3fd-4d33-8fc8-1cd36e59a41d&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=94368ac8-6524-4d23-b653-098ab3490e8f&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=d12d5588-e3fd-4d33-8fc8-1cd36e59a41d&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=94368ac8-6524-4d23-b653-098ab3490e8f&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=d12d5588-e3fd-4d33-8fc8-1cd36e59a41d&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+1776313668933	RemoteAgent	WARN	TimedPromise timed out after 500 ms: stacktrace:
+TimedPromise/<@chrome://remote/content/shared/Sync.sys.mjs:448:24
+TimedPromise@chrome://remote/content/shared/Sync.sys.mjs:432:10
+interaction.flushEventLoop@chrome://remote/content/marionette/interaction.sys.mjs:465:10
+webdriverClickElement@chrome://remote/content/marionette/interaction.sys.mjs:218:33
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=94368ac8-6524-4d23-b653-098ab3490e8f&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=d12d5588-e3fd-4d33-8fc8-1cd36e59a41d&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=94368ac8-6524-4d23-b653-098ab3490e8f&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=d12d5588-e3fd-4d33-8fc8-1cd36e59a41d&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=48c14b0c-c3a5-439a-9d76-f7535727f6d4&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=94368ac8-6524-4d23-b653-098ab3490e8f&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=d12d5588-e3fd-4d33-8fc8-1cd36e59a41d&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=48c14b0c-c3a5-439a-9d76-f7535727f6d4&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=94368ac8-6524-4d23-b653-098ab3490e8f&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=d12d5588-e3fd-4d33-8fc8-1cd36e59a41d&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=48c14b0c-c3a5-439a-9d76-f7535727f6d4&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=94368ac8-6524-4d23-b653-098ab3490e8f&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=d12d5588-e3fd-4d33-8fc8-1cd36e59a41d&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=48c14b0c-c3a5-439a-9d76-f7535727f6d4&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=94368ac8-6524-4d23-b653-098ab3490e8f&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=d12d5588-e3fd-4d33-8fc8-1cd36e59a41d&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest44.bullhornstaffing.com/rest-services/9ew0qs/services/Export?cacheId=48c14b0c-c3a5-439a-9d76-f7535727f6d4&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unk

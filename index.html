@@ -580,6 +580,182 @@
   }
   .section-title span { color: var(--green); }
 
+
+  /* ── DRAFT ROOM ──────────────────────────────────────── */
+  #draft-room-wrap {
+    display: grid;
+    grid-template-columns: 260px 1fr 220px;
+    grid-template-rows: auto 1fr;
+    gap: 16px;
+    height: calc(100vh - 280px);
+    min-height: 500px;
+  }
+  @media (max-width: 1100px) {
+    #draft-room-wrap { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto; }
+  }
+  .draft-panel {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; display: flex;
+    flex-direction: column;
+  }
+  .draft-panel-header {
+    padding: 10px 14px; background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-family: 'DM Mono',monospace; font-size: 10px;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--green);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-shrink: 0;
+  }
+  .draft-panel-body { padding: 14px; overflow-y: auto; flex: 1; }
+
+  /* Timer */
+  .draft-timer {
+    font-family: 'Bebas Neue',sans-serif; font-size: 56px;
+    text-align: center; letter-spacing: 2px; line-height: 1;
+    margin: 8px 0;
+  }
+  .draft-timer.urgent { color: #ef5350; animation: pulse 0.5s infinite; }
+  .draft-timer.ok     { color: var(--green); }
+  .draft-timer.paused { color: var(--muted); }
+
+  /* On-clock team */
+  .on-clock-team {
+    font-family: 'Bebas Neue',sans-serif; font-size: 20px;
+    letter-spacing: 2px; color: var(--text); text-align: center;
+    margin-bottom: 4px;
+  }
+  .on-clock-label {
+    font-family: 'DM Mono',monospace; font-size: 9px;
+    letter-spacing: 2px; color: var(--muted); text-align: center;
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+  .selected-player-display {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px; margin-bottom: 10px;
+    min-height: 52px;
+  }
+  .selected-player-display .sp-name {
+    font-weight: 600; font-size: 13px; margin-bottom: 2px;
+  }
+  .selected-player-display .sp-meta {
+    font-family: 'DM Mono',monospace; font-size: 10px; color: var(--muted);
+  }
+  .draft-action-btn {
+    width: 100%; padding: 10px; border: none; border-radius: 6px;
+    font-family: 'DM Mono',monospace; font-size: 11px; font-weight: 700;
+    letter-spacing: 2px; cursor: pointer; margin-bottom: 6px;
+    transition: all 0.15s;
+  }
+  .draft-action-btn.pick  { background: var(--green); color: #000; }
+  .draft-action-btn.pass  { background: var(--bg3); border: 1px solid var(--border); color: var(--muted); }
+  .draft-action-btn.pick:disabled, .draft-action-btn.pass:disabled {
+    opacity: 0.35; cursor: not-allowed;
+  }
+  .draft-action-btn.pick:not(:disabled):hover  { background: #00e65c; }
+  .draft-action-btn.pass:not(:disabled):hover  { border-color: var(--muted); color: var(--text); }
+
+  /* Player pool */
+  .pos-filter-bar {
+    display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px;
+  }
+  .pos-chip {
+    padding: 3px 9px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 12px; font-family: 'DM Mono',monospace; font-size: 9px;
+    cursor: pointer; transition: all 0.1s; letter-spacing: 0.5px;
+  }
+  .pos-chip.on { background: var(--green); color: #000; border-color: var(--green); }
+  .draft-search {
+    width: 100%; padding: 7px 10px; background: var(--bg3);
+    border: 1px solid var(--border); border-radius: 5px;
+    color: var(--text); font-family: 'DM Sans',sans-serif; font-size: 12px;
+    outline: none; margin-bottom: 8px;
+  }
+  .draft-search:focus { border-color: var(--green); }
+  .player-pool-list { overflow-y: auto; flex: 1; }
+  .pool-player-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 8px; border-radius: 5px; cursor: pointer;
+    transition: background 0.1s; border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .pool-player-row:hover    { background: rgba(255,255,255,0.04); }
+  .pool-player-row.selected { background: rgba(0,200,83,0.1); border-color: var(--green); }
+  .pool-player-row:last-child { border-bottom: none; }
+
+  /* Draft order sidebar */
+  .draft-order-pick-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+  .draft-order-pick-row:last-child { border-bottom: none; }
+  .draft-order-pick-row.current { background: rgba(0,200,83,0.06); border-radius: 4px; padding: 6px 6px; }
+  .pick-round-badge {
+    font-family: 'DM Mono',monospace; font-size: 9px;
+    color: var(--muted); width: 30px; flex-shrink: 0;
+  }
+
+  /* Chat */
+  #draft-chat-wrap {
+    grid-column: 1 / -1; display: flex; flex-direction: column;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; max-height: 160px;
+  }
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 10px 14px; font-size: 12px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .chat-msg { display: flex; gap: 8px; align-items: baseline; }
+  .chat-msg .msg-team {
+    font-family: 'DM Mono',monospace; font-size: 10px;
+    color: var(--green); flex-shrink: 0; font-weight: 600;
+  }
+  .chat-msg .msg-text { color: var(--text); flex: 1; }
+  .chat-msg .msg-time {
+    font-family: 'DM Mono',monospace; font-size: 9px;
+    color: var(--muted); flex-shrink: 0;
+  }
+  .chat-input-row {
+    display: flex; gap: 8px; padding: 8px 14px;
+    border-top: 1px solid var(--border); flex-shrink: 0;
+  }
+  .chat-input-row input {
+    flex: 1; padding: 6px 10px; background: var(--bg3);
+    border: 1px solid var(--border); border-radius: 5px;
+    color: var(--text); font-family: 'DM Sans',sans-serif; font-size: 12px;
+    outline: none;
+  }
+  .chat-input-row input:focus { border-color: var(--green); }
+  .chat-send-btn {
+    padding: 6px 14px; background: var(--green); border: none;
+    border-radius: 5px; color: #000; font-family: 'DM Mono',monospace;
+    font-size: 10px; font-weight: 700; cursor: pointer; letter-spacing: 1px;
+  }
+
+  /* Roster peek modal */
+  #roster-peek-modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(10,13,15,0.85); z-index: 500;
+    align-items: center; justify-content: center;
+  }
+  #roster-peek-modal.open { display: flex; }
+  .roster-peek-inner {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; width: 420px;
+    max-height: 80vh; overflow-y: auto;
+  }
+
+  /* Draft status bar */
+  .draft-status-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 16px; margin-bottom: 16px;
+    font-family: 'DM Mono',monospace; font-size: 11px; flex-wrap: wrap; gap: 8px;
+  }
+  .draft-status-bar .ds-label { color: var(--muted); }
+  .draft-status-bar .ds-val   { color: var(--text); font-weight: 600; }
+  .draft-status-bar .ds-round { color: var(--green); font-size: 13px; font-weight: 700; }
+
   /* ── COMMISSIONER PANEL ──────────────────────────────── */
   #comm-toggle {
     position: fixed; bottom: 20px; right: 20px;
@@ -775,6 +951,7 @@
   <div class="tab" onclick="showTab('rosters')">Rosters</div>
   <div class="tab" onclick="showTab('scoring')">Scoring Rules</div>
   <div class="tab" onclick="showTab('myteam')" id="tab-myteam-btn">My Team</div>
+  <div class="tab" onclick="showTab('draft')" id="tab-draft-btn">Draft Room</div>
 </div>
 
 <!-- Controls -->
@@ -867,6 +1044,127 @@
     </div>
   </div>
 
+
+  <!-- DRAFT ROOM TAB -->
+  <div class="section" id="tab-draft">
+
+    <!-- Not-started state -->
+    <div id="draft-not-started" style="text-align:center;padding:60px 20px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:4px;color:var(--muted);margin-bottom:12px;">Draft Room</div>
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:24px;" id="draft-not-started-msg">
+        Draft has not started yet.
+      </div>
+      <div id="draft-date-countdown" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);"></div>
+    </div>
+
+    <!-- Active draft state -->
+    <div id="draft-active" style="display:none;">
+
+      <!-- Status bar -->
+      <div class="draft-status-bar">
+        <div>
+          <span class="ds-label">DRAFT: </span>
+          <span class="ds-val" id="ds-type">Supplemental</span>
+          &nbsp;·&nbsp;
+          <span class="ds-label">ROUND: </span>
+          <span class="ds-round" id="ds-round">1</span>
+          &nbsp;·&nbsp;
+          <span class="ds-label">PICK: </span>
+          <span class="ds-val" id="ds-pick">1/8</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span id="ds-status" style="color:var(--green);font-size:10px;">LIVE</span>
+          <button id="comm-pause-btn" onclick="toggleDraftPause()" style="display:none;padding:4px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;letter-spacing:1px;">⏸ PAUSE</button>
+        </div>
+      </div>
+
+      <!-- Main grid -->
+      <div id="draft-room-wrap">
+
+        <!-- Left: On Clock + Actions -->
+        <div class="draft-panel">
+          <div class="draft-panel-header">On The Clock</div>
+          <div class="draft-panel-body" style="display:flex;flex-direction:column;align-items:stretch;">
+            <div class="on-clock-label">Currently picking</div>
+            <div class="on-clock-team" id="clock-team-name">—</div>
+            <div class="draft-timer ok" id="draft-timer-display">45</div>
+
+            <div class="selected-player-display" id="selected-player-display">
+              <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">No player selected</div>
+            </div>
+
+            <button class="draft-action-btn pick" id="btn-pick" onclick="submitPick()" disabled>
+              ✓ DRAFT PLAYER
+            </button>
+            <button class="draft-action-btn pass" id="btn-pass" onclick="submitPass()" disabled>
+              PASS
+            </button>
+
+            <!-- Recent picks log -->
+            <div style="margin-top:12px;flex:1;overflow-y:auto;">
+              <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:6px;">RECENT PICKS</div>
+              <div id="recent-picks-log" style="font-size:11px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center: Player Pool -->
+        <div class="draft-panel" style="display:flex;flex-direction:column;">
+          <div class="draft-panel-header">
+            Available Players
+            <span id="pool-count" style="font-size:9px;color:var(--muted);"></span>
+          </div>
+          <div style="padding:10px 14px 0;flex-shrink:0;">
+            <div class="pos-filter-bar" id="pos-filter-bar"></div>
+            <input type="text" class="draft-search" id="draft-search" placeholder="Search player name or team..." oninput="filterPool()"/>
+          </div>
+          <div class="player-pool-list" id="player-pool-list" style="padding:0 14px 14px;"></div>
+        </div>
+
+        <!-- Right: Draft Order + Roster Peek -->
+        <div class="draft-panel">
+          <div class="draft-panel-header">Draft Order</div>
+          <div class="draft-panel-body">
+            <div id="draft-order-sidebar"></div>
+            <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px;">
+              <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:8px;">VIEW ROSTER</div>
+              <select id="roster-peek-select" onchange="peekRoster(this.value)"
+                style="width:100%;padding:6px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+                <option value="">— Select team —</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom: Chat (spans full width) -->
+        <div id="draft-chat-wrap">
+          <div class="draft-panel-header" style="flex-shrink:0;">
+            Chat
+            <span style="font-size:9px;color:var(--muted);" id="chat-login-hint"></span>
+          </div>
+          <div class="chat-messages" id="chat-messages"></div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="Type a message..." maxlength="200"
+                   onkeydown="if(event.key==='Enter')sendChat()"/>
+            <button class="chat-send-btn" onclick="sendChat()">SEND</button>
+          </div>
+        </div>
+
+      </div><!-- end draft-room-wrap -->
+    </div><!-- end draft-active -->
+
+    <!-- Roster peek modal -->
+    <div id="roster-peek-modal" onclick="if(event.target===this)closeRosterPeek()">
+      <div class="roster-peek-inner">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--green);" id="peek-team-name">Team Roster</div>
+          <button onclick="closeRosterPeek()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;">×</button>
+        </div>
+        <div id="peek-roster-content"></div>
+      </div>
+    </div>
+
+  </div><!-- end tab-draft -->
 
   <!-- MY TEAM TAB -->
   <div class="section" id="tab-myteam">
@@ -2801,6 +3099,723 @@ async function init() {
 
 init();
 
+// ── League reset (commissioner) ───────────────────────────────────────────────
+async function resetLeague() {
+  if (!commUnlocked) return;
+  const msg = 'This will:\n' +
+    '• Unlock 1H standings\n' +
+    '• Clear all draft state\n' +
+    '• Clear all submitted lineups\n' +
+    '• Clear draft pools\n' +
+    '• Clear chat\n\n' +
+    'Rosters loaded from Firebase (XLSX import) will be preserved.\n\n' +
+    'Type RESET to confirm:';
+  const confirm = window.prompt(msg);
+  if (confirm !== 'RESET') { alert('Reset cancelled'); return; }
+
+  const btn = document.getElementById('reset-league-btn');
+  btn.textContent = 'Resetting...';
+
+  await Promise.all([
+    fbSet('standings/1h', null),
+    fbSet('settings/status', 'active'),
+    fbSet('settings/draftActive', null),
+    fbSet(`draft/${DRAFT_KEY}`, null),
+    fbSet('lineups/1h', null),
+    fbSet('lineups/2h', null),
+    fbSet(`chat/${DRAFT_KEY}`, null),
+  ]);
+
+  // Reset local state
+  lockedStandings1H = null;
+  draftState = null;
+  draftPoolFull = [];
+  draftPool = [];
+  selectedPlayer = null;
+  stopDraftPolling();
+
+  // Remove FINAL badge
+  const badge = document.querySelector('.final-badge');
+  if (badge) badge.remove();
+  document.getElementById('draft-order-section').style.display = 'none';
+
+  btn.textContent = '✓ League Reset';
+  setTimeout(() => { btn.textContent = '↺ Reset League (Testing)'; }, 3000);
+
+  // Reload standings with live data
+  computeTeamStats();
+  renderAll();
+}
+
+
+// ════════════════════════════════════════════════════════════
+// PHASE C — DRAFT ROOM ENGINE
+// ════════════════════════════════════════════════════════════
+
+const DRAFT_KEY   = 'allstar-2026';
+const DRAFT_TYPES = { supplemental: { maxRounds: 5, autoPassOnExpiry: true,  pauseOnExpiry: false },
+                      milb:          { maxRounds: 10, autoPassOnExpiry: true, pauseOnExpiry: true  } };
+const POS_FILTERS = ['ALL','P','C','1B','2B','SS','3B','OF'];
+
+let draftState      = null;   // latest state from Firebase
+let draftPool       = [];     // available players (filtered view)
+let draftPoolFull   = [];     // all available players
+let selectedPlayer  = null;   // player picked by on-clock team
+let activeDraftType = 'supplemental';
+let activePosFlt    = 'ALL';
+let pollInterval    = null;
+let timerInterval   = null;
+let chatPollInterval= null;
+let lastChatCount   = 0;
+let isOnClock       = false;  // is current sessionTeam on the clock?
+
+// ── Firebase paths ───────────────────────────────────────────────────────────
+const draftPath  = t => `draft/${DRAFT_KEY}/${t}`;
+const statePath  = t => `${draftPath(t)}/state`;
+const picksPath  = t => `${draftPath(t)}/picks`;
+const poolPath   = t => `${draftPath(t)}/pool`;
+const chatPath   = ()  => `chat/${DRAFT_KEY}`;
+
+// ── Commissioner: Build draft pool ───────────────────────────────────────────
+async function buildDraftPool(type) {
+  const btn = document.getElementById(type === 'milb' ? 'build-milb-pool-btn' : 'build-pool-btn');
+  btn.textContent = 'Building pool...';
+
+  if (type === 'milb') {
+    // MiLB pool comes from CSV upload — trigger file picker
+    document.getElementById('milb-csv-input').click();
+    btn.textContent = '⚙ Build MiLB Draft Pool (from CSV)';
+    return;
+  }
+
+  // Supplemental: fetch all 30 MLB teams' rosters, exclude fantasy-rostered players
+  const roster = getRoster();
+  const rosteredNames = new Set(roster.map(p => normalizeName(p[1])));
+
+  const allTeams = Object.keys(TEAM_IDS);
+  let pool = [];
+
+  for (let i = 0; i < allTeams.length; i++) {
+    const abbr   = allTeams[i];
+    const teamId = TEAM_IDS[abbr];
+    btn.textContent = `Fetching ${abbr} (${i+1}/${allTeams.length})...`;
+    try {
+      const [activeRes, fullRes] = await Promise.all([
+        fetch(`${MLB_API}/teams/${teamId}/roster?rosterType=active&season=2026`),
+        fetch(`${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`)
+      ]);
+      const active = activeRes.ok ? (await activeRes.json()).roster || [] : [];
+      const full   = fullRes.ok  ? (await fullRes.json()).roster  || [] : [];
+
+      // Active 26-man
+      for (const e of active) {
+        const norm = normalizeName(e.person.fullName);
+        if (rosteredNames.has(norm)) continue;
+        pool.push({ name: e.person.fullName, mlbTeam: abbr,
+                    pos: e.position?.abbreviation || '?', id: e.person.id,
+                    onIL: false });
+      }
+      // IL players from fullRoster
+      for (const e of full) {
+        const norm   = normalizeName(e.person.fullName);
+        const status = e.status?.description || '';
+        const code   = e.status?.code || '';
+        if (!status.startsWith('Injured') && !code.startsWith('D') && code !== 'ILF') continue;
+        if (rosteredNames.has(norm)) continue;
+        if (pool.find(p => normalizeName(p.name) === norm)) continue; // no dupes
+        pool.push({ name: e.person.fullName, mlbTeam: abbr,
+                    pos: e.position?.abbreviation || '?', id: e.person.id,
+                    onIL: true });
+      }
+    } catch(e) { console.warn(`Pool fetch failed for ${abbr}:`, e); }
+  }
+
+  // Remove dupes by id
+  const seen = new Set();
+  pool = pool.filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
+
+  const ok = await fbSet(poolPath('supplemental'), pool);
+  btn.textContent = ok ? `✓ Pool built (${pool.length} players)` : '✗ Save failed';
+  setTimeout(() => {
+    btn.textContent = '⚙ Build Supplemental Draft Pool';
+    document.getElementById('draft-start-controls').style.display = 'block';
+  }, 3000);
+}
+
+// ── MiLB CSV parse ──────────────────────────────────────────────────────────
+function parseMiLBCSV(text) {
+  const lines = text.trim().split('\n');
+  const pool  = [];
+  for (const line of lines.slice(1)) { // skip header
+    const [name, pos, org, notes] = line.split(',').map(s => s?.trim());
+    if (!name) continue;
+    pool.push({ name, pos: pos||'?', mlbTeam: org||'', notes: notes||'', onIL: false, id: name });
+  }
+  return pool;
+}
+
+async function handleMiLBCSV(file) {
+  if (!file) return;
+  const text = await file.text();
+  const pool = parseMiLBCSV(text);
+  const ok   = await fbSet(poolPath('milb'), pool);
+  const btn  = document.getElementById('build-milb-pool-btn');
+  btn.textContent = ok ? `✓ MiLB pool built (${pool.length} players)` : '✗ Save failed';
+  setTimeout(() => {
+    btn.textContent = '⚙ Build MiLB Draft Pool (from CSV)';
+    document.getElementById('draft-start-controls').style.display = 'block';
+  }, 3000);
+}
+
+// ── Commissioner: set draft type ─────────────────────────────────────────────
+function setDraftType(type, el) {
+  activeDraftType = type;
+  document.querySelectorAll('#draft-start-controls .half-chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+  const maxR = document.getElementById('max-rounds-input');
+  maxR.value = type === 'milb' ? 10 : 5;
+}
+
+// ── Commissioner: Start draft ────────────────────────────────────────────────
+async function startDraft() {
+  const locked = await fbGet('standings/1h');
+  if (!locked?.draftOrder) { alert('Lock 1H standings first to set draft order'); return; }
+
+  const maxRounds = parseInt(document.getElementById('max-rounds-input').value) || 5;
+  const order     = locked.draftOrder; // worst to first
+
+  // Check pool exists
+  const pool = await fbGet(poolPath(activeDraftType));
+  if (!pool || pool.length === 0) { alert(`Build the ${activeDraftType} pool first`); return; }
+
+  const state = {
+    type:        activeDraftType,
+    status:      'active',
+    round:       1,
+    pickIdx:     0,          // index into draftOrder
+    draftOrder:  order,
+    maxRounds,
+    timerEndsAt: Date.now() + 45000,
+    startedAt:   Date.now(),
+    pausedAt:    null,
+    passedTeams: {},         // { 'team': roundsPassedCount }
+  };
+
+  await fbSet(statePath(activeDraftType), state);
+  await fbSet(picksPath(activeDraftType), []);
+  await fbSet('settings/draftActive', activeDraftType);
+  alert(`${activeDraftType} draft started!`);
+}
+
+// ── Start polling draft state ─────────────────────────────────────────────────
+function startDraftPolling() {
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(pollDraftState, 1000);
+  chatPollInterval = setInterval(pollChat, 1000);
+  pollDraftState();
+  pollChat();
+}
+
+function stopDraftPolling() {
+  clearInterval(pollInterval);
+  clearInterval(chatPollInterval);
+  clearInterval(timerInterval);
+}
+
+async function pollDraftState() {
+  const activeDraft = await fbGet('settings/draftActive');
+  if (!activeDraft) { showDraftNotStarted(); return; }
+
+  const state = await fbGet(statePath(activeDraft));
+  if (!state) { showDraftNotStarted(); return; }
+
+  // Load pool once
+  if (draftPoolFull.length === 0 || draftState?.type !== state.type) {
+    const pool = await fbGet(poolPath(activeDraft));
+    const picks = await fbGet(picksPath(activeDraft)) || [];
+    const pickedNames = new Set(picks.map(p => normalizeName(p.player)));
+    draftPoolFull = (pool || []).filter(p => !pickedNames.has(normalizeName(p.name)));
+    filterPool();
+  } else {
+    // Incrementally remove newly-picked players
+    const picks = await fbGet(picksPath(activeDraft)) || [];
+    const pickedNames = new Set(picks.map(p => normalizeName(p.player)));
+    const prevLen = draftPoolFull.length;
+    draftPoolFull = draftPoolFull.filter(p => !pickedNames.has(normalizeName(p.name)));
+    if (draftPoolFull.length !== prevLen) filterPool();
+    updateRecentPicks(picks);
+  }
+
+  const prevState = draftState;
+  draftState = state;
+  activeDraftType = state.type;
+
+  showDraftActive(state, prevState);
+}
+
+// ── Render draft room ─────────────────────────────────────────────────────────
+function showDraftNotStarted() {
+  document.getElementById('draft-not-started').style.display = 'block';
+  document.getElementById('draft-active').style.display = 'none';
+}
+
+function showDraftActive(state, prevState) {
+  document.getElementById('draft-not-started').style.display = 'none';
+  document.getElementById('draft-active').style.display = 'block';
+
+  // Status bar
+  document.getElementById('ds-type').textContent = state.type === 'milb' ? 'MiLB Draft' : 'Supplemental';
+  document.getElementById('ds-round').textContent = state.round;
+  document.getElementById('ds-pick').textContent  =
+    `${state.pickIdx + 1}/${state.draftOrder?.length || 8}`;
+
+  const isPaused = state.status === 'paused';
+  const isEnded  = state.status === 'ended';
+  document.getElementById('ds-status').textContent =
+    isEnded ? 'ENDED' : isPaused ? 'PAUSED' : 'LIVE';
+  document.getElementById('ds-status').style.color =
+    isEnded ? 'var(--muted)' : isPaused ? 'var(--gold)' : 'var(--green)';
+
+  // Commissioner controls
+  const isComm = commUnlocked;
+  const pauseBtn = document.getElementById('comm-pause-btn');
+  if (isComm && !isEnded) {
+    pauseBtn.style.display = 'block';
+    pauseBtn.textContent   = isPaused ? '▶ RESUME' : '⏸ PAUSE';
+  }
+
+  // On-clock team
+  const order      = state.draftOrder || [];
+  const onClockTeam = isEnded ? '—' : order[state.pickIdx] || '—';
+  document.getElementById('clock-team-name').textContent = onClockTeam;
+  isOnClock = sessionTeam && sessionTeam === onClockTeam && !isPaused && !isEnded;
+
+  // Timer
+  updateTimerDisplay(state);
+
+  // Enable/disable action buttons
+  const btnPick = document.getElementById('btn-pick');
+  const btnPass = document.getElementById('btn-pass');
+  btnPick.disabled = !isOnClock || !selectedPlayer;
+  btnPass.disabled = !isOnClock;
+  // Hide PASS for MiLB
+  document.getElementById('btn-pass').style.display =
+    state.type === 'milb' ? 'none' : 'block';
+
+  // Draft order sidebar
+  renderDraftOrderSidebar(state);
+
+  // Pool count
+  document.getElementById('pool-count').textContent = `${draftPoolFull.length} available`;
+
+  // Roster peek dropdown
+  const sel = document.getElementById('roster-peek-select');
+  if (sel.options.length === 1) {
+    order.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t; opt.textContent = t;
+      sel.appendChild(opt);
+    });
+  }
+
+  // Chat hint
+  document.getElementById('chat-login-hint').textContent =
+    sessionTeam ? `(logged in as ${sessionTeam})` : '(log in to chat)';
+}
+
+// ── Timer display ─────────────────────────────────────────────────────────────
+function updateTimerDisplay(state) {
+  clearInterval(timerInterval);
+  const timerEl = document.getElementById('draft-timer-display');
+  if (!timerEl) return;
+
+  if (state.status === 'paused') {
+    timerEl.textContent = '—';
+    timerEl.className   = 'draft-timer paused';
+    return;
+  }
+  if (state.status === 'ended') {
+    timerEl.textContent = 'DONE';
+    timerEl.className   = 'draft-timer paused';
+    return;
+  }
+
+  timerInterval = setInterval(() => {
+    const secsLeft = Math.max(0, Math.ceil((state.timerEndsAt - Date.now()) / 1000));
+    timerEl.textContent = secsLeft;
+    timerEl.className   = `draft-timer ${secsLeft <= 10 ? 'urgent' : 'ok'}`;
+
+    if (secsLeft === 0) {
+      clearInterval(timerInterval);
+      handleTimerExpiry(state);
+    }
+  }, 200);
+}
+
+// ── Timer expiry ──────────────────────────────────────────────────────────────
+async function handleTimerExpiry(state) {
+  // Only the on-clock team's client (or comm) fires the expiry write
+  if (!isOnClock && !commUnlocked) return;
+
+  // Re-read state to make sure nobody already advanced
+  const fresh = await fbGet(statePath(state.type));
+  if (!fresh || fresh.timerEndsAt !== state.timerEndsAt) return; // already advanced
+
+  const cfg = DRAFT_TYPES[state.type];
+
+  if (cfg.pauseOnExpiry) {
+    // MiLB: auto-pass + pause
+    await recordPass(state, true);
+  } else {
+    // Supplemental: auto-pass + advance
+    await recordPass(state, false);
+  }
+}
+
+// ── Submit pick ───────────────────────────────────────────────────────────────
+async function submitPick() {
+  if (!selectedPlayer || !isOnClock) return;
+  const btn = document.getElementById('btn-pick');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  const state = await fbGet(statePath(activeDraftType));
+  if (!state || state.draftOrder[state.pickIdx] !== sessionTeam) {
+    btn.disabled = false; btn.textContent = '✓ DRAFT PLAYER'; return;
+  }
+
+  // Record pick
+  const picks = await fbGet(picksPath(activeDraftType)) || [];
+  picks.push({
+    round:   state.round,
+    pick:    state.pickIdx + 1,
+    team:    sessionTeam,
+    player:  selectedPlayer.name,
+    mlbTeam: selectedPlayer.mlbTeam,
+    pos:     selectedPlayer.pos,
+    salary:  activeDraftType === 'milb' ? 0.75 : 2.00,
+    ts:      Date.now(),
+    isPass:  false,
+  });
+  await fbSet(picksPath(activeDraftType), picks);
+
+  // Advance state
+  await advanceDraftState(state, false);
+
+  selectedPlayer = null;
+  document.getElementById('selected-player-display').innerHTML =
+    '<div style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--muted);">No player selected</div>';
+  document.getElementById('btn-pick').textContent = '✓ DRAFT PLAYER';
+}
+
+// ── Submit pass ───────────────────────────────────────────────────────────────
+async function submitPass() {
+  if (!isOnClock) return;
+  const state = await fbGet(statePath(activeDraftType));
+  await recordPass(state, false);
+}
+
+async function recordPass(state, andPause) {
+  const picks = await fbGet(picksPath(activeDraftType)) || [];
+  picks.push({
+    round:  state.round, pick: state.pickIdx + 1,
+    team:   state.draftOrder[state.pickIdx],
+    player: null, isPass: true, ts: Date.now(),
+  });
+  await fbSet(picksPath(activeDraftType), picks);
+  await advanceDraftState(state, andPause);
+}
+
+// ── Advance draft state ───────────────────────────────────────────────────────
+async function advanceDraftState(state, pause) {
+  const order = state.draftOrder;
+  let { round, pickIdx, maxRounds } = state;
+
+  pickIdx++;
+  if (pickIdx >= order.length) {
+    pickIdx = 0;
+    round++;
+  }
+
+  if (round > maxRounds) {
+    await fbSet(statePath(activeDraftType), { ...state, status: 'ended', round, pickIdx });
+    await fbSet('settings/draftActive', null);
+    return;
+  }
+
+  const newState = {
+    ...state,
+    round, pickIdx,
+    status:      pause ? 'paused' : 'active',
+    timerEndsAt: pause ? state.timerEndsAt : Date.now() + 45000,
+  };
+  await fbSet(statePath(activeDraftType), newState);
+}
+
+// ── Toggle pause ──────────────────────────────────────────────────────────────
+async function toggleDraftPause() {
+  if (!commUnlocked) return;
+  const state = await fbGet(statePath(activeDraftType));
+  if (!state) return;
+  const nowPaused = state.status === 'paused';
+  await fbSet(statePath(activeDraftType), {
+    ...state,
+    status:      nowPaused ? 'active' : 'paused',
+    timerEndsAt: nowPaused ? Date.now() + 45000 : state.timerEndsAt,
+  });
+}
+
+// ── Player pool filtering ─────────────────────────────────────────────────────
+function initPosFilterBar() {
+  const bar = document.getElementById('pos-filter-bar');
+  if (!bar) return;
+  bar.innerHTML = POS_FILTERS.map(p =>
+    `<div class="pos-chip ${p==='ALL'?'on':''}" onclick="setPosFilter('${p}',this)">${p}</div>`
+  ).join('');
+}
+
+function setPosFilter(pos, el) {
+  activePosFlt = pos;
+  document.querySelectorAll('.pos-chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+  filterPool();
+}
+
+function filterPool() {
+  const search = (document.getElementById('draft-search')?.value || '').toLowerCase();
+  const filtered = draftPoolFull.filter(p => {
+    const posMatch = activePosFlt === 'ALL' || p.pos === activePosFlt;
+    const nameMatch = !search ||
+      p.name.toLowerCase().includes(search) ||
+      (p.mlbTeam||'').toLowerCase().includes(search);
+    return posMatch && nameMatch;
+  });
+  renderPlayerPool(filtered);
+}
+
+// Pool player map — avoids inline onclick encoding issues with special chars
+let _poolPlayerMap = {};
+
+function renderPlayerPool(players) {
+  const list = document.getElementById('player-pool-list');
+  if (!list) return;
+  if (players.length === 0) {
+    list.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:12px 0;">No players match filter</div>`;
+    return;
+  }
+  _poolPlayerMap = {};
+  const slice = players.slice(0, 200);
+  list.innerHTML = slice.map((p, i) => {
+    _poolPlayerMap[i] = p;
+    const isSelected = selectedPlayer && normalizeName(selectedPlayer.name) === normalizeName(p.name);
+    const ilBadge    = p.onIL ? `<span style="font-size:9px;color:#ef5350;margin-left:4px;">IL</span>` : '';
+    const posKey     = p.pos==='1B'?'B1':p.pos==='2B'?'B2':p.pos==='3B'?'B3':p.pos;
+    return `<div class="pool-player-row ${isSelected?'selected':''}" data-pidx="${i}">
+      <span class="pos-tag ${posKey}" style="font-size:9px;padding:1px 4px;">${p.pos}</span>
+      <span style="flex:1;font-weight:500;">${escapeHtml(p.name)}${ilBadge}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">${p.mlbTeam}</span>
+    </div>`;
+  }).join('');
+
+  // Attach click handlers after render to avoid inline onclick encoding
+  list.querySelectorAll('.pool-player-row[data-pidx]').forEach(row => {
+    row.addEventListener('click', () => {
+      const idx = parseInt(row.dataset.pidx);
+      selectPoolPlayer(_poolPlayerMap[idx]);
+    });
+  });
+}
+
+// Safe HTML escaping for player names with apostrophes, accents, etc.
+function escapeHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+
+function selectPoolPlayer(player) {
+  if (!isOnClock) return;
+  selectedPlayer = player;
+  // Highlight selection
+  document.querySelectorAll('.pool-player-row').forEach(r => r.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  // Show in action panel
+  const ilTag = player.onIL ? ' <span style="color:#ef5350;font-size:10px;">· IL</span>' : '';
+  document.getElementById('selected-player-display').innerHTML = `
+    <div class="sp-name">${player.name}${ilTag}</div>
+    <div class="sp-meta">${player.pos} · ${player.mlbTeam} · $${activeDraftType==='milb'?'0.75':'2.00'}</div>
+  `;
+  document.getElementById('btn-pick').disabled = false;
+}
+
+// ── Draft order sidebar ───────────────────────────────────────────────────────
+function renderDraftOrderSidebar(state) {
+  const sidebar = document.getElementById('draft-order-sidebar');
+  if (!sidebar) return;
+  const order   = state.draftOrder || [];
+  const current = state.pickIdx;
+  sidebar.innerHTML = order.map((team, i) => {
+    const isCurrent = i === current && state.status !== 'ended';
+    const isMe      = team === sessionTeam;
+    return `<div class="draft-order-pick-row ${isCurrent?'current':''}">
+      <span class="pick-round-badge">P${i+1}</span>
+      <span style="flex:1;font-size:11px;font-weight:${isMe?'600':'400'};color:${isCurrent?'var(--green)':isMe?'var(--green)':'var(--text)'};">
+        ${team}${isCurrent?' ◄':''}${isMe&&!isCurrent?' ⚾':''}
+      </span>
+    </div>`;
+  }).join('');
+}
+
+// ── Recent picks log ──────────────────────────────────────────────────────────
+function updateRecentPicks(picks) {
+  const log = document.getElementById('recent-picks-log');
+  if (!log) return;
+  const recent = [...picks].reverse().slice(0, 8);
+  log.innerHTML = recent.map(p => {
+    if (p.isPass) return `<div style="color:var(--muted);padding:3px 0;border-bottom:1px solid var(--border);">
+      <span style="color:var(--muted);font-size:9px;">R${p.round}</span>
+      ${p.team} <span style="color:var(--muted);">passed</span>
+    </div>`;
+    return `<div style="padding:3px 0;border-bottom:1px solid var(--border);">
+      <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">R${p.round}</span>
+      <span style="color:var(--green);font-weight:600;"> ${p.team}</span>
+      <span style="color:var(--muted);"> → </span>${p.player}
+      <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);"> $${p.salary}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Roster peek ───────────────────────────────────────────────────────────────
+async function peekRoster(team) {
+  if (!team) return;
+  const modal = document.getElementById('roster-peek-modal');
+  modal.classList.add('open');
+  document.getElementById('peek-team-name').textContent = `${team} — Roster`;
+  const content = document.getElementById('peek-roster-content');
+  content.innerHTML = '<div style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--muted);">Loading...</div>';
+
+  // Get current roster including draft picks
+  const baseRoster = getRoster().filter(p => p[4] === team);
+  const picks = await fbGet(picksPath(activeDraftType)) || [];
+  const teamPicks = picks.filter(p => p.team === team && !p.isPass);
+  const capSpent = baseRoster.filter(p=>!p[5]).reduce((s,p)=>s+p[3],0)
+    + teamPicks.reduce((s,p)=>s+p.salary,0);
+  const capLeft = 65 - capSpent;
+
+  const POS_ORDER = ['P','C','1B','2B','SS','3B','OF'];
+  const mlb = baseRoster.filter(p=>!p[5]).sort((a,b)=>POS_ORDER.indexOf(a[0])-POS_ORDER.indexOf(b[0]));
+  const milb = baseRoster.filter(p=>p[5]);
+
+  let html = `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:10px;">
+    MLB: ${mlb.length}/25 · Cap: $${capSpent.toFixed(2)} spent · $${capLeft.toFixed(2)} left
+  </div>`;
+
+  html += mlb.map(p => {
+    const pk = p[0]==='1B'?'B1':p[0]==='2B'?'B2':p[0]==='3B'?'B3':p[0];
+    return `<div class="roster-row-myteam">
+      <span class="pos-tag ${pk}" style="font-size:9px;padding:1px 4px;">${p[0]}</span>
+      <span style="flex:1;font-size:12px;">${p[1]}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">${p[2]} $${p[3]}</span>
+    </div>`;
+  }).join('');
+
+  if (teamPicks.length > 0) {
+    html += `<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--green);letter-spacing:1px;margin:10px 0 6px;">DRAFTED THIS SESSION</div>`;
+    html += teamPicks.map(p =>
+      `<div class="roster-row-myteam">
+        <span class="pos-tag" style="font-size:9px;padding:1px 4px;">${p.pos}</span>
+        <span style="flex:1;font-size:12px;">${p.player}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">$${p.salary}</span>
+      </div>`).join('');
+  }
+
+  if (milb.length > 0) {
+    html += `<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin:10px 0 6px;">MILB (${milb.length}/10)</div>`;
+    html += milb.map(p =>
+      `<div class="roster-row-myteam" style="opacity:0.6;">
+        <span style="flex:1;font-size:12px;color:var(--muted);">${p[1]}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">${p[2]}</span>
+      </div>`).join('');
+  }
+
+  content.innerHTML = html;
+  document.getElementById('roster-peek-select').value = '';
+}
+
+function closeRosterPeek() {
+  document.getElementById('roster-peek-modal').classList.remove('open');
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+async function pollChat() {
+  const msgs = await fbGet(chatPath()) || [];
+  if (msgs.length === lastChatCount) return;
+  lastChatCount = msgs.length;
+  renderChat(msgs);
+}
+
+function renderChat(msgs) {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+  const isAtBottom = container.scrollHeight - container.scrollTop < container.clientHeight + 60;
+  container.innerHTML = msgs.slice(-50).map(m => {
+    const time = new Date(m.ts).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    return `<div class="chat-msg">
+      <span class="msg-team">${m.team}:</span>
+      <span class="msg-text">${m.text}</span>
+      <span class="msg-time">${time}</span>
+    </div>`;
+  }).join('');
+  if (isAtBottom) container.scrollTop = container.scrollHeight;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text  = input.value.trim();
+  if (!text) return;
+  const sender = sessionTeam || (commUnlocked ? 'Commissioner' : 'Guest');
+  const msgs   = await fbGet(chatPath()) || [];
+  msgs.push({ team: sender, text, ts: Date.now() });
+  // Keep last 200 messages
+  const trimmed = msgs.slice(-200);
+  await fbSet(chatPath(), trimmed);
+  input.value = '';
+}
+
+// ── Tab activation ────────────────────────────────────────────────────────────
+async function onDraftTabOpen() {
+  initPosFilterBar();
+  startDraftPolling();
+  // Show commissioner controls if unlocked
+  if (commUnlocked) {
+    const locked = await fbGet('standings/1h');
+    if (locked?.locked) {
+      document.getElementById('build-pool-btn').style.display      = 'block';
+      document.getElementById('build-milb-pool-btn').style.display = 'block';
+    }
+  }
+}
+
+// Hidden file input for MiLB CSV
+
+
+// ── Patch showTab for draft room ─────────────────────────────────────────────
+const _origShowTab = showTab;
+function showTab(name) {
+  _origShowTab.call(this, name);
+  if (name === 'draft') onDraftTabOpen();
+  else stopDraftPolling();
+}
+
+// ── Show build pool buttons after standings lock ──────────────────────────────
+const _origLock = lock1HStandings;
+async function lock1HStandings() {
+  await _origLock();
+  document.getElementById('build-pool-btn').style.display = 'block';
+  document.getElementById('build-milb-pool-btn').style.display = 'block';
+}
+
+
 // ════════════════════════════════════════════════════════════
 // PHASE B — 1H STANDINGS FREEZE + DRAFT ORDER
 // ════════════════════════════════════════════════════════════
@@ -3086,6 +4101,15 @@ async function commAutoFillLineup(slug, team) {
   if (ok) await renderLineupSubmissions();
 }
 
+// ── Patch switchCommView to load lineup status when LOCK tab opened ───────────
+const _origSwitchCommView = switchCommView;
+function switchCommView(view, el) {
+  _origSwitchCommView(view, el);
+  document.getElementById('comm-view-lock').style.display = view === 'lock' ? 'block' : 'none';
+  if (view === 'lock') renderLineupSubmissions();
+}
+
+
 // ════════════════════════════════════════════════════════════
 // PHASE A — TEAM MANAGEMENT, PIN AUTH, LINEUP LOCK
 // ════════════════════════════════════════════════════════════
@@ -3094,14 +4118,13 @@ const POS_SLOTS = { P:9, C:2, '1B':2, '2B':2, SS:2, '3B':2, OF:6 };
 
 // ── Commissioner sub-view switcher ───────────────────────────────────────────
 function switchCommView(view, el) {
-  ['rosters','teams','dates','lock'].forEach(v => {
+  ['rosters','teams','dates'].forEach(v => {
     document.getElementById(`comm-view-${v}`).style.display = v === view ? 'block' : 'none';
   });
   document.querySelectorAll('#comm-panel .half-chip').forEach(c => c.classList.remove('on'));
   el.classList.add('on');
   if (view === 'teams') renderTeamPinFields();
   if (view === 'dates') loadDatesIntoForm();
-  if (view === 'lock')  renderLineupSubmissions();
 }
 
 // ── Team PIN fields in commissioner panel ────────────────────────────────────
@@ -3667,6 +4690,7 @@ async function clearRosterOverride() {
 
 </script>
 
+<input type="file" id="milb-csv-input" accept=".csv" style="display:none" onchange="handleMiLBCSV(this.files[0])"/>
 <!-- Commissioner toggle -->
 <button id="comm-toggle" onclick="toggleCommPanel()" title="Commissioner">⚙</button>
 
@@ -3735,6 +4759,24 @@ async function clearRosterOverride() {
       <button class="c-btn confirm" onclick="lock1HStandings()" id="lock-standings-btn" style="display:block;">
         🔒 Lock 1H Standings + Set Draft Order
       </button>
+      <button class="c-btn" onclick="buildDraftPool('supplemental')" id="build-pool-btn" style="display:none;">
+        ⚙ Build Supplemental Draft Pool
+      </button>
+      <button class="c-btn" onclick="buildDraftPool('milb')" id="build-milb-pool-btn" style="display:none;">
+        ⚙ Build MiLB Draft Pool (from CSV)
+      </button>
+      <div style="display:none;" id="draft-start-controls">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin:10px 0 6px;letter-spacing:1px;">START DRAFT</div>
+        <div style="display:flex;gap:4px;margin-bottom:6px;">
+          <div class="half-chip on" onclick="setDraftType('supplemental',this)" style="font-size:8px;">SUPPLEMENTAL</div>
+          <div class="half-chip" onclick="setDraftType('milb',this)" style="font-size:8px;">MILB</div>
+        </div>
+        <input type="number" id="max-rounds-input" value="5" min="1" max="10"
+          style="width:60px;padding:4px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;margin-bottom:6px;outline:none;"
+          title="Max rounds"/>
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-left:4px;">max rounds</span>
+        <button class="c-btn confirm" onclick="startDraft()" style="display:block;margin-top:6px;">▶ Start Draft</button>
+      </div>
       <button class="c-btn red" onclick="unlock1HStandings()" id="unlock-standings-btn" style="display:none;">
         🔓 Unlock 1H Standings
       </button>
@@ -3763,7 +4805,10 @@ async function clearRosterOverride() {
       <button class="c-btn confirm" onclick="saveDates()" style="display:block;">✓ Save Dates</button>
     </div>
 
-    <button class="c-btn" onclick="document.getElementById('comm-panel').classList.remove('open')" style="margin-top:8px;">Close</button>
+    <button class="c-btn red" id="reset-league-btn" onclick="resetLeague()" style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
+      ↺ Reset League (Testing)
+    </button>
+    <button class="c-btn" onclick="document.getElementById('comm-panel').classList.remove('open')" style="margin-top:4px;">Close</button>
   </div>
 </div>
 
