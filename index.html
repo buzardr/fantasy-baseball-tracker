@@ -3214,6 +3214,94 @@ async function init() {
 
 init();
 
+// ── Post-decision roster summary ──────────────────────────────────────────────
+function renderPostDecisionRoster() {
+  if (!sessionTeam) return;
+  const roster  = getRoster().filter(p => p[4] === sessionTeam);
+  const mlbAll  = roster.filter(p => !p[5]);
+  const milbAll = roster.filter(p => p[5]);
+  const dec     = milbDecisions;
+  const pk      = p => playerKey(p[1], p[2]);
+
+  // Build post-decision roster lists
+  const POS_ORDER = ['P','C','1B','2B','SS','3B','OF'];
+
+  const activeRoster = [
+    ...mlbAll.filter(p => {
+      const a = dec[pk(p)]?.action;
+      if (a === 'release') return false;
+      if (a === 'place-il') return false;
+      if (p[7] && a !== 'activate-rlwil') return false; // RLWIL stays on IL unless activated
+      return getRosterStatus(p[1],p[2]) !== 'il' || a === 'activate-rlwil' || p[7];
+    }),
+    ...milbAll.filter(p => dec[pk(p)]?.action === 'promote'),
+  ].sort((a,b) => POS_ORDER.indexOf(a[0]) - POS_ORDER.indexOf(b[0]));
+
+  const ilRoster = mlbAll.filter(p => {
+    const a = dec[pk(p)]?.action;
+    if (a === 'release') return false;
+    if (a === 'activate-rlwil') return false;
+    if (p[7]) return true; // RLWIL stays on IL
+    if (a === 'place-il') return true;
+    return false;
+  });
+
+  const milbRoster = milbAll.filter(p => {
+    const a = dec[pk(p)]?.action;
+    return !a || a === 'keep';
+  });
+
+  // Find or create post-decision section
+  let section = document.getElementById('post-decision-roster');
+  if (!section) {
+    section = document.createElement('div');
+    section.id = 'post-decision-roster';
+    section.style.cssText = 'background:var(--bg2);border:1px solid var(--green);border-radius:10px;padding:20px;margin-top:20px;';
+    const rosterList = document.getElementById('myteam-roster-list');
+    if (rosterList?.parentElement) rosterList.parentElement.appendChild(section);
+  }
+
+  section.innerHTML = `
+    <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--green);margin-bottom:14px;">
+      ✓ POST-DECISION ROSTER (${activeRoster.length}/35 active · ${ilRoster.length} IL · ${milbRoster.length}/10 MiLB)
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:8px;">ACTIVE ROSTER</div>
+    ${activeRoster.map(p => {
+      const posKey = p[0]==='1B'?'B1':p[0]==='2B'?'B2':p[0]==='3B'?'B3':p[0];
+      const isNew  = milbAll.includes(p);
+      return `<div class="roster-row-myteam">
+        <span class="pos-tag ${posKey}" style="font-size:9px;padding:1px 4px;">${p[0]}</span>
+        <span style="flex:1;font-weight:500;${isNew?'color:var(--green);':''}">${p[1]}
+          <span style="font-size:10px;color:var(--muted);margin-left:4px;">${p[2]}</span>
+          ${isNew?'<span style="font-size:9px;color:var(--green);margin-left:4px;">↑ PROMOTED</span>':''}
+        </span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">$${p[3]||0.75}</span>
+      </div>`;
+    }).join('')}
+    ${ilRoster.length > 0 ? `
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin:12px 0 8px;">ON IL</div>
+      ${ilRoster.map(p => `<div class="roster-row-myteam">
+        <span style="flex:1;font-weight:500;color:#ef5350;">${p[1]}
+          <span style="font-size:10px;color:var(--muted);margin-left:4px;">${p[2]}</span>
+        </span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">$${p[3]}</span>
+      </div>`).join('')}` : ''}
+    ${milbRoster.length > 0 ? `
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin:12px 0 8px;">MILB (${milbRoster.length}/10)</div>
+      ${milbRoster.map(p => `<div class="roster-row-myteam" style="opacity:0.7;">
+        <span style="flex:1;font-size:12px;color:var(--muted);">${p[1]}
+          <span style="font-size:10px;margin-left:4px;">${p[2]}</span>
+        </span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">$0.75</span>
+      </div>`).join('')}` : ''}
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:12px;">
+      Commissioner will update official rosters after reconciliation period.
+    </div>`;
+
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+
 let lockHalf = '1h';
 function setLockHalf(half, el) {
   lockHalf = half;
@@ -3592,15 +3680,19 @@ function updateRosterTracker(mlbAll, milbAll) {
   const pk  = p => playerKey(p[1], p[2]);
 
   // MLB roster after decisions
-  const mlbReleased   = mlbAll.filter(p => dec[pk(p)]?.action === 'release').length;
-  const mlbPlacedIL   = mlbAll.filter(p => dec[pk(p)]?.action === 'place-il').length;
+  // Only count active (non-IL, non-RLWIL) players being released — IL releases
+  // don't affect activecount since they were already excluded from startingActive
+  const mlbActiveReleased = mlbAll.filter(p => {
+    if (dec[pk(p)]?.action !== 'release') return false;
+    if (p[7]) return false; // RLWIL release — wasn't in active count
+    return getRosterStatus(p[1], p[2]) !== 'il'; // IL release — wasn't in active count
+  }).length;
+  const mlbReleased    = mlbAll.filter(p => dec[pk(p)]?.action === 'release').length; // total for other calcs
+  const mlbPlacedIL    = mlbAll.filter(p => dec[pk(p)]?.action === 'place-il').length;
   const rlwilActivated = mlbAll.filter(p => p[7] && dec[pk(p)]?.action === 'activate-rlwil').length;
-  const rlwilCount    = mlbAll.filter(p => p[7]).length;
 
   // MiLB decisions
-  const promoted   = milbAll.filter(p => dec[pk(p)]?.action === 'promote').length;
-  const milbKept   = milbAll.filter(p => (dec[pk(p)]?.action === 'keep' || !dec[pk(p)]?.action) && getRosterStatus(p[1],p[2]) !== 'active').length;
-  const milbActiveKept = milbAll.filter(p => dec[pk(p)]?.action === 'keep' || (!dec[pk(p)]?.action && getRosterStatus(p[1],p[2]) !== 'active')).length;
+  const promoted     = milbAll.filter(p => dec[pk(p)]?.action === 'promote').length;
   const milbReleased = milbAll.filter(p => dec[pk(p)]?.action === 'release').length;
 
   // Active MLB count = starting active (mlbAll minus RLWIL) + rlwilActivated - mlbReleased - mlbPlacedIL + promoted
@@ -3624,7 +3716,7 @@ function updateRosterTracker(mlbAll, milbAll) {
 
   // Apply decisions
   const newActive = startingActive
-    - mlbReleased
+    - mlbActiveReleased    // only active (non-IL) releases reduce active count
     - mlbPlacedIL          // active→IL: reduces active
     + rlwilActivated        // RLWIL→active: increases active
     + promoted;             // MiLB→active: increases active
@@ -3711,6 +3803,12 @@ async function saveMiLBDecisions() {
   if (ok) {
     statusEl.textContent = `✓ Saved ${new Date().toLocaleTimeString()}`;
     statusEl.style.color = 'var(--green)';
+    // Scroll to and refresh current roster to show post-decision state
+    renderMyTeamRoster(getRoster().filter(p => p[4] === sessionTeam));
+    const rosterSection = document.querySelector('#tab-myteam .section-title, #myteam-roster-list');
+    if (rosterSection) rosterSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Show post-decision roster summary
+    renderPostDecisionRoster();
   } else {
     statusEl.textContent = '✗ Save failed — try again';
     statusEl.style.color = '#ef5350';
