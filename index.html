@@ -3358,6 +3358,31 @@ async function loadCommMiLBDecisions() {
 }
 
 
+// Global getRosterStatus — mirrors the closure version inside renderRosters
+// Used by MiLB decisions and any code outside renderRosters
+function getRosterStatus(name, mlbTeam) {
+  const norm  = normalizeName(name);
+  const short = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
+
+  // Check listed team first
+  const teamMap = rosterStatusCache[mlbTeam] || {};
+  const direct  = teamMap[norm] || teamMap[short];
+  if (direct) {
+    const s = direct.status || '';
+    if (s === 'Active') return 'active';
+    if (s.endsWith('IL') || s.startsWith('Injured') || s === 'Full Season IL') return 'il';
+    return 'milb';
+  }
+
+  // Traded? Search other teams' active 26-man entries
+  for (const [abbr, otherMap] of Object.entries(rosterStatusCache)) {
+    if (!otherMap || abbr === mlbTeam) continue;
+    const e = otherMap[norm] || otherMap[short];
+    if (e && e.status === 'Active') return 'active';
+  }
+  return 'milb';
+}
+
 // Global accessor for getILInfo (used by MiLB decisions outside renderRosters closure)
 function getILInfoGlobal(name, mlbTeam) {
   const teamMap = rosterStatusCache[mlbTeam] || {};
@@ -3547,11 +3572,7 @@ async function renderMiLBDecisions() {
   }).join('');
 
   const list = document.getElementById('milb-decisions-list');
-  console.log('[MiLB decisions] milbPlayers:', milbPlayers.length, 'rlwilPlayers:', rlwilPlayers.length);
-  console.log('[MiLB decisions] rows length:', rows.length, 'rlwilHtml length:', rlwilHtml.length);
-  console.log('[MiLB decisions] first 200 chars of rows:', rows.substring(0,200));
   list.innerHTML = rlwilHtml + rows;
-  console.log('[MiLB decisions] list.children count:', list.children.length);
 
   // Attach click handlers to all buttons (avoids encoding issues)
   list.querySelectorAll('.milb-btn').forEach(btn => {
