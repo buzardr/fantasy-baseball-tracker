@@ -3435,6 +3435,17 @@ async function checkMiLBDecisionsWindow() {
 // ── Render MiLB decision rows ─────────────────────────────────────────────────
 async function renderMiLBDecisions() {
   if (!sessionTeam) return;
+
+  // Ensure rosterStatusCache is populated — needed to detect IL/active status
+  const cacheEmpty = Object.keys(rosterStatusCache).length === 0;
+  if (cacheEmpty) {
+    const list = document.getElementById('milb-decisions-list');
+    if (list) list.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:12px 0;">Loading roster status...</div>`;
+    const allTeams = [...new Set(getRoster().map(p => p[2]).filter(Boolean))];
+    const maps = await Promise.all(allTeams.map(t => fetchFullRoster(t)));
+    allTeams.forEach((t, i) => { rosterStatusCache[t] = maps[i]; });
+  }
+
   const roster      = getRoster().filter(p => p[4] === sessionTeam);
   const milbPlayers = roster.filter(p => p[5]);          // isMilb = true
   const rlwilPlayers = roster.filter(p => !p[5] && p[7]); // RLWIL on MLB roster
@@ -3453,7 +3464,48 @@ async function renderMiLBDecisions() {
     milbDecisions = saved.decisions || {};
   }
 
-  // ── RLWIL section (MLB roster players on RLWIL) ─────────────────────────
+  // ── MLB IL parking section (active roster players currently on MLB IL) ──
+  // These are NOT already RLWIL — teams can choose to park them on RLWIL
+  const mlbILPlayers = mlbPlayers.filter(p => getRosterStatus(p[1], p[2]) === 'il');
+  let mlbILHtml = '';
+  if (mlbILPlayers.length > 0) {
+    const mlbILRows = mlbILPlayers.map((p, i) => {
+      const pKey   = playerKey(p[1], p[2]);
+      const saved  = milbDecisions[pKey] || {};
+      const ilInfo = getILInfoGlobal(p[1], p[2]);
+      const ilType = ilInfo?.type || 'IL';
+      const posKey = p[0]==='1B'?'B1':p[0]==='2B'?'B2':p[0]==='3B'?'B3':p[0];
+      return `<div class="milb-decision-row">
+        <span class="pos-tag ${posKey}" style="font-size:9px;padding:1px 4px;">${p[0]}</span>
+        <div class="milb-player-info">
+          <div class="milb-player-name status-il">${escapeHtml(p[1])}
+            <span class="team-abbr">${p[2]}</span>
+          </div>
+          <div class="milb-player-meta">${ilType} · Park on RLWIL to free a roster spot</div>
+        </div>
+        <div><span class="milb-status-badge il">${ilType}</span></div>
+        <div class="milb-actions">
+          <button class="milb-btn keep ${saved.action==='park-il'?'selected':''}"
+            data-pkey="${pKey}" data-action="park-il">PARK ON RLWIL</button>
+          <button class="milb-btn promote ${saved.action==='activate-il'?'selected':''}"
+            data-pkey="${pKey}" data-action="activate-il">KEEP ACTIVE</button>
+          <button class="milb-btn release ${saved.action==='release'?'selected':''}"
+            data-pkey="${pKey}" data-action="release">RELEASE</button>
+        </div>
+      </div>`;
+    }).join('');
+    mlbILHtml = `
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:#ef5350;letter-spacing:1px;margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);">
+        MLB ROSTER PLAYERS ON IL — Park on RLWIL or Keep Active
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
+        Parking on RLWIL: stats don't count 2H, but frees an extra supplemental pick slot. Player eligible for 15-man protection next spring.
+      </div>
+      ${mlbILRows}
+      <div style="height:12px;"></div>`;
+  }
+
+  // ── RLWIL section (MLB roster players already on RLWIL from auction) ─────
   let rlwilHtml = '';
   if (rlwilPlayers.length > 0) {
     const rlwilRows = rlwilPlayers.map((p, i) => {
@@ -3505,46 +3557,37 @@ async function renderMiLBDecisions() {
   }
 
   const rows = milbPlayers.map((p, i) => {
-    const pKey   = playerKey(p[1], p[2]);
-    const rStatus = getRosterStatus(p[1], p[2]); // 'active', 'il', 'milb'
-    const saved   = milbDecisions[pKey] || {};
+    const pKey    = playerKey(p[1], p[2]);
+    // For MiLB-flagged players: only MLB Active 26-man status matters.
+    // IL status in minors is irrelevant — injured minor leaguers still just keep or release.
+    const rawStatus = getRosterStatus(p[1], p[2]);
+    const rStatus   = rawStatus === 'active' ? 'active' : 'milb'; // collapse il→milb for MiLB players
+    const saved     = milbDecisions[pKey] || {};
 
     // Status badge
     let badgeHtml, nameClass, statusLabel;
     if (rStatus === 'active') {
       badgeHtml   = `<span class="milb-status-badge active">MLB ACTIVE</span>`;
       nameClass   = 'status-active';
-      statusLabel = 'On active 26-man roster';
-    } else if (rStatus === 'il') {
-      const ilInfo = getILInfoGlobal(p[1], p[2]);
-      const ilType = ilInfo?.type || 'IL';
-      badgeHtml   = `<span class="milb-status-badge il">${ilType}</span>`;
-      nameClass   = 'status-il';
-      statusLabel = ilType;
+      statusLabel = 'On active 26-man roster — must promote or release';
     } else {
-      badgeHtml   = `<span class="milb-status-badge minors">MINORS</span>`;
+      // All non-active MiLB players: still in minors (healthy or injured)
+      const ilInfo = rawStatus === 'il' ? getILInfoGlobal(p[1], p[2]) : null;
+      const ilNote = ilInfo?.type ? ` · ${ilInfo.type}` : '';
+      badgeHtml   = `<span class="milb-status-badge minors">MINORS${ilNote ? ' · IL' : ''}</span>`;
       nameClass   = 'status-milb';
-      statusLabel = 'Still in minor leagues';
+      statusLabel = `Still in minor leagues${ilNote}`;
     }
 
-    // Action buttons based on status
+    // Action buttons — MiLB players only have two cases: active=promote/release, else=keep/release
     let actionButtons;
     if (rStatus === 'active') {
-      // Must promote or release — no keep option
       actionButtons = `
         <button class="milb-btn promote ${saved.action==='promote'?'selected':''}"
           data-pkey="${pKey}" data-action="promote">PROMOTE</button>
         <button class="milb-btn release ${saved.action==='release'?'selected':''}"
           data-pkey="${pKey}" data-action="release">RELEASE</button>`;
-    } else if (rStatus === 'il') {
-      // Promote to IL or release — no keep option, no standard promote
-      actionButtons = `
-        <button class="milb-btn il-promo ${saved.action==='promote-il'?'selected':''}"
-          data-pkey="${pKey}" data-action="promote-il">PROMOTE TO IL</button>
-        <button class="milb-btn release ${saved.action==='release'?'selected':''}"
-          data-pkey="${pKey}" data-action="release">RELEASE</button>`;
     } else {
-      // Still in minors — keep or release
       actionButtons = `
         <button class="milb-btn keep ${saved.action==='keep'?'selected':''}"
           data-pkey="${pKey}" data-action="keep">KEEP $0.75</button>
@@ -3573,7 +3616,7 @@ async function renderMiLBDecisions() {
   }).join('');
 
   const list = document.getElementById('milb-decisions-list');
-  list.innerHTML = rlwilHtml + rows;
+  list.innerHTML = mlbILHtml + rlwilHtml + rows;
 
   // Attach click handlers to all buttons (avoids encoding issues)
   list.querySelectorAll('.milb-btn').forEach(btn => {
@@ -3584,7 +3627,7 @@ async function renderMiLBDecisions() {
     });
   });
 
-  updateDecisionSummary(milbPlayers);
+  updateDecisionSummary(milbPlayers, mlbILPlayers, rlwilPlayers);
 }
 
 function renderDropSelect(pKey, mlbPlayers, savedDrop) {
@@ -3610,15 +3653,18 @@ function setDropPlayer(pKey, dropPlayerKey) {
   updateDecisionSummary(getRoster().filter(p => p[4]===sessionTeam && p[5]));
 }
 
-function updateDecisionSummary(milbPlayers) {
+function updateDecisionSummary(milbPlayers, mlbILPlayers=[], rlwilPlayers=[]) {
   const summary = document.getElementById('milb-decisions-summary');
   if (!summary) return;
 
+  const allDecisionPlayers = [...milbPlayers, ...mlbILPlayers, ...rlwilPlayers];
   const promotes   = milbPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'promote');
-  const ilPromos   = milbPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'promote-il');
   const keeps      = milbPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'keep');
-  const releases   = milbPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'release');
-  const undecided  = milbPlayers.filter(p => !milbDecisions[playerKey(p[1],p[2])]?.action);
+  const releases   = allDecisionPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'release');
+  const parkedIL   = mlbILPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'park-il');
+  const activateIL = mlbILPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'activate-il');
+  const activateRL = rlwilPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'activate-rlwil');
+  const undecided  = allDecisionPlayers.filter(p => !milbDecisions[playerKey(p[1],p[2])]?.action);
 
   // Count open MiLB slots after decisions
   const openMiLBSlots = releases.length + promotes.length + ilPromos.length;
@@ -3626,11 +3672,13 @@ function updateDecisionSummary(milbPlayers) {
   const missingDrops = promotes.filter(p => !milbDecisions[playerKey(p[1],p[2])]?.dropPlayer);
 
   let lines = [];
-  if (promotes.length)  lines.push(`Promoting: ${promotes.map(p=>p[1]).join(', ')}`);
-  if (ilPromos.length)  lines.push(`Promoting to IL: ${ilPromos.map(p=>p[1]).join(', ')}`);
-  if (keeps.length)     lines.push(`Keeping ($0.75 each): ${keeps.map(p=>p[1]).join(', ')}`);
-  if (releases.length)  lines.push(`Releasing: ${releases.map(p=>p[1]).join(', ')}`);
-  if (undecided.length) lines.push(`⚠ No decision yet: ${undecided.map(p=>p[1]).join(', ')}`);
+  if (promotes.length)   lines.push(`Promoting to MLB: ${promotes.map(p=>p[1]).join(', ')}`);
+  if (activateRL.length) lines.push(`Activating from RLWIL: ${activateRL.map(p=>p[1]).join(', ')}`);
+  if (parkedIL.length)   lines.push(`Parking on RLWIL: ${parkedIL.map(p=>p[1]).join(', ')}`);
+  if (activateIL.length) lines.push(`Keeping active: ${activateIL.map(p=>p[1]).join(', ')}`);
+  if (keeps.length)      lines.push(`Keeping in MiLB ($0.75 each): ${keeps.map(p=>p[1]).join(', ')}`);
+  if (releases.length)   lines.push(`Releasing: ${releases.map(p=>p[1]).join(', ')}`);
+  if (undecided.length)  lines.push(`⚠ No decision yet: ${undecided.map(p=>p[1]).join(', ')}`);
   if (missingDrops.length) lines.push(`⚠ Need to select drop for: ${missingDrops.map(p=>p[1]).join(', ')}`);
   lines.push(`Open MiLB draft slots: ${openMiLBSlots}`);
 
