@@ -1298,10 +1298,10 @@
         <!-- Roster math tracker -->
         <div id="roster-tracker" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:16px;font-family:'DM Mono',monospace;font-size:10px;line-height:2;">
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">
-            <div>MLB Active: <span id="tracker-active" style="color:var(--green);font-weight:700;">—</span><span style="color:var(--muted);">/35 active</span></div>
-            <div>On IL: <span id="tracker-il" style="color:#ef5350;font-weight:700;">—</span></div>
-            <div>MiLB: <span id="tracker-milb" style="color:var(--muted);font-weight:700;">—</span><span style="color:var(--muted);">/10</span></div>
-            <div>MiLB open slots: <span id="tracker-milb-open" style="color:var(--green);font-weight:700;">—</span></div>
+            <div>MLB Roster: <span id="tracker-total" style="color:var(--green);font-weight:700;">—</span><span style="color:var(--muted);">/35</span>
+              <span style="color:var(--muted);font-size:9px;margin-left:6px;">(<span id="tracker-active">—</span> active · <span id="tracker-il" style="color:#ef5350;">—</span> IL)</span>
+            </div>
+            <div>MiLB: <span id="tracker-milb" style="color:var(--muted);font-weight:700;">—</span><span style="color:var(--muted);">/10</span> · Open slots: <span id="tracker-milb-open" style="color:var(--green);font-weight:700;">—</span></div>
           </div>
           <div id="tracker-msg" style="margin-top:6px;color:var(--gold);"></div>
         </div>
@@ -3144,11 +3144,6 @@ function setHalf(half) {
   currentHalf = half;
   document.querySelectorAll('.half-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('btn-' + half).classList.add('active');
-  // Load appropriate roster for this half then refresh stats
-  loadRosterFromFirebase(half).then(() => {
-    computeTeamStats();
-    renderAll();
-  });
   
   const now = new Date();
   const info = half === '1H' 
@@ -3241,210 +3236,6 @@ async function init() {
 
 init();
 
-// ════════════════════════════════════════════════════════════
-// PHASE D — RECONCILIATION: Apply decisions → build 2H rosters
-// ════════════════════════════════════════════════════════════
-
-// ROSTER array format: [pos, name, mlbTeam, salary, fantasyTeam, isMilb, ohtaniHO, isRLWIL]
-
-async function applyAllDecisions() {
-  const btn    = document.getElementById('apply-decisions-btn');
-  const status = document.getElementById('apply-decisions-status');
-  btn.disabled = true;
-  status.textContent = 'Loading decisions...';
-  status.style.color = 'var(--muted)';
-
-  try {
-    const baseRoster = getRoster(); // current 1H roster (all teams)
-    const newRoster  = [];          // will become 2H roster
-    const log        = [];          // change log for display
-
-    for (const team of TEAMS) {
-      const slug = teamSlug(team);
-      const saved = await fbGet(`decisions/1h/${slug}`);
-      const decisions = saved?.decisions || {};
-      const teamRoster = baseRoster.filter(p => p[4] === team);
-      const mlbPlayers = teamRoster.filter(p => !p[5]);
-      const milbPlayers = teamRoster.filter(p => p[5]);
-
-      status.textContent = `Processing ${team}...`;
-
-      const teamLog = [];
-
-      // ── Process MLB roster players ────────────────────────────────────────
-      for (const p of mlbPlayers) {
-        const pKey = playerKey(p[1], p[2]);
-        const dec  = decisions[pKey] || {};
-        const action = dec.action || 'keep';
-
-        if (action === 'release') {
-          teamLog.push(`Released: ${p[1]}`);
-          continue; // don't add to new roster
-        }
-
-        if (action === 'place-il') {
-          // Moved to RLWIL — mark isRLWIL=true, keep on roster
-          newRoster.push([p[0], p[1], p[2], p[3], p[4], false, p[6], true]);
-          teamLog.push(`Placed on IL: ${p[1]}`);
-          continue;
-        }
-
-        if (action === 'activate-rlwil') {
-          // Activating from RLWIL — clear isRLWIL flag
-          newRoster.push([p[0], p[1], p[2], p[3], p[4], false, p[6], false]);
-          teamLog.push(`Activated from RLWIL: ${p[1]}`);
-          // Remove the drop player they designated
-          const dropKey = dec.dropPlayer;
-          if (dropKey) {
-            // Mark for removal — we'll filter after
-            teamLog.push(`  → Dropped: ${dropKey.split('|')[0]}`);
-          }
-          continue;
-        }
-
-        if (action === 'keep-il') {
-          // RLWIL player staying on IL — keep isRLWIL=true
-          newRoster.push([p[0], p[1], p[2], p[3], p[4], false, p[6], true]);
-          continue;
-        }
-
-        // Default: keep (active, on IL active roster, etc.)
-        newRoster.push([...p]);
-      }
-
-      // ── Handle drop players for activations ──────────────────────────────
-      // Find all activate-rlwil decisions with a drop player
-      for (const p of mlbPlayers) {
-        const pKey = playerKey(p[1], p[2]);
-        const dec  = decisions[pKey] || {};
-        if (dec.action === 'activate-rlwil' && dec.dropPlayer) {
-          // Remove the designated drop from newRoster
-          const dropIdx = newRoster.findIndex(r =>
-            r[4] === team && playerKey(r[1], r[2]) === dec.dropPlayer
-          );
-          if (dropIdx !== -1) {
-            teamLog.push(`  Removed drop: ${newRoster[dropIdx][1]}`);
-            newRoster.splice(dropIdx, 1);
-          }
-        }
-      }
-
-      // ── Process MiLB roster players ───────────────────────────────────────
-      for (const p of milbPlayers) {
-        const pKey = playerKey(p[1], p[2]);
-        const dec  = decisions[pKey] || {};
-        const action = dec.action || 'keep';
-
-        if (action === 'release') {
-          teamLog.push(`Released (MiLB): ${p[1]}`);
-          continue;
-        }
-
-        if (action === 'promote') {
-          // Move from MiLB to MLB active roster
-          newRoster.push([p[0], p[1], p[2], 0.75, p[4], false, false, false]);
-          teamLog.push(`Promoted to MLB: ${p[1]}`);
-          // Remove the drop player if one was designated
-          const dropKey = dec.dropPlayer;
-          if (dropKey) {
-            const dropIdx = newRoster.findIndex(r =>
-              r[4] === team && playerKey(r[1], r[2]) === dropKey
-            );
-            if (dropIdx !== -1) {
-              teamLog.push(`  → Dropped: ${newRoster[dropIdx][1]}`);
-              newRoster.splice(dropIdx, 1);
-            }
-          }
-          continue;
-        }
-
-        // Default: keep in MiLB (keep or no decision)
-        newRoster.push([...p]);
-      }
-
-      log.push({ team, changes: teamLog });
-    }
-
-    // ── Validate roster limits ────────────────────────────────────────────────
-    const errors = [];
-    for (const team of TEAMS) {
-      const tr = newRoster.filter(p => p[4] === team);
-      const mlbActive = tr.filter(p => !p[5] && !p[7]).length;
-      const milbCount = tr.filter(p => p[5]).length;
-      if (mlbActive > 35) errors.push(`${team}: ${mlbActive} active MLB (max 35)`);
-      if (milbCount > 10) errors.push(`${team}: ${milbCount} MiLB (max 10)`);
-    }
-
-    if (errors.length > 0) {
-      status.textContent = `⚠ Roster errors: ${errors.join(' | ')}`;
-      status.style.color = '#ef5350';
-      btn.disabled = false;
-      return;
-    }
-
-    // ── Save to Firebase /rosters/2h ─────────────────────────────────────────
-    status.textContent = 'Saving 2H rosters to Firebase...';
-    const ok = await fbSet('rosters/2h', newRoster);
-
-    if (ok) {
-      // Mark decisions as applied
-      await fbSet('settings/decisionsApplied', { ts: Date.now(), appliedBy: 'commissioner' });
-
-      // Build and display change log
-      const logHtml = log.map(({ team, changes }) => {
-        if (changes.length === 0) return `<div style="color:var(--muted);">${escapeHtml(team)}: no changes</div>`;
-        return `<div style="margin-bottom:8px;">
-          <div style="color:var(--green);font-weight:600;">${escapeHtml(team)}</div>
-          ${changes.map(c => `<div style="color:var(--muted);padding-left:8px;">→ ${escapeHtml(c)}</div>`).join('')}
-        </div>`;
-      }).join('');
-
-      status.innerHTML = `<div style="color:var(--green);margin-bottom:8px;">✓ 2H rosters saved successfully</div>${logHtml}`;
-      btn.textContent = '✓ Applied';
-
-      // Reload roster override so the UI reflects 2H rosters immediately
-      // (only if we're currently viewing 2H)
-      if (commHalf === '2h') {
-        const saved2H = await fbGet('rosters/2h');
-        if (saved2H) ROSTER_OVERRIDE = saved2H;
-        renderAll();
-      }
-    } else {
-      status.textContent = '✗ Save failed — try again';
-      status.style.color = '#ef5350';
-      btn.disabled = false;
-    }
-
-  } catch(e) {
-    status.textContent = `Error: ${e.message}`;
-    status.style.color = '#ef5350';
-    btn.disabled = false;
-    console.error('applyAllDecisions error:', e);
-  }
-}
-
-// ── Load correct roster based on half ────────────────────────────────────────
-// Called when switching halves — loads 2H roster if available
-async function loadRosterForHalf(half) {
-  if (half === '2H' || half === '2h') {
-    const r2h = await fbGet('rosters/2h');
-    if (r2h && r2h.length > 0) {
-      ROSTER_OVERRIDE = r2h;
-      return true;
-    }
-  } else if (half === '1H' || half === '1h') {
-    // Load 1H roster — prefer Firebase import, fall back to hardcoded
-    const r1h = await fbGet('rosters/1h');
-    if (r1h && r1h.length > 0) {
-      ROSTER_OVERRIDE = r1h;
-      return true;
-    }
-    ROSTER_OVERRIDE = null; // use hardcoded
-  }
-  return false;
-}
-
-
 // ── Post-decision roster summary ──────────────────────────────────────────────
 function renderPostDecisionRoster() {
   if (!sessionTeam) return;
@@ -3494,7 +3285,7 @@ function renderPostDecisionRoster() {
 
   section.innerHTML = `
     <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--green);margin-bottom:14px;">
-      ✓ POST-DECISION ROSTER (${activeRoster.length}/35 active · ${ilRoster.length} IL · ${milbRoster.length}/10 MiLB)
+      ✓ POST-DECISION ROSTER (${activeRoster.length + ilRoster.length}/35 total · ${activeRoster.length} active · ${ilRoster.length} IL · ${milbRoster.length}/10 MiLB)
     </div>
     <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:8px;">ACTIVE ROSTER</div>
     ${activeRoster.map(p => {
@@ -3672,22 +3463,26 @@ async function loadCommMiLBDecisions() {
   const rows = await Promise.all(TEAMS.map(async team => {
     const data = await fbGet(`decisions/1h/${teamSlug(team)}`);
     if (!data?.decisions) return `<div style="color:var(--muted);">${escapeHtml(team)}: No decisions saved</div>`;
-    const decisions = data.decisions;
-    const counts = { promote:0, 'promote-il':0, keep:0, release:0 };
-    Object.values(decisions).forEach(d => { if (counts[d.action]!==undefined) counts[d.action]++; });
-    const total = Object.values(counts).reduce((a,b)=>a+b,0);
-    const milbTotal = getRoster().filter(p=>p[4]===team&&p[5]).length;
-    const status = total === milbTotal
-      ? `<span style="color:var(--green);">✓ Complete</span>`
-      : `<span style="color:var(--gold);">⚠ ${total}/${milbTotal}</span>`;
+    const decisions = data.decisions || {};
+    // Count only required decisions: active-called-up MiLB + RLWIL players
+    const teamRoster   = getRoster().filter(p => p[4] === team);
+    const mustDecide   = [
+      ...teamRoster.filter(p => p[5] && getRosterStatus(p[1],p[2])==='active'), // MiLB on MLB active
+      ...teamRoster.filter(p => !p[5] && p[7])                                   // RLWIL players
+    ];
+    const totalMiLB    = teamRoster.filter(p => p[5]).length; // for display
+    const decided      = mustDecide.filter(p => decisions[playerKey(p[1],p[2])]?.action).length;
+    const required     = mustDecide.length;
+    const status = required === 0
+      ? `<span style="color:var(--muted);">No required decisions (${totalMiLB} MiLB)</span>`
+      : decided === required
+      ? `<span style="color:var(--green);">✓ ${decided}/${required} required · ${totalMiLB} MiLB</span>`
+      : `<span style="color:var(--gold);">⚠ ${decided}/${required} required · ${totalMiLB} MiLB</span>`;
     return `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);">
       <span>${escapeHtml(team)}</span>${status}
     </div>`;
   }));
   list.innerHTML = rows.join('');
-  // Show apply button once decisions are loaded
-  const applyBtn = document.getElementById('apply-decisions-btn');
-  if (applyBtn) applyBtn.style.display = 'block';
 }
 
 
@@ -3963,6 +3758,9 @@ function updateRosterTracker(mlbAll, milbAll) {
   const newMiLB  = milbAll.length - promoted - milbReleased;
   const milbOpen = 10 - newMiLB;
 
+  const newTotal = newActive + newIL; // total MLB roster = active + IL
+  const totalEl  = document.getElementById('tracker-total');
+  if (totalEl) totalEl.textContent = newTotal;
   document.getElementById('tracker-active').textContent = newActive;
   document.getElementById('tracker-il').textContent     = newIL;
   document.getElementById('tracker-milb').textContent   = newMiLB;
@@ -3970,19 +3768,19 @@ function updateRosterTracker(mlbAll, milbAll) {
 
   const msgEl = document.getElementById('tracker-msg');
   const ROSTER_MAX = 35;
-  const activeColor = newActive > ROSTER_MAX ? '#ef5350' : newActive === ROSTER_MAX ? 'var(--green)' : 'var(--gold)';
-  document.getElementById('tracker-active').style.color = activeColor;
+  const totalColor = newTotal > ROSTER_MAX ? '#ef5350' : newTotal === ROSTER_MAX ? 'var(--green)' : 'var(--gold)';
+  if (totalEl) totalEl.style.color = totalColor;
 
-  if (newActive > ROSTER_MAX) {
-    msgEl.textContent = `⚠ Over roster limit by ${newActive - ROSTER_MAX} — release or place someone on IL`;
+  if (newTotal > ROSTER_MAX) {
+    msgEl.textContent = `⚠ Over roster limit by ${newTotal - ROSTER_MAX} — release or place someone on IL`;
     msgEl.style.color = '#ef5350';
   } else if (newMiLB > 10) {
     msgEl.textContent = `⚠ MiLB roster exceeds 10 — release ${newMiLB - 10} MiLB player(s)`;
     msgEl.style.color = '#ef5350';
-  } else if (newActive < ROSTER_MAX) {
-    msgEl.textContent = `${ROSTER_MAX - newActive} open MLB slot(s)`;
+  } else if (newTotal < ROSTER_MAX) {
+    msgEl.textContent = `${ROSTER_MAX - newTotal} open MLB slot(s)`;
     msgEl.style.color = 'var(--gold)';
-  } else if (newActive === ROSTER_MAX && newMiLB <= 10) {
+  } else if (newTotal === ROSTER_MAX && newMiLB <= 10) {
     msgEl.textContent = '✓ Roster balanced';
     msgEl.style.color = 'var(--green)';
   } else {
@@ -5529,22 +5327,10 @@ async function fbSet(path, data) {
 
 // ── Load roster from Firebase on startup ────────────────────────────────────
 async function loadRosterFromFirebase(half) {
-  // For 2H and FULL: prefer 2H roster (post-decision), fall back to 1H
-  const halfLower = half.toLowerCase().replace(' ','');
-  if (halfLower === '2h' || halfLower === 'full') {
-    const data2h = await fbGet('rosters/2h');
-    if (data2h && Array.isArray(data2h) && data2h.length > 0) {
-      ROSTER_OVERRIDE = data2h;
-      console.log(`Loaded ${data2h.length} players from Firebase rosters/2h`);
-      return true;
-    }
-  }
-  // Default: load the half-specific roster (1h for 1H)
-  const halfKey = halfLower === 'full' ? '1h' : (halfLower || '1h');
-  const data = await fbGet(`rosters/${halfKey}`);
+  const data = await fbGet(`rosters/${half}`);
   if (data && Array.isArray(data) && data.length > 0) {
     ROSTER_OVERRIDE = data;
-    console.log(`Loaded ${data.length} players from Firebase rosters/${halfKey}`);
+    console.log(`Loaded ${data.length} players from Firebase rosters/${half}`);
     return true;
   }
   return false;
@@ -5879,10 +5665,6 @@ async function clearRosterOverride() {
         <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:8px;letter-spacing:1px;">MILB DECISIONS</div>
         <div id="comm-milb-decisions-list" style="font-family:'DM Mono',monospace;font-size:10px;"></div>
         <button class="c-btn" onclick="loadCommMiLBDecisions()" style="margin-top:6px;">↺ Load Decision Status</button>
-        <button class="c-btn confirm" onclick="applyAllDecisions()" id="apply-decisions-btn" style="margin-top:6px;display:none;">
-          ⚡ Apply Decisions → Build 2H Rosters
-        </button>
-        <div id="apply-decisions-status" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:6px;"></div>
         <button class="c-btn" onclick="forceOpenDecisionsWindow()" style="margin-top:4px;">🔓 Force Open Decisions Window</button>
       </div>
     </div>
