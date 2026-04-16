@@ -3485,10 +3485,10 @@ async function renderMiLBDecisions() {
         </div>
         <div><span class="milb-status-badge il">${ilType}</span></div>
         <div class="milb-actions">
-          <button class="milb-btn keep ${saved.action==='park-il'?'selected':''}"
-            data-pkey="${pKey}" data-action="park-il">PARK ON RLWIL</button>
+          <button class="milb-btn keep ${saved.action==='place-il'?'selected':''}"
+            data-pkey="${pKey}" data-action="place-il">PLACE ON IL</button>
           <button class="milb-btn promote ${saved.action==='activate-il'?'selected':''}"
-            data-pkey="${pKey}" data-action="activate-il">KEEP ACTIVE</button>
+            data-pkey="${pKey}" data-action="activate-il">KEEP ON ROSTER</button>
           <button class="milb-btn release ${saved.action==='release'?'selected':''}"
             data-pkey="${pKey}" data-action="release">RELEASE</button>
         </div>
@@ -3496,10 +3496,10 @@ async function renderMiLBDecisions() {
     }).join('');
     mlbILHtml = `
       <div style="font-family:'DM Mono',monospace;font-size:9px;color:#ef5350;letter-spacing:1px;margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);">
-        MLB ROSTER PLAYERS ON IL — Park on RLWIL or Keep Active
+        MLB ROSTER PLAYERS ON IL — Place on IL or Keep on Roster
       </div>
       <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
-        Parking on RLWIL: stats don't count 2H, but frees an extra supplemental pick slot. Player eligible for 15-man protection next spring.
+        Placed on IL (stats won't count 2H): stats don't count 2H, but frees an extra supplemental pick slot. Player eligible for 15-man protection next spring.
       </div>
       ${mlbILRows}
       <div style="height:12px;"></div>`;
@@ -3661,21 +3661,22 @@ function updateDecisionSummary(milbPlayers, mlbILPlayers=[], rlwilPlayers=[]) {
   const promotes   = milbPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'promote');
   const keeps      = milbPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'keep');
   const releases   = allDecisionPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'release');
-  const parkedIL   = mlbILPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'park-il');
+  const parkedIL   = mlbILPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'place-il');
   const activateIL = mlbILPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'activate-il');
   const activateRL = rlwilPlayers.filter(p => milbDecisions[playerKey(p[1],p[2])]?.action === 'activate-rlwil');
   const undecided  = allDecisionPlayers.filter(p => !milbDecisions[playerKey(p[1],p[2])]?.action);
 
   // Count open MiLB slots after decisions
-  const openMiLBSlots = releases.length + promotes.length + ilPromos.length;
+  // Open MiLB slots = MiLB players leaving the MiLB roster (promoted or released)
+  const openMiLBSlots = promotes.length + releases.filter(p => p[5]).length;
   // Active-rostered MiLB players with no drop selected
   const missingDrops = promotes.filter(p => !milbDecisions[playerKey(p[1],p[2])]?.dropPlayer);
 
   let lines = [];
   if (promotes.length)   lines.push(`Promoting to MLB: ${promotes.map(p=>p[1]).join(', ')}`);
   if (activateRL.length) lines.push(`Activating from RLWIL: ${activateRL.map(p=>p[1]).join(', ')}`);
-  if (parkedIL.length)   lines.push(`Parking on RLWIL: ${parkedIL.map(p=>p[1]).join(', ')}`);
-  if (activateIL.length) lines.push(`Keeping active: ${activateIL.map(p=>p[1]).join(', ')}`);
+  if (parkedIL.length)   lines.push(`Placed on IL (stats won't count 2H): ${parkedIL.map(p=>p[1]).join(', ')}`);
+  if (activateIL.length) lines.push(`Keeping on active roster: ${activateIL.map(p=>p[1]).join(', ')}`);
   if (keeps.length)      lines.push(`Keeping in MiLB ($0.75 each): ${keeps.map(p=>p[1]).join(', ')}`);
   if (releases.length)   lines.push(`Releasing: ${releases.map(p=>p[1]).join(', ')}`);
   if (undecided.length)  lines.push(`⚠ No decision yet: ${undecided.map(p=>p[1]).join(', ')}`);
@@ -3689,8 +3690,15 @@ function updateDecisionSummary(milbPlayers, mlbILPlayers=[], rlwilPlayers=[]) {
 // ── Save decisions to Firebase ────────────────────────────────────────────────
 async function saveMiLBDecisions() {
   if (!sessionTeam) return;
-  const roster     = getRoster().filter(p => p[4]===sessionTeam && p[5]);
-  const undecided  = roster.filter(p => !milbDecisions[playerKey(p[1],p[2])]?.action);
+  const fullRoster  = getRoster().filter(p => p[4]===sessionTeam);
+  const milbRoster  = fullRoster.filter(p => p[5]);
+  const rlwilRoster = fullRoster.filter(p => !p[5] && p[7]);
+  const mlbILRoster = fullRoster.filter(p => !p[5] && !p[7] && getRosterStatus(p[1],p[2])==='il');
+  const allDecision = [...milbRoster, ...rlwilRoster, ...mlbILRoster];
+  // Only require decisions for players that MUST decide (active MiLB + RLWIL)
+  const mustDecide  = [...milbRoster.filter(p => getRosterStatus(p[1],p[2])==='active'), ...rlwilRoster];
+  const roster      = milbRoster; // keep for drop validation below
+  const undecided   = mustDecide.filter(p => !milbDecisions[playerKey(p[1],p[2])]?.action);
   const missingDrop = roster.filter(p => {
     const d = milbDecisions[playerKey(p[1],p[2])];
     return d?.action === 'promote' && !d.dropPlayer;
@@ -5121,15 +5129,19 @@ function renderMyTeamRoster(roster) {
     ? ` · <span style="color:#ef5350">${rlwil.length} RLWIL</span>` : '';
   let html = `<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:8px;">MLB ROSTER (${active25.length}/25 active${rlwilNote})</div>`;
   html += sorted.map(p => {
-    const posKey   = p[0]==='1B'?'B1':p[0]==='2B'?'B2':p[0]==='3B'?'B3':p[0];
-    const isRLWIL  = p[7];
-    const nameStyle = isRLWIL ? 'color:#ef5350;' : '';
-    const rlwilTag  = isRLWIL
+    const posKey    = p[0]==='1B'?'B1':p[0]==='2B'?'B2':p[0]==='3B'?'B3':p[0];
+    const isRLWIL   = p[7];
+    const rStatus   = getRosterStatus(p[1], p[2]);
+    const isMLBIL   = !isRLWIL && rStatus === 'il';
+    const nameStyle = (isRLWIL || isMLBIL) ? 'color:#ef5350;' : '';
+    const statusTag = isRLWIL
       ? `<span style="font-family:'DM Mono',monospace;font-size:9px;background:rgba(239,83,80,0.15);color:#ef5350;border-radius:3px;padding:1px 5px;margin-left:6px;">RLWIL</span>`
+      : isMLBIL
+      ? `<span style="font-family:'DM Mono',monospace;font-size:9px;background:rgba(239,83,80,0.15);color:#ef5350;border-radius:3px;padding:1px 5px;margin-left:6px;">IL</span>`
       : '';
     return `<div class="roster-row-myteam">
       <span class="pos-tag ${posKey}" style="font-size:9px;padding:1px 4px;">${p[0]}</span>
-      <span style="flex:1;font-weight:500;${nameStyle}">${p[1]}<span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:4px;">${p[2]}</span>${rlwilTag}</span>
+      <span style="flex:1;font-weight:500;${nameStyle}">${p[1]}<span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:4px;">${p[2]}</span>${statusTag}</span>
       <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">$${p[3]}</span>
     </div>`;
   }).join('');
