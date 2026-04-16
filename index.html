@@ -1262,9 +1262,12 @@
 
     <!-- Logged-in team view -->
     <div id="myteam-dashboard" style="display:none;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:12px;">
         <div class="section-title"><span id="myteam-name">Team</span> Dashboard</div>
         <button onclick="logoutTeam()" style="padding:6px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:1px;">LOGOUT</button>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:20px;line-height:1.7;">
+        Scroll down to: <span style="color:var(--green);">1H Lineup Lock</span> → <span style="color:var(--green);">All-Star Break Decisions</span> → <span style="color:var(--green);">Current Roster</span>
       </div>
 
       <!-- Status cards -->
@@ -1285,13 +1288,15 @@
       </div>
 
       <!-- MiLB Call-up Decisions (shown when All-Star break window is open) -->
-      <div id="milb-decisions-section" style="display:none;" class="milb-decision-section">
+      <div id="milb-decisions-section" class="milb-decision-section">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--green);">MiLB Roster Decisions</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--green);">All-Star Break Decisions</div>
           <div id="milb-decisions-deadline" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);"></div>
         </div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:16px;">
-          Players on active MLB roster must be promoted or released. Players still in minors can be kept ($0.75) or released.
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:16px;line-height:1.7;">
+          <b style="color:var(--text);">RLWIL players</b> (red): Must Activate or Release.<br>
+          <b style="color:var(--text);">MiLB on MLB active roster</b> (white): Must Promote (drop someone) or Release.<br>
+          <b style="color:var(--text);">MiLB still in minors</b> (grey): Keep for $0.75 or Release.
         </div>
         <div id="milb-decisions-list"></div>
         <div class="decision-summary" id="milb-decisions-summary" style="display:none;"></div>
@@ -2675,9 +2680,10 @@ function computeTeamStats() {
 
     const avg = totAB > 0 ? totH / totAB : 0;
 
-    // 1050 IP minimum rule — under this, ERA and WHIP get 0 points
-    // During live tracking (pre-lock), assume teams will hit 1050 so no penalty yet
-    const ipInsufficient = false; // set true post-lock when actual IP < 1050
+    // 1050 IP minimum — applies to FULL SEASON only (both halves combined)
+    // For 1H and 2H views: always score ERA/WHIP normally
+    // For FULL view: enforce the 1050 IP minimum as required by constitution
+    const ipInsufficient = currentHalf === 'FULL' && totalIP < 1050;
 
     teamStats[team] = {
       avg, R: totR, XBH: tot2B + tot3B, HR: totHR, RBI: totRBI, SB: totSB,
@@ -3197,6 +3203,137 @@ async function init() {
 
 init();
 
+let lockHalf = '1h';
+function setLockHalf(half, el) {
+  lockHalf = half;
+  document.querySelectorAll('#comm-view-lock .half-chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+}
+async function doLockStandings() {
+  if (lockHalf === '2h') {
+    await lock2HStandings();
+  } else {
+    await lock1HStandings();
+  }
+}
+
+
+// ════════════════════════════════════════════════════════════
+// FINAL STANDINGS (1H score + 2H score)
+// 1050 IP check uses combined 1H+2H innings
+// ════════════════════════════════════════════════════════════
+
+async function computeFinalStandings() {
+  // Load both locked halves from Firebase
+  const locked1H = await fbGet('standings/1h');
+  const locked2H = await fbGet('standings/2h');
+
+  if (!locked1H?.locked || !locked2H?.locked) {
+    return null; // both halves must be locked
+  }
+
+  const finalScores = {};
+  const finalStats  = {};
+
+  for (const team of TEAMS) {
+    const score1H = locked1H.scores?.[team] || 0;
+    const score2H = locked2H.scores?.[team] || 0;
+    const ip1H    = locked1H.stats?.[team]?.IP || 0;
+    const ip2H    = locked2H.stats?.[team]?.IP || 0;
+    const totalIP = ip1H + ip2H;
+
+    // If combined IP < 1050, recalculate 2H ERA/WHIP score as 0
+    // (1H score is already locked and doesn't change)
+    let adjustedScore2H = score2H;
+    if (totalIP < 1050) {
+      // Subtract the ERA and WHIP points they earned in 2H
+      // We need to know what those were — stored in locked2H.catScores
+      const eraScore2H  = locked2H.catScores?.[team]?.ERA  || 0;
+      const whipScore2H = locked2H.catScores?.[team]?.WHIP || 0;
+      adjustedScore2H = score2H - eraScore2H - whipScore2H;
+    }
+
+    finalScores[team] = score1H + adjustedScore2H;
+    finalStats[team]  = {
+      IP: totalIP,
+      ipInsufficient: totalIP < 1050,
+      score1H, score2H: adjustedScore2H,
+    };
+  }
+
+  return { scores: finalScores, stats: finalStats };
+}
+
+// ── Lock 2H standings (commissioner) ─────────────────────────────────────────
+async function lock2HStandings() {
+  // Same as lock1HStandings but for 2H
+  // Also fetches 1H locked IP to enforce the 1050 combined minimum
+  const locked1H = await fbGet('standings/1h');
+  const lockedStats = await computeLockedStandings('2h');
+  const scores      = scoreStats(lockedStats);
+
+  // Store per-category scores so final standings can subtract ERA/WHIP if needed
+  const catScores = {};
+  for (const team of TEAMS) {
+    catScores[team] = {};
+    CATS.forEach(cat => {
+      // Recompute this team's pts in this cat
+      const allVals  = TEAMS.map(t => ({ team:t, val: lockedStats[t]?.[cat.key] ?? 0 }));
+      const eligible = (cat.key==='ERA'||cat.key==='WHIP')
+        ? allVals.filter(v => v.val > 0 && !lockedStats[v.team]?.ipInsufficient)
+        : allVals;
+      if (!eligible.length) { catScores[team][cat.key] = 0; return; }
+      const best  = cat.lower ? Math.min(...eligible.map(v=>v.val)) : Math.max(...eligible.map(v=>v.val));
+      const worst = cat.lower ? Math.max(...eligible.map(v=>v.val)) : Math.min(...eligible.map(v=>v.val));
+      const range = Math.abs(best - worst);
+      const val   = lockedStats[team]?.[cat.key] ?? 0;
+      if (!val || lockedStats[team]?.ipInsufficient) { catScores[team][cat.key] = 0; return; }
+      catScores[team][cat.key] = range === 0 ? 5 : Math.max(0, Math.min(10,
+        cat.lower ? ((worst-val)/range)*10 : ((val-worst)/range)*10));
+    });
+  }
+
+  // Enforce 1050 IP: add 1H IP to each team's 2H IP
+  for (const team of TEAMS) {
+    const ip1H = locked1H?.stats?.[team]?.IP || 0;
+    const ip2H = lockedStats[team]?.IP || 0;
+    const combinedIP = ip1H + ip2H;
+    if (combinedIP < 1050) {
+      // Zero out ERA/WHIP score for this team
+      scores[team] -= (catScores[team]?.ERA || 0);
+      scores[team] -= (catScores[team]?.WHIP || 0);
+      catScores[team].ERA  = 0;
+      catScores[team].WHIP = 0;
+      lockedStats[team].ipInsufficient = true;
+      lockedStats[team].combinedIP = combinedIP;
+    }
+  }
+
+  const ranked = TEAMS.slice().sort((a,b) => scores[a] - scores[b]);
+
+  const payload = {
+    locked: true, lockedAt: Date.now(),
+    scores, stats: lockedStats, catScores,
+    draftOrder: ranked,
+  };
+
+  await fbSet('standings/2h', payload);
+  await fbSet('settings/status', 'season-complete');
+}
+
+
+// Commissioner: force-open MiLB decisions window for testing
+async function forceOpenDecisionsWindow() {
+  if (!commUnlocked) return;
+  // Set a commOverride flag in Firebase for all teams
+  const writes = TEAMS.map(team =>
+    fbSet(`decisions/1h/${teamSlug(team)}/commOverride`, true)
+  );
+  await Promise.all(writes);
+  alert('Decisions window forced open for all teams. Teams will see it on next My Team load.');
+}
+
+
 async function loadCommMiLBDecisions() {
   const list = document.getElementById('comm-milb-decisions-list');
   if (!list) return;
@@ -3246,24 +3383,27 @@ let milbDecisions = {};
 
 // ── Show/hide MiLB decisions section based on dates ──────────────────────────
 async function checkMiLBDecisionsWindow() {
+  // Always show MiLB decisions section when logged in as a team
+  // Teams should always be able to review and update their keep/drop decisions
+  document.getElementById('milb-decisions-section').style.display = 'block';
+
+  // Show deadline if set
   const dates = await fbGet('settings/dates');
   const deadline = dates?.lineup ? new Date(dates.lineup) : null;
-  const now = new Date();
-
-  // Show decisions section if we're within 30 days of lineup lock
-  // OR if commissioner has explicitly opened it
-  const commOverride = await fbGet(`decisions/1h/${teamSlug(sessionTeam)}/commOverride`);
-  const withinWindow = deadline && (deadline - now) < 30 * 24 * 3600 * 1000;
-
-  if (withinWindow || commOverride) {
-    document.getElementById('milb-decisions-section').style.display = 'block';
-    if (deadline) {
-      document.getElementById('milb-decisions-deadline').textContent =
-        `Due: ${deadline.toLocaleDateString('en-US',{month:'short',day:'numeric'})} ` +
-        deadline.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-    }
-    await renderMiLBDecisions();
+  if (deadline) {
+    const now  = new Date();
+    const diff = deadline - now;
+    const isPast = diff < 0;
+    document.getElementById('milb-decisions-deadline').textContent =
+      isPast
+        ? `Deadline passed ${deadline.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`
+        : `Due: ${deadline.toLocaleDateString('en-US',{month:'short',day:'numeric'})} ` +
+          deadline.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    document.getElementById('milb-decisions-deadline').style.color =
+      isPast ? '#ef5350' : 'var(--muted)';
   }
+
+  await renderMiLBDecisions();
 }
 
 // ── Render MiLB decision rows ─────────────────────────────────────────────────
@@ -4305,8 +4445,10 @@ async function computeLockedStandings(half) {
     const wspts = totW + totSV * 0.5;
     const era   = totalIP > 0 ? (totER / totalIP) * 9 : 0;
     const whip  = totalIP > 0 ? totWH / totalIP : 0;
-    // 1050 IP minimum — post lock, enforce the rule
-    const ipInsufficient = totalIP < 1050;
+    // 1050 IP minimum applies to FULL SEASON only (combined 1H+2H >= 1050)
+    // Per-half locked standings always score ERA/WHIP normally
+    // Full season check happens separately when computing final standings
+    const ipInsufficient = false;
 
     // Hitting totals
     let totAB=0, totH=0, tot2B=0, tot3B=0, totHR=0, totR=0, totRBI=0, totSB=0;
@@ -5294,8 +5436,12 @@ async function clearRosterOverride() {
     <div id="comm-view-lock" style="display:none;">
       <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:10px;letter-spacing:1px;">1H LINEUP SUBMISSIONS</div>
       <div id="lineup-submission-list" style="margin-bottom:12px;"></div>
-      <button class="c-btn confirm" onclick="lock1HStandings()" id="lock-standings-btn" style="display:block;">
-        🔒 Lock 1H Standings + Set Draft Order
+      <div class="half-row" style="margin-bottom:8px;">
+        <div class="half-chip on" onclick="setLockHalf('1h',this)" style="font-size:8px;">1ST HALF</div>
+        <div class="half-chip" onclick="setLockHalf('2h',this)" style="font-size:8px;">2ND HALF</div>
+      </div>
+      <button class="c-btn confirm" onclick="doLockStandings()" id="lock-standings-btn" style="display:block;">
+        🔒 Lock Standings + Set Draft Order
       </button>
       <button class="c-btn" onclick="buildDraftPool('supplemental')" id="build-pool-btn" style="display:none;">
         ⚙ Build Supplemental Draft Pool
@@ -5323,6 +5469,7 @@ async function clearRosterOverride() {
         <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:8px;letter-spacing:1px;">MILB DECISIONS</div>
         <div id="comm-milb-decisions-list" style="font-family:'DM Mono',monospace;font-size:10px;"></div>
         <button class="c-btn" onclick="loadCommMiLBDecisions()" style="margin-top:6px;">↺ Load Decision Status</button>
+        <button class="c-btn" onclick="forceOpenDecisionsWindow()" style="margin-top:4px;">🔓 Force Open Decisions Window</button>
       </div>
     </div>
 
