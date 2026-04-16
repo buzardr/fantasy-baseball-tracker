@@ -392,8 +392,7 @@
   .player-row:hover { background: rgba(255,255,255,0.02); }
   .player-row.milb { opacity: 0.45; }
   .player-row.il { opacity: 1; }
-  .player-name.il { color: #f5c842; cursor: help; }       /* amber = on MLB IL (informational) */
-  .player-name.rlwil { color: #ef5350; font-style: italic; cursor: help; } /* red italic = RLWIL (ineligible) */
+  .player-name.il { color: #ef5350; cursor: help; }
   .player-name.milb-name { color: var(--muted); }
   .il-tooltip {
     display: none;
@@ -774,8 +773,7 @@
   .milb-player-info { display: flex; flex-direction: column; gap: 2px; }
   .milb-player-name { font-weight: 600; font-size: 13px; }
   .milb-player-name.status-active  { color: var(--text); }
-  .milb-player-name.status-il      { color: #f5c842; }  /* amber = MLB IL (informational) */
-  .milb-player-name.status-rlwil    { color: #ef5350; font-style: italic; } /* red italic = RLWIL */
+  .milb-player-name.status-il      { color: #ef5350; }
   .milb-player-name.status-milb    { color: var(--muted); }
   .milb-player-meta {
     font-family: 'DM Mono',monospace; font-size: 10px; color: var(--muted);
@@ -996,7 +994,7 @@
 <header>
   <div>
     <div class="logo">RLW <span>Fantasy Baseball</span> 2026</div>
-    <div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace;">8-Team H2H Best Ball · $65 Cap · 35 Roster</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace;">8-Team H2H Best Ball · $65 Cap · 25 Roster</div>
   </div>
   <div class="header-meta">
     <div>SCORING: BA · R · 2B+3B · HR · RBI · SB | W+S · K · ERA · WHIP  ·  0-10 pts pro-rated per category</div>
@@ -1300,10 +1298,10 @@
         <!-- Roster math tracker -->
         <div id="roster-tracker" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:16px;font-family:'DM Mono',monospace;font-size:10px;line-height:2;">
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">
-            <div>MLB Roster: <span id="tracker-total" style="color:var(--green);font-weight:700;">—</span><span style="color:var(--muted);">/35</span>
-              <span style="color:var(--muted);font-size:9px;margin-left:6px;">(<span id="tracker-active">—</span> active · <span id="tracker-il" style="color:#ef5350;">—</span> IL)</span>
-            </div>
-            <div>MiLB: <span id="tracker-milb" style="color:var(--muted);font-weight:700;">—</span><span style="color:var(--muted);">/10</span> · Open slots: <span id="tracker-milb-open" style="color:var(--green);font-weight:700;">—</span></div>
+            <div>MLB Active: <span id="tracker-active" style="color:var(--green);font-weight:700;">—</span><span style="color:var(--muted);">/35 active</span></div>
+            <div>On IL: <span id="tracker-il" style="color:#ef5350;font-weight:700;">—</span></div>
+            <div>MiLB: <span id="tracker-milb" style="color:var(--muted);font-weight:700;">—</span><span style="color:var(--muted);">/10</span></div>
+            <div>MiLB open slots: <span id="tracker-milb-open" style="color:var(--green);font-weight:700;">—</span></div>
           </div>
           <div id="tracker-msg" style="margin-top:6px;color:var(--gold);"></div>
         </div>
@@ -3031,15 +3029,14 @@ function renderRosters(team) {
     `Active:${hCounts.active} · <span style="color:#ef5350">IL:${hCounts.il}</span> · MiLB:${hCounts.milb}`;
 
   function makeRow(p) {
-    const [pos, name, mlbTeam, salary, ft, isMilbFlag, ohtaniHO] = p;
+    const [pos, name, mlbTeam, salary, ft, isMilbFlag, ohtaniHO, isRLWIL] = p;
     const cacheEntry  = statsCache[playerKey(name, mlbTeam)];
     const s           = cacheEntry?.found ? cacheEntry.stat : null;
     const milbStat    = cacheEntry?.milbStat || null;
     const milbLevel   = cacheEntry?.milbLevel || 'MiLB';
     const rStatus     = getRosterStatus(name, mlbTeam);
     const isActive    = rStatus === 'active';
-    const isRLWIL     = !!entry[7];       // officially on RLW IL — ineligible
-    const isIL        = !isRLWIL && rStatus === 'il'; // on MLB IL (informational only)
+    const isIL        = !isRLWIL && rStatus === 'il'; // amber - informational only
     const isTrueMiLB  = rStatus === 'milb';
     const isBBp       = best9.includes(playerKey(name, mlbTeam));
     const isBBh       = bestH.includes(playerKey(name, mlbTeam));
@@ -3049,11 +3046,9 @@ function renderRosters(team) {
     // Name color class
     const nameClass = isRLWIL ? 'rlwil' : isIL ? 'il' : isTrueMiLB ? 'milb-name' : '';
 
-    // Tooltip — IL shows injury info, RLWIL shows ineligibility note
+    // IL tooltip
     let tooltipHtml = '';
-    if (isRLWIL) {
-      tooltipHtml = `<div class="il-tooltip">RLW IL — stats ineligible this half · does not count toward 35-man roster</div>`;
-    } else if (isIL) {
+    if (isIL) {
       const info = getILInfo(name, mlbTeam);
       if (info) {
         const parts = [info.type];
@@ -3290,7 +3285,7 @@ function renderPostDecisionRoster() {
 
   section.innerHTML = `
     <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--green);margin-bottom:14px;">
-      ✓ POST-DECISION ROSTER (${activeRoster.length + ilRoster.length}/35 total · ${activeRoster.length} active · ${ilRoster.length} IL · ${milbRoster.length}/10 MiLB)
+      ✓ POST-DECISION ROSTER (${activeRoster.length}/35 active · ${ilRoster.length} IL · ${milbRoster.length}/10 MiLB)
     </div>
     <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:8px;">ACTIVE ROSTER</div>
     ${activeRoster.map(p => {
@@ -3467,60 +3462,17 @@ async function loadCommMiLBDecisions() {
 
   const rows = await Promise.all(TEAMS.map(async team => {
     const data = await fbGet(`decisions/1h/${teamSlug(team)}`);
-    // Get roster counts even if no decisions saved
-    const teamRosterQuick = getRoster().filter(p => p[4] === team);
-    const quickRLWIL     = teamRosterQuick.filter(p => !p[5] && p[7]).length;
-    const quickMlbIL     = teamRosterQuick.filter(p => !p[5] && !p[7] && getRosterStatus(p[1],p[2]) === 'il').length;
-    const quickMlbActive = teamRosterQuick.filter(p => !p[5] && !p[7] && getRosterStatus(p[1],p[2]) !== 'il').length;
-    const quickMilb       = teamRosterQuick.filter(p => p[5]).length;
-    const quickTotal      = quickMlbActive + quickMlbIL; // RLWIL excluded
-    if (!data?.decisions) return `<div style="padding:5px 0;border-bottom:1px solid var(--border);">
-      <div style="display:flex;justify-content:space-between;">
-        <span style="font-weight:600;">${escapeHtml(team)}</span>
-        <span style="color:var(--muted);font-size:10px;">No decisions saved</span>
-      </div>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;display:flex;gap:12px;">
-        <span>MLB: <span style="color:${quickTotal===35?'var(--green)':quickTotal>35?'#ef5350':'var(--gold)'};">${quickTotal}/35</span>
-          <span style="opacity:0.7;">(${quickMlbActive} active · ${quickMlbIL} IL)</span>
-        </span>
-        <span>MiLB: <span style="color:${quickMilb<=10?'var(--green)':'#ef5350'};">${quickMilb}/10</span></span>
-      </div>
-    </div>`;
-    const decisions = data.decisions || {};
-    // Count only required decisions: active-called-up MiLB + RLWIL players
-    const teamRoster   = getRoster().filter(p => p[4] === team);
-    const mustDecide   = [
-      ...teamRoster.filter(p => p[5] && getRosterStatus(p[1],p[2])==='active'), // MiLB on MLB active
-      ...teamRoster.filter(p => !p[5] && p[7])                                   // RLWIL players
-    ];
-    const totalMiLB    = teamRoster.filter(p => p[5]).length; // for display
-    const decided      = mustDecide.filter(p => decisions[playerKey(p[1],p[2])]?.action).length;
-    const required     = mustDecide.length;
-    // Roster counts for display
-    // RLWIL (p[7]=true) excluded from 35-man count entirely
-    // MLB IL (red) = still on 35-man roster, just informational
-    const mlbRLWIL  = teamRoster.filter(p => !p[5] && p[7]).length;
-    const mlbIL     = teamRoster.filter(p => !p[5] && !p[7] && getRosterStatus(p[1],p[2]) === 'il').length;
-    const mlbActive = teamRoster.filter(p => !p[5] && !p[7] && getRosterStatus(p[1],p[2]) !== 'il').length;
-    const mlbTotal  = mlbActive + mlbIL; // RLWIL excluded
-
-    const decisionsStatus = required === 0
-      ? `<span style="color:var(--muted);">No required decisions</span>`
-      : decided === required
-      ? `<span style="color:var(--green);">✓ Decisions complete</span>`
-      : `<span style="color:#ef5350;">⚠ ${decided}/${required} decisions</span>`;
-
-    return `<div style="padding:5px 0;border-bottom:1px solid var(--border);">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-weight:600;">${escapeHtml(team)}</span>
-        ${decisionsStatus}
-      </div>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;display:flex;gap:12px;">
-        <span>MLB: <span style="color:${mlbTotal===35?'var(--green)':mlbTotal>35?'#ef5350':'var(--gold)'};">${mlbTotal}/35</span>
-          <span style="opacity:0.7;">(${mlbActive} active · ${mlbIL} IL${mlbRLWIL>0?` · <span style="color:#ef5350;font-style:italic;">${mlbRLWIL} RLWIL</span>`:''})</span>
-        </span>
-        <span>MiLB: <span style="color:${totalMiLB<=10?'var(--green)':'#ef5350'};">${totalMiLB}/10</span></span>
-      </div>
+    if (!data?.decisions) return `<div style="color:var(--muted);">${escapeHtml(team)}: No decisions saved</div>`;
+    const decisions = data.decisions;
+    const counts = { promote:0, 'promote-il':0, keep:0, release:0 };
+    Object.values(decisions).forEach(d => { if (counts[d.action]!==undefined) counts[d.action]++; });
+    const total = Object.values(counts).reduce((a,b)=>a+b,0);
+    const milbTotal = getRoster().filter(p=>p[4]===team&&p[5]).length;
+    const status = total === milbTotal
+      ? `<span style="color:var(--green);">✓ Complete</span>`
+      : `<span style="color:var(--gold);">⚠ ${total}/${milbTotal}</span>`;
+    return `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);">
+      <span>${escapeHtml(team)}</span>${status}
     </div>`;
   }));
   list.innerHTML = rows.join('');
@@ -3631,7 +3583,7 @@ function renderMLBDecisions(mlbAll) {
 
     // Name color
     const nameColor = isRLWIL ? '#ef5350' : isIL ? '#f5c842' : 'var(--text)';
-    const nameStyle = isRLWIL ? 'font-style:italic;' : '';
+    const nameItalic = isRLWIL ? 'font-style:italic;' : '';
     const badge = isRLWIL
       ? `<span class="milb-status-badge il" style="font-size:8px;">RLWIL</span>`
       : isIL
@@ -3800,9 +3752,6 @@ function updateRosterTracker(mlbAll, milbAll) {
   const newMiLB  = milbAll.length - promoted - milbReleased;
   const milbOpen = 10 - newMiLB;
 
-  const newTotal = newActive + newIL; // total MLB roster = active + IL
-  const totalEl  = document.getElementById('tracker-total');
-  if (totalEl) totalEl.textContent = newTotal;
   document.getElementById('tracker-active').textContent = newActive;
   document.getElementById('tracker-il').textContent     = newIL;
   document.getElementById('tracker-milb').textContent   = newMiLB;
@@ -3810,19 +3759,19 @@ function updateRosterTracker(mlbAll, milbAll) {
 
   const msgEl = document.getElementById('tracker-msg');
   const ROSTER_MAX = 35;
-  const totalColor = newTotal > ROSTER_MAX ? '#ef5350' : newTotal === ROSTER_MAX ? 'var(--green)' : 'var(--gold)';
-  if (totalEl) totalEl.style.color = totalColor;
+  const activeColor = newActive > ROSTER_MAX ? '#ef5350' : newActive === ROSTER_MAX ? 'var(--green)' : 'var(--gold)';
+  document.getElementById('tracker-active').style.color = activeColor;
 
-  if (newTotal > ROSTER_MAX) {
-    msgEl.textContent = `⚠ Over roster limit by ${newTotal - ROSTER_MAX} — release or place someone on IL`;
+  if (newActive > ROSTER_MAX) {
+    msgEl.textContent = `⚠ Over roster limit by ${newActive - ROSTER_MAX} — release or place someone on IL`;
     msgEl.style.color = '#ef5350';
   } else if (newMiLB > 10) {
     msgEl.textContent = `⚠ MiLB roster exceeds 10 — release ${newMiLB - 10} MiLB player(s)`;
     msgEl.style.color = '#ef5350';
-  } else if (newTotal < ROSTER_MAX) {
-    msgEl.textContent = `${ROSTER_MAX - newTotal} open MLB slot(s)`;
+  } else if (newActive < ROSTER_MAX) {
+    msgEl.textContent = `${ROSTER_MAX - newActive} open MLB slot(s)`;
     msgEl.style.color = 'var(--gold)';
-  } else if (newTotal === ROSTER_MAX && newMiLB <= 10) {
+  } else if (newActive === ROSTER_MAX && newMiLB <= 10) {
     msgEl.textContent = '✓ Roster balanced';
     msgEl.style.color = 'var(--green)';
   } else {
@@ -5075,22 +5024,12 @@ async function renderMyTeamDashboard() {
   const roster = getRoster().filter(p => p[4] === sessionTeam);
   const mlb    = roster.filter(p => !p[5]);
   const milb   = roster.filter(p => p[5]);
-  // Cap includes ALL MLB players (RLWIL still count toward cap)
-  const capSpent    = mlb.reduce((s, p) => s + (p[3] || 0), 0)
-                    + milb.reduce((s, p) => s + 0.75, 0);
-  const capLeft     = 65 - capSpent;
-  // Roster count excludes RLWIL players (they're off the 35-man roster)
-  const rlwilCount  = mlb.filter(p => p[7]).length;
-  const rosterCount = mlb.length - rlwilCount; // countable toward 35
-  const rosterColor = rosterCount > 35 ? '#ef5350' : rosterCount === 35 ? 'var(--green)' : 'var(--gold)';
+  const capSpent = mlb.reduce((s, p) => s + (p[3] || 0), 0);
+  const capLeft  = 65 - capSpent;
 
   // Stat cards
   document.getElementById('myteam-stats-cards').innerHTML = `
-    <div class="stat-card">
-      <div class="card-label">MLB Roster</div>
-      <div class="card-value" style="color:${rosterColor}">${rosterCount}<span style="font-size:14px;color:var(--muted)">/35</span></div>
-      ${rlwilCount > 0 ? `<div class="card-sub" style="color:#ef5350;font-style:italic;">+${rlwilCount} RLWIL (not counted)</div>` : ''}
-    </div>
+    <div class="stat-card"><div class="card-label">MLB Roster</div><div class="card-value">${mlb.length}<span style="font-size:14px;color:var(--muted)">/25</span></div></div>
     <div class="stat-card"><div class="card-label">MiLB Roster</div><div class="card-value">${milb.length}<span style="font-size:14px;color:var(--muted)">/10</span></div></div>
     <div class="stat-card"><div class="card-label">Cap Spent</div><div class="card-value">$${capSpent.toFixed(2)}</div><div class="card-sub">$${capLeft.toFixed(2)} remaining</div></div>
   `;
@@ -5286,22 +5225,19 @@ function renderMyTeamRoster(roster) {
   const POS_ORDER = ['P','C','1B','2B','SS','3B','OF'];
   const sorted = [...mlb].sort((a,b) => POS_ORDER.indexOf(a[0]) - POS_ORDER.indexOf(b[0]));
 
-  // RLWIL players don't count toward 35-man roster
-  const countableMLB = mlb.filter(p => !p[7]).length; // excludes RLWIL
   const rlwilNote = rlwil.length > 0
-    ? ` · <span style="color:#ef5350;font-style:italic;">${rlwil.length} RLWIL (ineligible)</span>` : '';
-  let html = `<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:8px;">MLB ROSTER (${countableMLB}/35${rlwilNote})</div>`;
+    ? ` · <span style="color:#ef5350">${rlwil.length} RLWIL</span>` : '';
+  let html = `<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:8px;">MLB ROSTER (${active25.length}/25 active${rlwilNote})</div>`;
   html += sorted.map(p => {
     const posKey    = p[0]==='1B'?'B1':p[0]==='2B'?'B2':p[0]==='3B'?'B3':p[0];
     const isRLWIL   = p[7];
     const rStatus   = getRosterStatus(p[1], p[2]);
     const isMLBIL   = !isRLWIL && rStatus === 'il';
-    // RLWIL = red italic (ineligible, off roster), MLB IL = amber (informational)
     const nameStyle = isRLWIL ? 'color:#ef5350;font-style:italic;' : isMLBIL ? 'color:#f5c842;' : '';
     const statusTag = isRLWIL
-      ? `<span style="font-family:'DM Mono',monospace;font-size:9px;background:rgba(239,83,80,0.15);color:#ef5350;border-radius:3px;padding:1px 5px;margin-left:6px;font-style:italic;">RLWIL</span>`
+      ? `<span style="font-family:'DM Mono',monospace;font-size:9px;background:rgba(239,83,80,0.15);color:#ef5350;border-radius:3px;padding:1px 5px;margin-left:6px;">RLWIL</span>`
       : isMLBIL
-      ? `<span style="font-family:'DM Mono',monospace;font-size:9px;background:rgba(245,200,66,0.15);color:#f5c842;border-radius:3px;padding:1px 5px;margin-left:6px;">IL</span>`
+      ? `<span style="font-family:'DM Mono',monospace;font-size:9px;background:rgba(239,83,80,0.15);color:#ef5350;border-radius:3px;padding:1px 5px;margin-left:6px;">IL</span>`
       : '';
     return `<div class="roster-row-myteam">
       <span class="pos-tag ${posKey}" style="font-size:9px;padding:1px 4px;">${p[0]}</span>
