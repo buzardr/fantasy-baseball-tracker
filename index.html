@@ -1054,7 +1054,25 @@
       <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:24px;" id="draft-not-started-msg">
         Draft has not started yet.
       </div>
-      <div id="draft-date-countdown" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);"></div>
+      <div id="draft-date-countdown" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:24px;"></div>
+      <!-- Commissioner early-start controls shown if logged in as comm -->
+      <div id="draft-room-comm-controls" style="display:none;max-width:320px;margin:0 auto;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:left;">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-bottom:14px;">Commissioner — Start Draft</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:6px;">DRAFT TYPE</div>
+        <div style="display:flex;gap:4px;margin-bottom:12px;">
+          <div class="half-chip on" onclick="setDraftType('supplemental',this)" style="font-size:8px;">SUPPLEMENTAL</div>
+          <div class="half-chip" onclick="setDraftType('milb',this)" style="font-size:8px;">MILB</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">MAX ROUNDS:</div>
+          <input type="number" id="max-rounds-input" value="5" min="1" max="10"
+            style="width:60px;padding:4px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;"/>
+        </div>
+        <button onclick="startDraft()" style="width:100%;padding:10px;background:var(--green);border:none;border-radius:6px;color:#000;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;letter-spacing:2px;cursor:pointer;">
+          ▶ START DRAFT NOW
+        </button>
+        <div id="draft-start-msg" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:8px;"></div>
+      </div>
     </div>
 
     <!-- Active draft state -->
@@ -2997,10 +3015,12 @@ function renderAll() {
 function showTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('tab-' + name).classList.add('active');
-  // Refresh dashboard when switching to myteam tab while logged in
+  if (event?.target) event.target.classList.add('active');
+  const tabEl = document.getElementById('tab-' + name);
+  if (tabEl) tabEl.classList.add('active');
   if (name === 'myteam' && sessionTeam) renderMyTeamDashboard();
+  if (name === 'draft') { onDraftTabOpen(); }
+  else { stopDraftPolling(); }
 }
 
 function setHalf(half) {
@@ -3304,7 +3324,8 @@ async function startDraft() {
   await fbSet(statePath(activeDraftType), state);
   await fbSet(picksPath(activeDraftType), []);
   await fbSet('settings/draftActive', activeDraftType);
-  alert(`${activeDraftType} draft started!`);
+  const msg = document.getElementById('draft-start-msg');
+  if (msg) msg.textContent = `✓ ${activeDraftType} draft started!`;
 }
 
 // ── Start polling draft state ─────────────────────────────────────────────────
@@ -3786,12 +3807,30 @@ async function sendChat() {
 async function onDraftTabOpen() {
   initPosFilterBar();
   startDraftPolling();
-  // Show commissioner controls if unlocked
+  // Show commissioner start-draft controls in draft room if unlocked
   if (commUnlocked) {
+    document.getElementById('draft-room-comm-controls').style.display = 'block';
+    // Also show build pool buttons in comm panel if standings locked
     const locked = await fbGet('standings/1h');
     if (locked?.locked) {
       document.getElementById('build-pool-btn').style.display      = 'block';
       document.getElementById('build-milb-pool-btn').style.display = 'block';
+      document.getElementById('draft-start-controls').style.display = 'block';
+    }
+  }
+  // Show scheduled draft time countdown if set
+  const dates = await fbGet('settings/dates');
+  const draftDate = dates?.suppl ? new Date(dates.suppl) : null;
+  const countdown = document.getElementById('draft-date-countdown');
+  if (draftDate && countdown) {
+    const diff = draftDate - new Date();
+    if (diff > 0) {
+      const days  = Math.floor(diff / 86400000);
+      const hrs   = Math.floor((diff % 86400000) / 3600000);
+      const mins  = Math.floor((diff % 3600000) / 60000);
+      countdown.textContent = `Scheduled: ${draftDate.toLocaleString()} · Starts in ${days}d ${hrs}h ${mins}m`;
+    } else {
+      countdown.textContent = `Scheduled start: ${draftDate.toLocaleString()}`;
     }
   }
 }
@@ -3799,21 +3838,9 @@ async function onDraftTabOpen() {
 // Hidden file input for MiLB CSV
 
 
-// ── Patch showTab for draft room ─────────────────────────────────────────────
-const _origShowTab = showTab;
-function showTab(name) {
-  _origShowTab.call(this, name);
-  if (name === 'draft') onDraftTabOpen();
-  else stopDraftPolling();
-}
+// showTab handles draft tab inline (see original showTab function)
 
-// ── Show build pool buttons after standings lock ──────────────────────────────
-const _origLock = lock1HStandings;
-async function lock1HStandings() {
-  await _origLock();
-  document.getElementById('build-pool-btn').style.display = 'block';
-  document.getElementById('build-milb-pool-btn').style.display = 'block';
-}
+
 
 
 // ════════════════════════════════════════════════════════════
@@ -3973,6 +4000,9 @@ async function lock1HStandings() {
       await fbSet('settings/status', 'standings-locked');
       status.textContent = `✓ 1H standings locked at ${new Date().toLocaleTimeString()}`;
       document.getElementById('unlock-standings-btn').style.display = 'block';
+      document.getElementById('build-pool-btn').style.display       = 'block';
+      document.getElementById('build-milb-pool-btn').style.display  = 'block';
+      document.getElementById('draft-start-controls').style.display = 'block';
       // Refresh the standings display
       await loadLockedStandings();
     } else {
