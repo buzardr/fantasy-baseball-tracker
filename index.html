@@ -3086,15 +3086,6 @@ async function commAutoFillLineup(slug, team) {
   if (ok) await renderLineupSubmissions();
 }
 
-// ── Patch switchCommView to load lineup status when LOCK tab opened ───────────
-const _origSwitchCommView = switchCommView;
-function switchCommView(view, el) {
-  _origSwitchCommView(view, el);
-  document.getElementById('comm-view-lock').style.display = view === 'lock' ? 'block' : 'none';
-  if (view === 'lock') renderLineupSubmissions();
-}
-
-
 // ════════════════════════════════════════════════════════════
 // PHASE A — TEAM MANAGEMENT, PIN AUTH, LINEUP LOCK
 // ════════════════════════════════════════════════════════════
@@ -3103,13 +3094,14 @@ const POS_SLOTS = { P:9, C:2, '1B':2, '2B':2, SS:2, '3B':2, OF:6 };
 
 // ── Commissioner sub-view switcher ───────────────────────────────────────────
 function switchCommView(view, el) {
-  ['rosters','teams','dates'].forEach(v => {
+  ['rosters','teams','dates','lock'].forEach(v => {
     document.getElementById(`comm-view-${v}`).style.display = v === view ? 'block' : 'none';
   });
   document.querySelectorAll('#comm-panel .half-chip').forEach(c => c.classList.remove('on'));
   el.classList.add('on');
   if (view === 'teams') renderTeamPinFields();
   if (view === 'dates') loadDatesIntoForm();
+  if (view === 'lock')  renderLineupSubmissions();
 }
 
 // ── Team PIN fields in commissioner panel ────────────────────────────────────
