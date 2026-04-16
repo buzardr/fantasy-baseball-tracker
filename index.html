@@ -4647,6 +4647,23 @@ function checkCommPin() {
     document.getElementById('upload-screen').classList.add('active');
     document.getElementById('pin-error').style.display = 'none';
     document.getElementById('comm-pin').value = '';
+    // Show draft room commissioner controls immediately
+    const draftCtrl = document.getElementById('draft-room-comm-controls');
+    if (draftCtrl) draftCtrl.style.display = 'block';
+    // Show pause button if draft is active
+    const pauseBtn = document.getElementById('comm-pause-btn');
+    if (pauseBtn) pauseBtn.style.display = 'block';
+    // Show build pool / lock buttons if standings already locked
+    fbGet('standings/1h').then(locked => {
+      if (locked?.locked) {
+        const bp = document.getElementById('build-pool-btn');
+        const bm = document.getElementById('build-milb-pool-btn');
+        const ds = document.getElementById('draft-start-controls');
+        if (bp) bp.style.display = 'block';
+        if (bm) bm.style.display = 'block';
+        if (ds) ds.style.display = 'block';
+      }
+    });
   } else {
     document.getElementById('pin-error').style.display = 'block';
     document.getElementById('comm-pin').value = '';
