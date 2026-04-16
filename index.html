@@ -3547,7 +3547,11 @@ async function renderMiLBDecisions() {
   }).join('');
 
   const list = document.getElementById('milb-decisions-list');
+  console.log('[MiLB decisions] milbPlayers:', milbPlayers.length, 'rlwilPlayers:', rlwilPlayers.length);
+  console.log('[MiLB decisions] rows length:', rows.length, 'rlwilHtml length:', rlwilHtml.length);
+  console.log('[MiLB decisions] first 200 chars of rows:', rows.substring(0,200));
   list.innerHTML = rlwilHtml + rows;
+  console.log('[MiLB decisions] list.children count:', list.children.length);
 
   // Attach click handlers to all buttons (avoids encoding issues)
   list.querySelectorAll('.milb-btn').forEach(btn => {
