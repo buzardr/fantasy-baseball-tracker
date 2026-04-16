@@ -2304,7 +2304,7 @@ function rankTeams() {
       ? Math.max(...eligible.map(v => v.val))
       : Math.min(...eligible.map(v => v.val));
 
-    const range = best - worst;
+    const range = Math.abs(best - worst);
 
     allVals.forEach(({ team, val }) => {
       // IP-insufficient teams get 0 in ERA/WHIP and are excluded from range calc
