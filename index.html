@@ -579,7 +579,67 @@
     margin-bottom: 16px;
   }
   .section-title span { color: var(--green); }
+
+  /* ── COMMISSIONER PANEL ──────────────────────────────── */
+  #comm-toggle {
+    position: fixed; bottom: 20px; right: 20px;
+    width: 34px; height: 34px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 50%; color: var(--muted); font-size: 15px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    z-index: 190; transition: all 0.2s;
+  }
+  #comm-toggle:hover { border-color: var(--green); color: var(--green); }
+  #comm-panel {
+    display: none; position: fixed; bottom: 64px; right: 20px;
+    background: var(--bg2); border: 1px solid var(--green);
+    border-radius: 10px; padding: 18px; z-index: 200;
+    width: 300px; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  }
+  #comm-panel.open { display: block; }
+  #comm-panel h3 {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--green); margin-bottom: 14px;
+  }
+  #pin-screen, #upload-screen { display: none; }
+  #pin-screen.active, #upload-screen.active { display: block; }
+  #comm-pin {
+    width: 100%; padding: 10px; background: var(--bg3);
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 20px; letter-spacing: 6px; text-align: center;
+    outline: none; margin-bottom: 8px;
+  }
+  #comm-pin:focus { border-color: var(--green); }
+  #pin-error { color: #ef5350; font-family: 'DM Mono', monospace; font-size: 10px; display: none; margin-bottom: 8px; }
+  .c-btn {
+    width: 100%; padding: 7px 12px; background: var(--bg3);
+    border: 1px solid var(--border); border-radius: 5px;
+    color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 10px; cursor: pointer; margin-bottom: 6px;
+    text-align: left; transition: all 0.15s; letter-spacing: 0.5px;
+  }
+  .c-btn:hover { border-color: var(--green); color: var(--green); }
+  .c-btn.red:hover { border-color: #ef5350; color: #ef5350; }
+  .c-btn.confirm { border-color: var(--green); color: var(--green); display: none; }
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 6px;
+    padding: 16px; text-align: center; cursor: pointer;
+    transition: border-color 0.2s; margin-bottom: 10px;
+  }
+  .upload-zone:hover, .upload-zone.over { border-color: var(--green); }
+  .upload-zone p { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 6px; }
+  #upload-status { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-bottom: 8px; min-height: 14px; }
+  .half-row { display: flex; gap: 4px; margin-bottom: 10px; }
+  .half-chip {
+    flex: 1; padding: 5px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--muted); font-family: 'DM Mono', monospace;
+    font-size: 9px; cursor: pointer; text-align: center; letter-spacing: 1px;
+  }
+  .half-chip.on { background: var(--green); color: #000; border-color: var(--green); }
 </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -739,6 +799,14 @@ const TEAMS = [
 ];
 
 const MY_TEAM = "Ballpark Franks";
+
+// Live ROSTER — replaced by XLSX import when commissioner uploads a file.
+// Falls back to the hardcoded array below if no override is stored.
+let ROSTER_OVERRIDE = null;
+
+function getRoster() {
+  return ROSTER_OVERRIDE || ROSTER;
+}
 
 // ── ROSTER DATA ──────────────────────────────────────────────
 // Format: [pos, name, mlbTeam, salary, fantasyTeam, isMilb, ohtaniHitterOnly]
@@ -1808,7 +1876,7 @@ async function loadAllStats(force = false) {
   // Drives name colors, IL badges, and header counts on every load.
   setLoaderMsg('Fetching team rosters...');
   rosterStatusCache = {};
-  const allTeams = [...new Set(ROSTER.map(p => p[2]).filter(Boolean))];
+  const allTeams = [...new Set(getRoster().map(p => p[2]).filter(Boolean))];
   const rosterMaps = await Promise.all(allTeams.map(t => fetchFullRoster(t)));
   allTeams.forEach((t, i) => { rosterStatusCache[t] = rosterMaps[i]; });
 
@@ -1834,7 +1902,7 @@ async function loadAllStats(force = false) {
     idStore[key] = id; // KNOWN_IDS always wins
   }
 
-  const allPlayers = ROSTER;
+  const allPlayers = getRoster();
   loadState = { loaded: 0, total: allPlayers.length, errors: 0 };
 
   const needsSearch = allPlayers.filter(p => !idStore[playerKey(p[1], p[2])]);
@@ -1929,7 +1997,7 @@ function computeTeamStats() {
   teamStats = {};
 
   for (const team of TEAMS) {
-    const roster   = ROSTER.filter(p => p[4] === team &&
+    const roster   = getRoster().filter(p => p[4] === team &&
                        statsCache[playerKey(p[1], p[2])]?.found === true);
     const pitchers = roster.filter(p => p[0] === 'P');
     const hitters  = roster.filter(p => p[0] !== 'P');
@@ -2009,7 +2077,7 @@ function computeTeamStats() {
     }
 
     // Ohtani hitting: he's listed as OF with ohtaniHO=true — add his hitting stats
-    const ohtaniEntry = ROSTER.find(p => p[1] === 'Shohei Ohtani' && p[4] === team);
+    const ohtaniEntry = getRoster().find(p => p[1] === 'Shohei Ohtani' && p[4] === team);
     if (ohtaniEntry) {
       const os = getStat('Shohei Ohtani', 'LAD');
       if (os) {
@@ -2166,7 +2234,7 @@ function renderCategories() {
 }
 
 function renderRosters(team) {
-  const roster   = ROSTER.filter(p => p[4] === team);
+  const roster   = getRoster().filter(p => p[4] === team);
   const pitchers = roster.filter(p => p[0] === 'P');
   const hitters  = roster.filter(p => p[0] !== 'P');
   const best9    = teamStats[team]?.best9Pitchers || [];
@@ -2351,8 +2419,8 @@ function setHalf(half) {
     : 'Full season stats';
   document.getElementById('controls-info').textContent = info;
   
-  // Load stats for this half — uses cache if available, fetches if not
-  loadAllStats(false);
+  // Reload roster for this half from Firebase, then load stats
+  loadRosterFromFirebase(half).then(() => loadAllStats(false));
 }
 
 async function refreshStats() {
@@ -2408,18 +2476,266 @@ function selectTeam(team) {
 }
 
 async function init() {
+  setProgress(5);
+  setLoaderMsg('Loading roster data...');
+
+  // Try to load roster from Firebase first (commissioner may have uploaded XLSX)
+  const loaded = await loadRosterFromFirebase(currentHalf);
+  if (loaded) {
+    setLoaderMsg('Roster loaded from Firebase...');
+  }
+
   setProgress(10);
   setLoaderMsg('Building roster data...');
-  
+
   initTeamSelector();
-  
+
   setProgress(20);
   setLoaderMsg('Connecting to MLB Stats API...');
-  
+
   await loadAllStats(false);
 }
 
 init();
+
+
+// ════════════════════════════════════════════════════════════
+// FIREBASE + ROSTER IMPORT
+// ════════════════════════════════════════════════════════════
+
+const FIREBASE_URL = 'https://bestballbaseball-c357f-default-rtdb.firebaseio.com';
+const COMM_PIN_HASH = '8e35c'; // simple 5-char hash of commissioner PIN "2026r"
+
+// Simple hash for PIN check (not cryptographic — just obscures from casual view)
+function simpleHash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  return Math.abs(h).toString(16).slice(0,5);
+}
+
+// ── Firebase helpers (no SDK needed — REST API) ──────────────────────────────
+async function fbGet(path) {
+  try {
+    const res = await fetch(`${FIREBASE_URL}/${path}.json`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch(e) { return null; }
+}
+
+async function fbSet(path, data) {
+  try {
+    const res = await fetch(`${FIREBASE_URL}/${path}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return res.ok;
+  } catch(e) { return false; }
+}
+
+// ── Load roster from Firebase on startup ────────────────────────────────────
+async function loadRosterFromFirebase(half) {
+  const data = await fbGet(`rosters/${half}`);
+  if (data && Array.isArray(data) && data.length > 0) {
+    ROSTER_OVERRIDE = data;
+    console.log(`Loaded ${data.length} players from Firebase rosters/${half}`);
+    return true;
+  }
+  return false;
+}
+
+// ── XLSX Parsing ─────────────────────────────────────────────────────────────
+const TEAM_COL_MAP = [
+  'Ballpark Franks','Brave Mistakes',"J's",'Motwin Shufflers',
+  'Oneders','Team America','The James Gang','Yukon Jacks'
+];
+
+function parseXlsxToRoster(workbook) {
+  const ws = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  const result = [];
+  const errors = [];
+
+  // Row 0 = team names, Row 1 = owners, Row 2+ = players
+  for (let r = 2; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row || !row.some(c => c)) continue;
+
+    for (let t = 0; t < 8; t++) {
+      const base = t * 4;
+      const pos  = row[base];
+      const name = row[base + 1];
+      const mlb  = row[base + 2];
+      const sal  = row[base + 3];
+
+      if (!name || !String(name).trim()) continue;
+      if (!pos  || !String(pos).trim())  continue;
+
+      const nameStr = String(name).trim();
+      const posStr  = String(pos).trim();
+      // MiLB players have salary = 0 (number) with no MLB team value that matters,
+      // OR salary is null/string (org name). Salary 0 = MiLB.
+      const isMilb  = (sal === null || sal === 0 || sal === '' || typeof sal === 'string' && isNaN(Number(sal)));
+      const salary  = isMilb ? 0 : Number(sal);
+      const mlbTeam = mlb ? String(mlb).trim() : '';
+      const fantasy = TEAM_COL_MAP[t];
+      // Ohtani hitter-only flag
+      const ohtaniHO = (nameStr === 'Shohei Ohtani');
+
+      result.push([posStr, nameStr, mlbTeam, salary, fantasy, isMilb, ohtaniHO]);
+    }
+  }
+  return { roster: result, errors };
+}
+
+// ── Commissioner panel state ─────────────────────────────────────────────────
+let commUnlocked = false;
+let commHalf = '1H';
+let pendingRoster = null;
+
+function toggleCommPanel() {
+  const panel = document.getElementById('comm-panel');
+  if (panel.classList.contains('open')) {
+    panel.classList.remove('open');
+  } else {
+    panel.classList.add('open');
+    if (!commUnlocked) {
+      document.getElementById('pin-screen').classList.add('active');
+      document.getElementById('upload-screen').classList.remove('active');
+      document.getElementById('comm-pin').focus();
+    } else {
+      document.getElementById('pin-screen').classList.remove('active');
+      document.getElementById('upload-screen').classList.add('active');
+    }
+  }
+}
+
+function checkCommPin() {
+  const val = document.getElementById('comm-pin').value;
+  if (simpleHash(val) === COMM_PIN_HASH) {
+    commUnlocked = true;
+    document.getElementById('pin-screen').classList.remove('active');
+    document.getElementById('upload-screen').classList.add('active');
+    document.getElementById('pin-error').style.display = 'none';
+    document.getElementById('comm-pin').value = '';
+  } else {
+    document.getElementById('pin-error').style.display = 'block';
+    document.getElementById('comm-pin').value = '';
+    document.getElementById('comm-pin').focus();
+  }
+}
+
+function setCommHalf(half, el) {
+  commHalf = half;
+  document.querySelectorAll('.half-chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function handleXlsxFile(file) {
+  if (!file) return;
+  document.getElementById('upload-status').textContent = `Reading ${file.name}...`;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const { roster, errors } = parseXlsxToRoster(wb);
+      pendingRoster = roster;
+      const teams = {};
+      roster.forEach(p => { teams[p[4]] = (teams[p[4]] || 0) + 1; });
+      const summary = Object.entries(teams).map(([t,n]) => `${t}: ${n}`).join(' · ');
+      document.getElementById('upload-status').textContent =
+        `✓ Parsed ${roster.length} players · ${file.name}`;
+      document.getElementById('upload-preview').textContent = summary;
+      document.getElementById('upload-preview').style.display = 'block';
+      document.getElementById('confirm-btn').style.display = 'block';
+    } catch(err) {
+      document.getElementById('upload-status').textContent = `Error: ${err.message}`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function handleXlsxDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleXlsxFile(file);
+}
+
+async function confirmRosterUpload() {
+  if (!pendingRoster) return;
+  document.getElementById('upload-status').textContent = 'Saving to Firebase...';
+  document.getElementById('confirm-btn').style.display = 'none';
+  const ok = await fbSet(`rosters/${commHalf}`, pendingRoster);
+  if (ok) {
+    ROSTER_OVERRIDE = pendingRoster;
+    document.getElementById('upload-status').textContent =
+      `✓ Saved ${pendingRoster.length} players to ${commHalf} rosters`;
+    document.getElementById('upload-preview').style.display = 'none';
+    pendingRoster = null;
+    // Reload stats with new roster
+    await loadAllStats(true);
+  } else {
+    document.getElementById('upload-status').textContent = 'Firebase save failed — check connection';
+    document.getElementById('confirm-btn').style.display = 'block';
+  }
+}
+
+async function clearRosterOverride() {
+  if (!confirm('Clear saved rosters and revert to hardcoded data?')) return;
+  await fbSet(`rosters/${commHalf}`, null);
+  ROSTER_OVERRIDE = null;
+  document.getElementById('upload-status').textContent = 'Cleared — using hardcoded rosters';
+  await loadAllStats(true);
+}
+
 </script>
+
+<!-- Commissioner toggle -->
+<button id="comm-toggle" onclick="toggleCommPanel()" title="Commissioner">⚙</button>
+
+<!-- Commissioner panel -->
+<div id="comm-panel">
+  <h3>⚙ Commissioner</h3>
+
+  <!-- PIN screen -->
+  <div id="pin-screen">
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:1px;">ENTER PIN</div>
+    <input type="password" id="comm-pin" maxlength="8" placeholder="••••••"
+           onkeydown="if(event.key==='Enter')checkCommPin()" />
+    <div id="pin-error">Incorrect PIN</div>
+    <button class="c-btn" onclick="checkCommPin()">Unlock</button>
+    <button class="c-btn" onclick="document.getElementById('comm-panel').classList.remove('open')">Cancel</button>
+  </div>
+
+  <!-- Upload screen -->
+  <div id="upload-screen">
+    <!-- Half selector -->
+    <div class="half-row">
+      <div class="half-chip on" onclick="setCommHalf('1H',this)">1ST HALF</div>
+      <div class="half-chip" onclick="setCommHalf('2H',this)">2ND HALF</div>
+    </div>
+
+    <!-- Drop zone -->
+    <div class="upload-zone" id="upload-zone"
+         onclick="document.getElementById('xlsx-input').click()"
+         ondragover="event.preventDefault();this.classList.add('over')"
+         ondragleave="this.classList.remove('over')"
+         ondrop="handleXlsxDrop(event)">
+      <div style="font-size:22px">📂</div>
+      <p>Click or drag roster .xlsx here</p>
+    </div>
+    <input type="file" id="xlsx-input" accept=".xlsx,.xls" style="display:none"
+           onchange="handleXlsxFile(this.files[0])"/>
+
+    <div id="upload-status"></div>
+    <div id="upload-preview" style="display:none;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);background:var(--bg3);border-radius:5px;padding:8px;margin-bottom:8px;line-height:1.8;"></div>
+
+    <button class="c-btn confirm" id="confirm-btn" onclick="confirmRosterUpload()">✓ Save to Firebase</button>
+    <button class="c-btn red" onclick="clearRosterOverride()">✗ Clear saved rosters</button>
+    <button class="c-btn" onclick="document.getElementById('comm-panel').classList.remove('open')">Close</button>
+  </div>
+</div>
+
 </body>
 </html>
