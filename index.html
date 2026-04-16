@@ -705,6 +705,32 @@
     font-size: 12px;
   }
   .roster-row-myteam:last-child { border-bottom: none; }
+  .final-badge {
+    display: inline-block; padding: 3px 10px;
+    background: rgba(0,200,83,0.15); color: var(--green);
+    border: 1px solid var(--green); border-radius: 4px;
+    font-family: 'DM Mono',monospace; font-size: 10px;
+    letter-spacing: 2px; margin-left: 12px; vertical-align: middle;
+  }
+  .draft-order-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; margin-bottom: 20px;
+  }
+  .draft-order-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .draft-order-row:last-child { border-bottom: none; }
+  .draft-pick-num {
+    font-family: 'Bebas Neue',sans-serif; font-size: 20px;
+    color: var(--green); width: 28px; text-align: center; flex-shrink: 0;
+  }
+  .lineup-status-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px;
+  }
+  .lineup-status-row:last-child { border-bottom: none; }
   .locked-badge {
     display: inline-block; padding: 2px 7px;
     background: rgba(0,200,83,0.15); color: var(--green);
@@ -801,6 +827,19 @@
           <tr><td colspan="13" style="text-align:center;padding:40px;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Loading stats from MLB API...</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- DRAFT ORDER (shown after 1H lock) -->
+  <div id="draft-order-section" style="display:none;margin-bottom:24px;">
+    <div class="draft-order-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--green);">
+          Draft Order — Worst to First
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);" id="draft-order-locked-at"></div>
+      </div>
+      <div id="draft-order-list"></div>
     </div>
   </div>
 
@@ -2343,7 +2382,57 @@ function getCatRanks() {
   return ranks;
 }
 
+function renderLockedStandingsTable(data) {
+  // Render standings from locked Firebase data
+  const scores = data.scores || {};
+  const stats  = data.stats  || {};
+  const ranked = TEAMS.slice().sort((a,b) => (scores[b]||0) - (scores[a]||0));
+
+  // Build per-team per-cat ranks for badges
+  const catRankMap = {};
+  CATS.forEach(cat => {
+    const vals = ranked.map(t => ({ team:t, val: stats[t]?.[cat.key] || 0 }));
+    vals.sort((a,b) => cat.lower ? a.val-b.val : b.val-a.val);
+    vals.forEach((v,i) => {
+      if (!catRankMap[v.team]) catRankMap[v.team] = {};
+      catRankMap[v.team][cat.key] = i+1;
+    });
+  });
+
+  const rows = ranked.map((team, i) => {
+    const score   = (scores[team] || 0).toFixed(1);
+    const st      = stats[team] || {};
+    const rankCls = i===0?'r1':i===1?'r2':i===2?'r3':'';
+    const myCls   = team===MY_TEAM?'my-team':'';
+    const catCells = CATS.map(cat => {
+      const rank = catRankMap[team]?.[cat.key] || 8;
+      const val  = st[cat.key];
+      const disp = val != null ? cat.fmt(val) : '—';
+      const badge = rank===1?`<span class="cat-rank r1">#1</span>`
+                  : rank===8?`<span class="cat-rank r8">#8</span>`:'';
+      return `<td>${disp}${badge}</td>`;
+    }).join('');
+    const ipInsuff = st.ipInsufficient
+      ? `<span title="Under 1050 IP — 0 pts ERA/WHIP" style="color:#ef5350;font-size:9px;">⚠</span>` : '';
+    return `<tr class="${myCls}">
+      <td><span class="rank-badge ${rankCls}">${i+1}</span>${team}${team===MY_TEAM?' ⚾':''}</td>
+      ${catCells}
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">
+        ${st.IP ? st.IP.toFixed(1) : '—'}${ipInsuff}
+      </td>
+      <td class="score-pts">${score}/100</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('standings-body').innerHTML = rows;
+}
+
 function renderStandings() {
+  // If 1H standings are locked, use frozen data instead of live stats
+  if (lockedStandings1H?.locked && currentHalf === '1H') {
+    renderLockedStandingsTable(lockedStandings1H);
+    return;
+  }
   const ranked = rankTeams();
   const catRanks = getCatRanks();
   
@@ -2705,9 +2794,306 @@ async function init() {
   setLoaderMsg('Connecting to MLB Stats API...');
 
   await loadAllStats(false);
+
+  // Check if 1H standings are locked — show frozen standings + draft order
+  await loadLockedStandings();
 }
 
 init();
+
+// ════════════════════════════════════════════════════════════
+// PHASE B — 1H STANDINGS FREEZE + DRAFT ORDER
+// ════════════════════════════════════════════════════════════
+
+// ── Compute final standings using submitted lineups ───────────────────────────
+// This mirrors computeTeamStats() but uses locked lineup selections
+// instead of best-ball auto-selection.
+async function computeLockedStandings(half) {
+  const results = {};
+
+  for (const team of TEAMS) {
+    const slug   = teamSlug(team);
+    const lineup = await fbGet(`lineups/${half}/${slug}`);
+    const roster = getRoster().filter(p => p[4] === team);
+
+    // Determine which players count — from submitted lineup or auto-fill
+    let countingKeys = new Set();
+    if (lineup?.locked) {
+      // Use submitted lineup
+      for (const [pos, keys] of Object.entries(lineup)) {
+        if (Array.isArray(keys)) keys.forEach(k => countingKeys.add(k));
+      }
+    } else {
+      // Auto-fill: use best-ball algorithm (same as computeTeamStats)
+      const ts = teamStats[team];
+      if (ts) {
+        (ts.best9Pitchers || []).forEach(k => countingKeys.add(k));
+        (ts.bestHitters   || []).forEach(k => countingKeys.add(k));
+      }
+    }
+
+    // Now compute stats for only the counting players
+    const countingRoster = roster.filter(p => countingKeys.has(playerKey(p[1], p[2])));
+    const pitchers = countingRoster.filter(p => p[0] === 'P' && !p[6]);
+    const hitters  = countingRoster.filter(p => p[0] !== 'P');
+
+    // Pitching totals
+    let totW=0, totSV=0, totK=0, totalIP=0, totER=0, totWH=0;
+    for (const p of pitchers) {
+      const s = getStat(p[1], p[2]);
+      if (!s) continue;
+      const ip   = parseFloat(s.inningsPitched || 0);
+      // Convert innings like 5.2 (5 and 2/3) to decimal
+      const ipDec = Math.floor(ip) + (ip % 1) / 0.3 * (1/3);
+      totW  += s.wins   || 0;
+      totSV += s.saves  || 0;
+      totK  += s.strikeOuts || 0;
+      totalIP += ipDec;
+      totER += (parseFloat(s.era || 0) * ipDec) / 9; // back-calculate ER from ERA
+      totWH += parseFloat(s.whip || 0) * ipDec;       // back-calculate (W+H) from WHIP
+    }
+    const wspts = totW + totSV * 0.5;
+    const era   = totalIP > 0 ? (totER / totalIP) * 9 : 0;
+    const whip  = totalIP > 0 ? totWH / totalIP : 0;
+    // 1050 IP minimum — post lock, enforce the rule
+    const ipInsufficient = totalIP < 1050;
+
+    // Hitting totals
+    let totAB=0, totH=0, tot2B=0, tot3B=0, totHR=0, totR=0, totRBI=0, totSB=0;
+    for (const p of hitters) {
+      const s = getStat(p[1], p[2]);
+      if (!s) continue;
+      totAB  += s.atBats      || 0;
+      totH   += s.hits        || 0;
+      tot2B  += s.doubles     || 0;
+      tot3B  += s.triples     || 0;
+      totHR  += s.homeRuns    || 0;
+      totR   += s.runs        || 0;
+      totRBI += s.rbi         || 0;
+      totSB  += s.stolenBases || 0;
+    }
+    // Ohtani hitting
+    const ohtaniEntry = getRoster().find(p => p[1]==='Shohei Ohtani' && p[4]===team);
+    if (ohtaniEntry && countingKeys.has(playerKey('Shohei Ohtani','LAD'))) {
+      const os = getStat('Shohei Ohtani','LAD');
+      if (os) {
+        totAB  += os.atBats      || 0;
+        totH   += os.hits        || 0;
+        tot2B  += os.doubles     || 0;
+        tot3B  += os.triples     || 0;
+        totHR  += os.homeRuns    || 0;
+        totR   += os.runs        || 0;
+        totRBI += os.rbi         || 0;
+        totSB  += os.stolenBases || 0;
+      }
+    }
+
+    const avg = totAB > 0 ? totH / totAB : 0;
+    results[team] = {
+      avg, R: totR, XBH: tot2B+tot3B, HR: totHR, RBI: totRBI, SB: totSB,
+      WS: wspts, K: totK,
+      ERA:  !ipInsufficient && era > 0 && era < 50 ? era : 0,
+      WHIP: !ipInsufficient && whip > 0 && whip < 5 ? whip : 0,
+      IP: totalIP, ipInsufficient,
+      lineupSource: lineup?.locked ? 'submitted' : 'auto-filled',
+    };
+  }
+  return results;
+}
+
+// ── Pro-rated scoring on a stats object (same formula as rankTeams) ───────────
+function scoreStats(statsObj) {
+  const scores = {};
+  TEAMS.forEach(t => { scores[t] = 0; });
+
+  CATS.forEach(cat => {
+    const allVals = TEAMS.map(t => ({ team: t, val: statsObj[t]?.[cat.key] ?? 0 }));
+    const eligible = (cat.key==='ERA'||cat.key==='WHIP')
+      ? allVals.filter(v => v.val > 0 && !statsObj[v.team]?.ipInsufficient)
+      : allVals;
+    if (eligible.length === 0) return;
+
+    const best  = cat.lower ? Math.min(...eligible.map(v=>v.val)) : Math.max(...eligible.map(v=>v.val));
+    const worst = cat.lower ? Math.max(...eligible.map(v=>v.val)) : Math.min(...eligible.map(v=>v.val));
+    const range = Math.abs(best - worst);
+
+    allVals.forEach(({ team, val }) => {
+      if ((cat.key==='ERA'||cat.key==='WHIP') && (val===0||statsObj[team]?.ipInsufficient)) return;
+      if (range === 0) { scores[team] += 5; return; }
+      const pts = cat.lower
+        ? ((worst - val) / range) * 10
+        : ((val  - worst) / range) * 10;
+      scores[team] += Math.max(0, Math.min(10, pts));
+    });
+  });
+  return scores;
+}
+
+// ── Lock 1H standings (commissioner action) ──────────────────────────────────
+async function lock1HStandings() {
+  const btn = document.getElementById('lock-standings-btn');
+  const status = document.getElementById('lock-status');
+  btn.textContent = 'Computing standings...';
+  btn.style.display = 'none';
+  status.textContent = 'Fetching lineups and computing final standings...';
+
+  try {
+    // Compute locked stats using submitted lineups
+    const lockedStats = await computeLockedStandings('1h');
+    const scores      = scoreStats(lockedStats);
+
+    // Sort worst to first for draft order
+    const ranked = TEAMS.slice().sort((a,b) => scores[a] - scores[b]); // ascending = worst first
+
+    const payload = {
+      locked:    true,
+      lockedAt:  Date.now(),
+      scores,
+      stats:     lockedStats,
+      draftOrder: ranked,  // index 0 = worst (picks first), index 7 = best (picks last)
+    };
+
+    const ok = await fbSet('standings/1h', payload);
+    if (ok) {
+      await fbSet('settings/status', 'standings-locked');
+      status.textContent = `✓ 1H standings locked at ${new Date().toLocaleTimeString()}`;
+      document.getElementById('unlock-standings-btn').style.display = 'block';
+      // Refresh the standings display
+      await loadLockedStandings();
+    } else {
+      status.textContent = '✗ Firebase write failed';
+      btn.style.display = 'block';
+      btn.textContent = '🔒 Lock 1H Standings + Set Draft Order';
+    }
+  } catch(e) {
+    status.textContent = `Error: ${e.message}`;
+    btn.style.display = 'block';
+    btn.textContent = '🔒 Lock 1H Standings + Set Draft Order';
+  }
+}
+
+async function unlock1HStandings() {
+  if (!confirm('Unlock 1H standings? This allows re-locking with updated data.')) return;
+  await fbSet('standings/1h/locked', false);
+  await fbSet('settings/status', 'active');
+  document.getElementById('lock-status').textContent = 'Standings unlocked';
+  document.getElementById('unlock-standings-btn').style.display = 'none';
+  document.getElementById('lock-standings-btn').style.display = 'block';
+  document.getElementById('lock-standings-btn').textContent = '🔒 Lock 1H Standings + Set Draft Order';
+  document.getElementById('draft-order-section').style.display = 'none';
+}
+
+// ── Load locked standings from Firebase and display ───────────────────────────
+let lockedStandings1H = null;
+
+async function loadLockedStandings() {
+  const data = await fbGet('standings/1h');
+  if (!data?.locked) return false;
+
+  lockedStandings1H = data;
+
+  // Show FINAL badge in section title
+  const title = document.querySelector('#tab-standings .section-title');
+  if (title && !title.querySelector('.final-badge')) {
+    title.innerHTML += '<span class="final-badge">1H FINAL</span>';
+  }
+
+  // Show draft order section
+  const section = document.getElementById('draft-order-section');
+  section.style.display = 'block';
+  const lockedAt = new Date(data.lockedAt);
+  document.getElementById('draft-order-locked-at').textContent =
+    `Locked ${lockedAt.toLocaleDateString('en-US',{month:'short',day:'numeric'})} ${lockedAt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}`;
+
+  // Render draft order (worst to first = index 0 picks first in supplemental)
+  const order = data.draftOrder || [];
+  document.getElementById('draft-order-list').innerHTML = order.map((team, i) => {
+    const score  = data.scores?.[team]?.toFixed(1) || '—';
+    const isMy   = team === MY_TEAM;
+    return `<div class="draft-order-row">
+      <div class="draft-pick-num">${i+1}</div>
+      <div style="flex:1;font-weight:${isMy?'600':'400'};color:${isMy?'var(--green)':'var(--text)'};">
+        ${team}${isMy?' ⚾':''}
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">${score}/100</div>
+    </div>`;
+  }).join('');
+
+  return true;
+}
+
+// ── Commissioner: show lineup submission status ───────────────────────────────
+async function renderLineupSubmissions() {
+  const list = document.getElementById('lineup-submission-list');
+  if (!list) return;
+  list.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">Loading...</div>`;
+
+  const locked1H = await fbGet('standings/1h');
+  const isLocked = locked1H?.locked;
+  document.getElementById('lock-standings-btn').style.display  = isLocked ? 'none' : 'block';
+  document.getElementById('unlock-standings-btn').style.display = isLocked ? 'block' : 'none';
+  if (isLocked) {
+    document.getElementById('lock-status').textContent =
+      `Locked ${new Date(locked1H.lockedAt).toLocaleString()}`;
+  }
+
+  const rows = await Promise.all(TEAMS.map(async team => {
+    const slug   = teamSlug(team);
+    const lineup = await fbGet(`lineups/1h/${slug}`);
+    const status = lineup?.locked
+      ? `<span class="locked-badge">✓ SUBMITTED ${new Date(lineup.submittedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`
+      : `<span class="pending-badge">PENDING</span>`;
+    const autoFillBtn = !lineup?.locked
+      ? `<button class="c-btn" onclick="commAutoFillLineup('${slug}','${team}')" style="padding:3px 8px;font-size:9px;margin:0;">Auto-fill</button>`
+      : '';
+    return `<div class="lineup-status-row">
+      <span style="font-family:'DM Mono',monospace;font-size:10px;">${team}</span>
+      <div style="display:flex;align-items:center;gap:6px;">${status}${autoFillBtn}</div>
+    </div>`;
+  }));
+  list.innerHTML = rows.join('');
+}
+
+// ── Commissioner auto-fill a specific team's lineup ──────────────────────────
+async function commAutoFillLineup(slug, team) {
+  const roster = getRoster().filter(p => p[4] === team && !p[5]);
+  const ts     = teamStats[team];
+  if (!ts) { alert('Stats not loaded — refresh stats first'); return; }
+
+  const lineup = { locked: true, submittedAt: Date.now(), autoFilled: true };
+  const pitchers = roster.filter(p => p[0]==='P' && !p[6]);
+  const best9    = ts.best9Pitchers || [];
+  const sortedP  = pitchers.sort((a,b) => {
+    const ai = best9.indexOf(playerKey(a[1],a[2]));
+    const bi = best9.indexOf(playerKey(b[1],b[2]));
+    return (ai===-1?99:ai) - (bi===-1?99:bi);
+  });
+  lineup.P = sortedP.slice(0,9).map(p => playerKey(p[1],p[2]));
+
+  const bestH = ts.bestHitters || [];
+  for (const [pos, count] of Object.entries(POS_SLOTS)) {
+    if (pos === 'P') continue;
+    const pool   = roster.filter(p => p[0]===pos);
+    const sorted = pool.sort((a,b) => {
+      const ai = bestH.includes(playerKey(a[1],a[2])) ? 0 : 1;
+      const bi = bestH.includes(playerKey(b[1],b[2])) ? 0 : 1;
+      return ai - bi;
+    });
+    lineup[pos] = sorted.slice(0,count).map(p => playerKey(p[1],p[2]));
+  }
+
+  const ok = await fbSet(`lineups/1h/${slug}`, lineup);
+  if (ok) await renderLineupSubmissions();
+}
+
+// ── Patch switchCommView to load lineup status when LOCK tab opened ───────────
+const _origSwitchCommView = switchCommView;
+function switchCommView(view, el) {
+  _origSwitchCommView(view, el);
+  document.getElementById('comm-view-lock').style.display = view === 'lock' ? 'block' : 'none';
+  if (view === 'lock') renderLineupSubmissions();
+}
+
 
 // ════════════════════════════════════════════════════════════
 // PHASE A — TEAM MANAGEMENT, PIN AUTH, LINEUP LOCK
@@ -3313,6 +3699,7 @@ async function clearRosterOverride() {
       <div class="half-chip on" onclick="switchCommView('rosters',this)" style="font-size:8px;letter-spacing:0.5px;">ROSTERS</div>
       <div class="half-chip" onclick="switchCommView('teams',this)" style="font-size:8px;letter-spacing:0.5px;">TEAMS</div>
       <div class="half-chip" onclick="switchCommView('dates',this)" style="font-size:8px;letter-spacing:0.5px;">DATES</div>
+      <div class="half-chip" onclick="switchCommView('lock',this)" style="font-size:8px;letter-spacing:0.5px;">LOCK</div>
     </div>
 
     <!-- Rosters view (default) -->
@@ -3347,6 +3734,19 @@ async function clearRosterOverride() {
       <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:10px;letter-spacing:1px;">SET TEAM PINS</div>
       <div id="team-pin-fields"></div>
       <button class="c-btn confirm" id="save-pins-btn" onclick="saveTeamPins()" style="display:block;margin-top:4px;">✓ Save Team PINs</button>
+    </div>
+
+    <!-- Lock view -->
+    <div id="comm-view-lock" style="display:none;">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:10px;letter-spacing:1px;">1H LINEUP SUBMISSIONS</div>
+      <div id="lineup-submission-list" style="margin-bottom:12px;"></div>
+      <button class="c-btn confirm" onclick="lock1HStandings()" id="lock-standings-btn" style="display:block;">
+        🔒 Lock 1H Standings + Set Draft Order
+      </button>
+      <button class="c-btn red" onclick="unlock1HStandings()" id="unlock-standings-btn" style="display:none;">
+        🔓 Unlock 1H Standings
+      </button>
+      <div id="lock-status" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:8px;"></div>
     </div>
 
     <!-- Dates view -->
