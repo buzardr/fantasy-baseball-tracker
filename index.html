@@ -1886,19 +1886,22 @@ async function fetchFullRoster(teamAbbr) {
         if (isIL) {
           const full  = normalizeName(entry.person.fullName);
           const short = full.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
-          if (!map[full] || map[full].status !== 'Active') {
-            // Build a clean label from the code: D10 -> "10-Day IL", ILF -> "Full Season IL"
-            const codeLabels = { D7:'7-Day IL', D10:'10-Day IL', D15:'15-Day IL', D60:'60-Day IL', ILF:'Full Season IL' };
-            const label = codeLabels[code] || status;
-            const rec = {
-              status: label,
-              statusDate: entry.statusDate || '',
-              note:       entry.injuryNotes || entry.note || '',
-              id:         entry.person.id,
-            };
-            map[full]  = rec;
-            map[short] = rec;
-          }
+          // Always overwrite with IL — IL status from fullRoster is authoritative
+          // Build a clean label from the code: D10 -> "10-Day IL", ILF -> "Full Season IL"
+          const codeLabels = { D7:'7-Day IL', D10:'10-Day IL', D15:'15-Day IL', D60:'60-Day IL', ILF:'Full Season IL' };
+          const label = codeLabels[code] || status;
+          // MLB API uses several field names for IL placement date depending on endpoint/season
+          const rawDate = entry.statusDate || entry.injuryDate || entry.placementDate || '';
+          // DEBUG — log first IL player per team to confirm date field; remove once confirmed
+          if (!map.__debugged) { console.log(`[IL debug] ${teamAbbr} sample entry:`, JSON.parse(JSON.stringify(entry))); map.__debugged = true; }
+          const rec = {
+            status: label,
+            statusDate: rawDate,
+            note:       entry.injuryNotes || entry.note || '',
+            id:         entry.person.id,
+          };
+          map[full]  = rec;
+          map[short] = rec;
         }
       }
     }
