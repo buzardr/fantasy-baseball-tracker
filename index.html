@@ -1908,6 +1908,33 @@ async function fetchFullRoster(teamAbbr) {
   } catch(e) {
     console.error(`fetchFullRoster error for ${teamAbbr}:`, e);
   }
+  // Patch in IL placement dates from transactions API (fullRoster doesn't include dates)
+  try {
+    const today  = new Date().toISOString().split('T')[0];
+    const txUrl  = `${MLB_API}/transactions?teamId=${teamId}&startDate=2026-01-01&endDate=${today}`;
+    const txRes  = await fetch(txUrl);
+    if (txRes.ok) {
+      const txData = await txRes.json();
+      for (const tx of (txData.transactions || [])) {
+        const typeCode = tx.typeCode || tx.type?.code || '';
+        const isILTx   = typeCode.startsWith('IL') || typeCode === 'TRIL' ||
+                         (tx.description || '').toLowerCase().includes('injured list');
+        if (!isILTx) continue;
+        const personName = normalizeName(tx.person?.fullName || '');
+        const short      = personName.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
+        const txDate     = tx.date || tx.effectiveDate || '';
+        if (txDate && (map[personName] || map[short])) {
+          const entry = map[personName] || map[short];
+          if (entry.status !== 'Active' && !entry.statusDate) {
+            entry.statusDate = txDate;
+            if (!entry.note && tx.description) {
+              entry.note = tx.description;
+            }
+          }
+        }
+      }
+    }
+  } catch(e) {}
   return map;
 }
 

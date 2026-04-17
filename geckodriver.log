@@ -1423,3 +1423,92 @@ Dynamically enable window occlusion 1
 console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
 JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
 console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+1776387959628	geckodriver	INFO	Listening on 127.0.0.1:61437
+1776387963206	mozrunner::runner	INFO	Running command: "C:\\P1776387963997	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "-headless" "--remote-debugging-port" "61444" "-no-remote" "-Dynamically enable window occlusion 0
+1776387964532	Marionette	INFO	Marionette enabled
+1776387964861	MarionetDynamically enable window occlusion 0
+1776387966475	Marionette	INFO	Marionette enabled
+1776387967060	Marionette	INFO	Listening on port 61455
+WebDriver BiDi listening on[GFX1-]: Calling WaitFlushedEvent::Run: is delayed: 2299
+console.error: "Experiment visual-card-updates has unknown featureId: newtabRefinedCardsLayout"
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://universal.bullhornstaffing.com."
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://universal.bullhornstaffing.com."
+JavaScript warning: https://app.bullhornstaffing.com/chunk-BLO2XS4A.js, line 896: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://app.bullhornstaffing.com/chunk-BLO2XS4A.js, line 896: unreachable code after return statement
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornSTAFFING/MosaicBackgroundLoaderNovo.cfm?ClearLocalStorage=TRUE, line 2330: ReferenceError: e is not defined
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest33.bullhornstaffing.com/rest-services/3r0jjd/services/Export?cacheId=e3ba3c0f-4e17-4335-8044-3a623f55faca&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest33.bullhornstaffing.com/rest-services/3r0jjd/services/Export?cacheId=e3ba3c0f-4e17-4335-8044-3a623f55faca&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest33.bullhornstaffing.com/rest-services/3r0jjd/services/Export?cacheId=e3ba3c0f-4e17-4335-8044-3a623f55faca&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest33.bullhornstaffing.com/rest-services/3r0jjd/services/Export?cacheId=bafa9196-6b81-4cda-b5d2-b02dace9dbf0&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest33.bullhornstaffing.com/rest-services/3r0jjd/services/Export?cacheId=e3ba3c0f-4e17-4335-8044-3a623f55faca&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest33.bullhornstaffing.com/rest-services/3r0jjd/services/Export?cacheId=bafa9196-6b81-4cda-b5d2-b02dace9dbf0&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://rest33.bullhornstaffing.com/rest-services/3r0jjd/services/Export?cacheId=e3ba3c0f-4e17-4335-8044-3a623f55faca&BhRestToken=undefined" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+1776388869754	Marionette	INFO	Stopped listening on port 61455
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+JavaScript error: resource://gre/modules/Sqlite.sys.mjs, line 1128: Error: Connection is not open.
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+87))
+1776388450089	geckodriver	INFO	Listening on 127.0.0.1:61946
+1776388453611	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--remote-debugging-port" "61947" "-no-remote" "-profile" "C:\\Users\\ryan\\AppData\\Local\\Temp\\rust_mozprofileu5awPT"
+Dynamically enable window occlusion 0
+1776388454667	Marionette	INFO	Marionette enabled
+1776388454938	Marionette	INFO	Listening on port 61955
+WebDriver BiDi listening on ws://127.0.0.1:61947
+1776388455516	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+[GFX1-]: Calling WaitFlushedEvent::Run: is delayed: 2316
+console.error: "Experiment visual-card-updates has unknown featureId: newtabRefinedCardsLayout"
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://universal.bullhornstaffing.com."
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://universal.bullhornstaffing.com."
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://app.bullhornstaffing.com/chunk-BLO2XS4A.js, line 896: unreachable code after return statement
+JavaScript warning: https://app.bullhornstaffing.com/chunk-BLO2XS4A.js, line 896: unreachable code after return statement
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornSTAFFING/MosaicBackgroundLoaderNovo.cfm?ClearLocalStorage=TRUE, line 2330: ReferenceError: e is not defined
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=f3a606345, line 680: unreachable code after return statement
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/BullhornReporting/ReportSpecifications.cfm?reportingID=11&CFID=20654368&CFTOKEN=1c57b382c4f50ff6-9901594C-999F-6ACF-A4F396CE1BE955A1, line 331: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=f3a606345, line 680: unreachable code after return statement
+1776388735920	Marionette	WARN	Ignoring event 'DOMContentLoaded' because document has an invalid readyState of 'complete'.
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=f3a606345, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://cls33.bullhornstaffing.com/BullhornStaffing/BullhornReporting/LoadJasperReport.cfm?reportUUID=9905145F-ACA3-864D-16A5C0687A8D06FF&extension=XLS" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+console.warn: WindowsJumpLists: "Failed to fetch favicon for " "https://cls33.bullhornstaffing.com/BullhornStaffing/BullhornReporting/LoadJasperReport.cfm?reportUUID=9905145F-ACA3-864D-16A5C0687A8D06FF&extension=XLS" [Exception... "Failure"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "<unknown>"  data: no]
+1776389024880	Marionette	INFO	Stopped listening on port 61955
+Dynamically enable window occlusion 1
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+console.error: Translations: "Failed to run language detection." (new AbortError("Actor 'Translations' destroyed before query 'Translations:GetDocumentElementLang' was resolved", (void 0), 587))
+t"
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://universal.bullhornstaffing.com."
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://universal.bullhornstaffing.com."
+JavaScript warning: https://app.bullhornstaffing.com/chunk-BLO2XS4A.js, line 896: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://app.bullhornstaffing.com/chunk-BLO2XS4A.js, line 896: unreachable code after return statement
+JavaScript error: https://cls33.bullhornstaffing.com/BullhornSTAFFING/MosaicBackgroundLoaderNovo.cfm?ClearLocalStorage=TRUE, line 2330: ReferenceError: e is not defined
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=2e54451, line 680: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/scripts/BHMain_platinum.js?v=f3a606345, line 680: unreachable code after return statement
+JavaScript warning: https://cls33.bullhornstaffing.com/BullhornStaffing/BullhornReporting/ReportSpecifications.cfm?reportingID=14&CFID=20551393&CFTOKEN=aee8483511413e8f-9907E7CC-91A9-F987-A608B5A352AD7D57, line 331: unreachable code after return statement
+JavaScript error: , line 0: SyntaxError: JSON.parse: expected double-quoted property name at line 1 column 153 of the JSON data
