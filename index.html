@@ -2519,10 +2519,12 @@ function getActiveTeam(name, listedTeam) {
   const norm  = normalizeName(name);
   const short = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
 
-  // Check listed team first
-  const teamMap = rosterStatusCache[listedTeam] || {};
-  const direct  = teamMap[norm] || teamMap[short];
-  if (direct && direct.status === 'Active') return listedTeam;
+  // Check listed team first (skip if empty)
+  if (listedTeam) {
+    const teamMap = rosterStatusCache[listedTeam] || {};
+    const direct  = teamMap[norm] || teamMap[short];
+    if (direct && direct.status === 'Active') return listedTeam;
+  }
 
   // Search other teams for active entry (traded player)
   for (const [abbr, otherMap] of Object.entries(rosterStatusCache)) {
