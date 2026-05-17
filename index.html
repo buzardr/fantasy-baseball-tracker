@@ -2508,6 +2508,7 @@ let currentHalf = '1H';
 let currentTeam = 'Ballpark Franks';
 let statsCache  = {};  // { playerName: { found, id, stat, isPitcher } } — per active half
 let teamStats   = {};
+let positionOverrides = {};
 let rosterStatusCache = {}; // { "Name|Team": { status, statusDate, note } }
 let loadState   = { loaded: 0, total: 0, errors: 0 };
 
@@ -3137,7 +3138,8 @@ function renderRosters(team) {
     const isBBp       = best9.includes(playerKey(name, mlbTeam));
     const isBBh       = bestH.includes(playerKey(name, mlbTeam));
     const isBB        = isBBp || isBBh;
-    const posKey      = pos === '1B' ? 'B1' : pos === '2B' ? 'B2' : pos === '3B' ? 'B3' : pos;
+    const livePos = (isMilbFlag && positionOverrides[name]) ? positionOverrides[name] : pos;
+    const posKey  = livePos === '1B' ? 'B1' : livePos === '2B' ? 'B2' : livePos === '3B' ? 'B3' : livePos;
 
     // Name color class
     const isMiLBonIL = isMilbFlag && rStatus === 'il'; // MiLB player called up to MLB IL
@@ -3204,7 +3206,7 @@ function renderRosters(team) {
 
     return `
       <div class="player-row ${rowClass} ${isBB ? 'active-bb' : ''}">
-        <div class="pos-tag ${posKey}">${pos}</div>
+        <div class="pos-tag ${posKey}">${livePos}</div>
         <div class="il-wrapper">
           <div class="player-name ${nameClass}">${name}<span class="team-abbr">${mlbTeam}</span></div>
           ${tooltipHtml}
@@ -3334,6 +3336,12 @@ async function init() {
 
   setProgress(20);
   setLoaderMsg('Connecting to MLB Stats API...');
+  try {
+    const res = await fetch(`${FIREBASE_URL}/positionOverrides.json`);
+    positionOverrides = (await res.json()) || {};
+  } catch(e) {
+    positionOverrides = {};
+  }
 
   await loadAllStats(false);
 
