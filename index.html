@@ -3165,7 +3165,7 @@ function renderRosters(team) {
   function makeRow(p) {
     const [pos, name, mlbTeamRaw, salary, ft, isMilbFlag, ohtaniHO, isRLWIL] = p;
     const mlbTeam = getActiveTeam(name, mlbTeamRaw);
-    const cacheEntry  = statsCache[playerKey(name, mlbTeam)];
+    const cacheEntry  = statsCache[playerKey(name, mlbTeam)] || statsCache[playerKey(name, mlbTeamRaw)];
     const s           = cacheEntry?.found ? cacheEntry.stat : null;
     const milbStat    = cacheEntry?.milbStat || null;
     const milbLevel   = cacheEntry?.milbLevel || 'MiLB';
