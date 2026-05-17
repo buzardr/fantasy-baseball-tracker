@@ -2460,15 +2460,30 @@ async function fetchPositionBreakdown(playerId) {
     );
     const dhEquiv = breakdown['DH'] || 0;
 
+    // Bucket all OF sub-positions into one total (same as Python script intent)
+    const ofTotal = Object.entries(fieldingOnly)
+      .filter(([k]) => OF_POSITIONS.has(k))
+      .reduce((sum, [, v]) => sum + v, 0);
+
+    // Build a collapsed view: non-OF positions keep their innings, OF positions become one bucket
+    const collapsedFielding = {};
+    for (const [k, v] of Object.entries(fieldingOnly)) {
+      if (OF_POSITIONS.has(k)) {
+        collapsedFielding['OF'] = (collapsedFielding['OF'] || 0) + v;
+      } else {
+        collapsedFielding[k] = v;
+      }
+    }
+
     let primary;
     if (Object.keys(fieldingOnly).length === 0) {
       primary = 'OF';   // pure DH
     } else {
-      const topPos = Object.entries(fieldingOnly).sort((a, b) => b[1] - a[1])[0][0];
-      const topInn = fieldingOnly[topPos];
-      if (OF_POSITIONS.has(topPos))  primary = 'OF';
-      else if (dhEquiv > topInn)     primary = 'OF';
-      else                           primary = topPos;
+      const topPos = Object.entries(collapsedFielding).sort((a, b) => b[1] - a[1])[0][0];
+      const topInn = collapsedFielding[topPos];
+      if (topPos === 'OF')       primary = 'OF';
+      else if (dhEquiv > topInn) primary = 'OF';
+      else                       primary = topPos;
     }
 
     return { primary, breakdown };
