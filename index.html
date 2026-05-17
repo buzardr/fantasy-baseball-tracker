@@ -3643,62 +3643,81 @@ async function computeFinalStandings() {
 }
 
 async function refreshPositionOverrides() {
-  // Only MiLB-flagged players need checking
-  const milbPlayers = ROSTER.filter(p => p[5]);   // p[5] = isMilb flag
-  console.log('MiLB players found:', milbPlayers.length);  // should be ~50-60
-  console.log('Active roster cache size:', Object.keys(activeRosterCache).length);
-  const results    = [];   // for the summary display
-  const overrides  = {};   // what gets written to Firebase
+  const results   = [];
+  const overrides = {};
 
+  // Build a lookup of MLB player IDs we care about (MiLB-flagged players only)
+  const idStore   = loadIdStore();
+  const milbPlayers = getRoster().filter(p => p[5]);
+
+  // Map of playerId → player entry for quick lookup
+  const milbById = {};
   for (const p of milbPlayers) {
-    const name     = p[0];
-    const mlbTeam  = p[2];
-    const idStore = loadIdStore();
-    const storedId = idStore[playerKey(name, mlbTeam)];
-
-    if (!storedId) {
-      results.push({ name, status: 'no-id', pos: null });
-      continue;
-    }
-
-    const rosterNames = activeRosterCache[mlbTeam] || new Set();
-    if (!rosterNames.has(name.toLowerCase())) {
-      // ADD THIS TEMPORARILY:
-      if (name === 'Kevin McGonigle') {
-        console.log('McGonigle check:', name.toLowerCase());
-        console.log('DET roster cache:', activeRosterCache['DET']);
-        console.log('DET names:', [...(activeRosterCache['DET'] || new Set())].slice(0,5));
-      }
-      results.push({ name, status: 'still-milb', pos: null });
-      continue;
-    }
-    // They're in MLB — get their fielding innings breakdown
-    const posData = await fetchPositionBreakdown(storedId);
-    if (!posData) {
-      results.push({ name, status: 'no-data', pos: null });
-      continue;
-    }
-
-    overrides[name] = posData.primary;
-    results.push({ name, status: 'updated', pos: posData.primary, breakdown: posData.breakdown });
-
-    await new Promise(r => setTimeout(r, 100));  // gentle API rate limiting
+    const id = idStore[playerKey(p[1], p[2])];
+    if (id) milbById[id] = p;
   }
 
-  // Write all overrides to Firebase at once
+  console.log('MiLB players with IDs:', Object.keys(milbById).length);
+
+  // Now loop every MLB team's active 26-man roster
+  const allTeams = [...new Set(getRoster().map(p => p[2]).filter(Boolean))];
+
+  for (const teamAbbr of allTeams) {
+    const teamId = TEAM_IDS[teamAbbr];
+    if (!teamId) continue;
+
+    try {
+      const res  = await fetch(`${MLB_API}/teams/${teamId}/roster?season=2026&rosterType=active`);
+      if (!res.ok) continue;
+      const data = await res.json();
+
+      for (const entry of (data.roster || [])) {
+        const playerId = entry.person.id;
+
+        // Is this player on one of our MiLB rosters?
+        if (!milbById[playerId]) continue;
+
+        const p    = milbById[playerId];
+        const name = p[1];
+
+        console.log(`Found on active roster: ${name} (${teamAbbr})`);
+
+        // Get their fielding innings breakdown
+        const posData = await fetchPositionBreakdown(playerId);
+        if (posData) {
+          overrides[name] = posData.primary;
+          results.push({ name, status: 'updated', pos: posData.primary, breakdown: posData.breakdown });
+        } else {
+          results.push({ name, status: 'no-data', pos: null });
+        }
+
+        await new Promise(r => setTimeout(r, 100));
+      }
+    } catch(e) {
+      console.warn(`Failed fetching roster for ${teamAbbr}:`, e);
+    }
+  }
+
+  // Anyone in milbById not found above is still in minors
+  const foundNames = new Set(results.map(r => r.name));
+  for (const p of milbPlayers) {
+    if (!foundNames.has(p[1])) {
+      results.push({ name: p[1], status: 'still-milb', pos: null });
+    }
+  }
+
+  // Write to Firebase
   try {
     await fetch(`${FIREBASE_URL}/positionOverrides.json`, {
-      method : 'PUT',
+      method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body   : JSON.stringify(overrides)
+      body:    JSON.stringify(overrides)
     });
   } catch(e) {
     console.error('Firebase write failed:', e);
   }
 
-  // Apply immediately without page reload
   positionOverrides = overrides;
-
   return results;
 }
 
