@@ -3238,8 +3238,10 @@ function renderRosters(team) {
 
   const POS_ORDER_H = ['C','1B','2B','SS','3B','OF'];
   const sortedHitters = [...hitters].sort((a,b) => {
-    const ai = POS_ORDER_H.indexOf(a[0]);
-    const bi = POS_ORDER_H.indexOf(b[0]);
+    const aPosRaw = (a[5] && positionOverrides[a[1]]) ? positionOverrides[a[1]] : a[0];
+    const bPosRaw = (b[5] && positionOverrides[b[1]]) ? positionOverrides[b[1]] : b[0];
+    const ai = POS_ORDER_H.indexOf(aPosRaw);
+    const bi = POS_ORDER_H.indexOf(bPosRaw);
     return (ai===-1?99:ai) - (bi===-1?99:bi);
   });
   document.getElementById('pitcher-rows').innerHTML = pitchers.map(makeRow).join('');
