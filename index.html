@@ -3637,7 +3637,8 @@ async function computeFinalStandings() {
 async function refreshPositionOverrides() {
   // Only MiLB-flagged players need checking
   const milbPlayers = ROSTER.filter(p => p[5]);   // p[5] = isMilb flag
-  
+  console.log('MiLB players found:', milbPlayers.length);  // should be ~50-60
+  console.log('Active roster cache size:', Object.keys(activeRosterCache).length);
   const results    = [];   // for the summary display
   const overrides  = {};   // what gets written to Firebase
 
@@ -3653,8 +3654,8 @@ async function refreshPositionOverrides() {
     }
 
     // Check if player is currently on an active MLB roster
-    const rosterData = activeRosterCache[mlbTeam] || { names: new Set() };
-    if (!rosterData.names.has(name.toLowerCase())) {
+    const rosterNames = activeRosterCache[mlbTeam] || new Set();
+    if (!rosterNames.has(name.toLowerCase())) {
       results.push({ name, status: 'still-milb', pos: null });
       continue;
     }
@@ -3698,11 +3699,10 @@ async function runPositionRefresh() {
   resultsDiv.style.display = 'none';
 
   // Make sure active rosters are loaded first
-  if (Object.keys(activeRosterCache).length === 0) {
-    btn.textContent = 'Loading active rosters...';
-    const allTeams = [...new Set(ROSTER.map(p => p[2]).filter(Boolean))];
-    await Promise.all(allTeams.map(t => fetchActiveRoster(t)));
-  }
+  btn.textContent = 'Loading active rosters...';
+  const allTeams = [...new Set(getRoster().map(p => p[2]).filter(Boolean))];
+  activeRosterCache = {};
+  await Promise.all(allTeams.map(t => fetchActiveRoster(t)));
 
   btn.textContent = 'Fetching fielding data...';
   const results   = await refreshPositionOverrides();
