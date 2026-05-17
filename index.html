@@ -3648,6 +3648,9 @@ async function refreshPositionOverrides() {
 
   // Build a lookup of MLB player IDs we care about (MiLB-flagged players only)
   const idStore   = loadIdStore();
+  for (const [key, id] of Object.entries(KNOWN_IDS)) {
+    idStore[key] = id;
+  }
   const milbPlayers = getRoster().filter(p => p[5]);
 
   // Map of playerId → player entry for quick lookup
