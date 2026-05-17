@@ -2751,7 +2751,10 @@ function computeTeamStats() {
     const bestHitters = []; // track which hitters are "starters" for roster view
 
     for (const [pos, slots] of Object.entries(POS_GROUPS)) {
-      const pool = hitters.filter(p => p[0] === pos);
+      const pool = hitters.filter(p => {
+        const effectivePos = (p[5] && positionOverrides[p[1]]) ? positionOverrides[p[1]] : p[0];
+        return effectivePos === pos;
+      });
       const withStats = pool.map(p => {
         const s = getStat(p[1], p[2]);
         return {
