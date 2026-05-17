@@ -3661,13 +3661,17 @@ async function refreshPositionOverrides() {
       continue;
     }
 
-    // Check if player is currently on an active MLB roster
     const rosterNames = activeRosterCache[mlbTeam] || new Set();
     if (!rosterNames.has(name.toLowerCase())) {
+      // ADD THIS TEMPORARILY:
+      if (name === 'Kevin McGonigle') {
+        console.log('McGonigle check:', name.toLowerCase());
+        console.log('DET roster cache:', activeRosterCache['DET']);
+        console.log('DET names:', [...(activeRosterCache['DET'] || new Set())].slice(0,5));
+      }
       results.push({ name, status: 'still-milb', pos: null });
       continue;
     }
-
     // They're in MLB — get their fielding innings breakdown
     const posData = await fetchPositionBreakdown(storedId);
     if (!posData) {
