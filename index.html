@@ -1850,7 +1850,7 @@ function playerKey(name, team) {
 // MLB API returns accented names (e.g. "Edwin Díaz", "Luis García Jr.")
 // while our ROSTER uses plain ASCII ("Edwin Diaz", "Luis Garcia").
 function normalizeName(s) {
-  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\./g, '').toLowerCase().trim();
 }
 
 async function fetchFullRoster(teamAbbr) {
@@ -1942,11 +1942,13 @@ async function fetchFullRoster(teamAbbr) {
 async function fetchMiLBStats(playerId, isPitcher) {
   const group    = isPitcher ? 'pitching' : 'hitting';
   // Cascade from AAA (11) down to A (14) — return first level with stats
-  const levels   = [
+  const levels = [
     { id: 11, label: 'AAA' },
     { id: 12, label: 'AA' },
     { id: 13, label: 'High-A' },
     { id: 14, label: 'A' },
+    { id: 16, label: 'ACL' },
+    { id: 17, label: 'DSL' },
   ];
   for (const lvl of levels) {
     try {
