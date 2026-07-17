@@ -2557,7 +2557,12 @@ let statsCache  = {};  // { playerName: { found, id, stat, isPitcher } } — per
 let teamStats   = {};
 let positionOverrides = {};
 let rosterStatusCache = {}; // { "Name|Team": { status, statusDate, note } }
-let loadState   = { loaded: 0, total: 0, errors: 0 };
+// Generation guard: if loadAllStats() ever gets triggered twice in
+// overlapping fashion (e.g. a tab-switch load still running when a roster
+// refresh or "Refresh Stats" click fires another one), this ensures an
+// older, slower call can't clobber a newer one's progress display or
+// results — only the most recently started call is allowed to apply.
+let loadGeneration = 0;
 
 // ════════════════════════════════════════════════════════════
 // CACHE MANAGEMENT
@@ -2622,28 +2627,45 @@ function getDateRange(half) {
 // ════════════════════════════════════════════════════════════
 
 async function loadAllStats(force = false) {
+  // Snapshot the generation and the half this call is for, right at the
+  // start. If loadAllStats() gets triggered again before this call finishes
+  // (e.g. a tab-switch load still running when "Refresh Stats" is clicked,
+  // or the user switches halves mid-flight), this call becomes "stale" —
+  // it keeps running to completion internally (harmless), but is blocked
+  // from ever overwriting the newer call's progress bar or final results.
+  // Capturing `myHalf` up front (instead of re-reading the shared global
+  // `currentHalf` throughout) also stops a half-switch mid-flight from
+  // making an in-progress 1H load quietly finish as if it were 2H, or vice
+  // versa — that cross-contamination was the "724/390" symptom.
+  const myGen  = ++loadGeneration;
+  const myHalf = currentHalf;
+  const isCurrent = () => myGen === loadGeneration;
+
   setStatus('load', 'Checking cache...');
 
   // ── Phase 0: Fetch roster status first (always, even on cache hits) ──
   // Drives name colors, IL badges, and header counts on every load.
   setLoaderMsg('Fetching team rosters...');
-  rosterStatusCache = {};
+  const freshRosterStatusCache = {};
   const allTeams = [...new Set(getRoster().map(p => p[2]).filter(Boolean))];
   const rosterMaps = await Promise.all(allTeams.map(t => fetchFullRoster(t)));
-  allTeams.forEach((t, i) => { rosterStatusCache[t] = rosterMaps[i]; });
+  allTeams.forEach((t, i) => { freshRosterStatusCache[t] = rosterMaps[i]; });
+  if (!isCurrent()) return; // a newer call has since started — abandon this one
+  rosterStatusCache = freshRosterStatusCache;
 
   // Once 1H is frozen (past the ASB cutoff, or commissioner-locked), its cached
   // stats are final — skip re-fetching even on an explicit "Refresh Stats" click.
-  const frozen1H = currentHalf === '1H' && is1HFrozen();
+  const frozen1H = myHalf === '1H' && is1HFrozen();
 
   if (!force || frozen1H) {
-    const cached = loadCachedStats(currentHalf);
+    const cached = loadCachedStats(myHalf);
     if (cached) {
+      if (!isCurrent()) return;
       statsCache = cached;
       const n = Object.values(cached).filter(v => v.found).length;
       setStatus('ok', frozen1H
         ? `1H stats final · ${n} players · no re-fetch needed`
-        : `Loaded from cache · ${n} players with stats · ${currentHalf}`);
+        : `Loaded from cache · ${n} players with stats · ${myHalf}`);
       updateLastUpdated();
       computeTeamStats();
       renderAll();
@@ -2661,7 +2683,7 @@ async function loadAllStats(force = false) {
   }
 
   const allPlayers = getRoster();
-  loadState = { loaded: 0, total: allPlayers.length, errors: 0 };
+  const loadState  = { loaded: 0, total: allPlayers.length, errors: 0 }; // local — never shared across calls
 
   const needsSearch = allPlayers.filter(p => !idStore[playerKey(p[1], p[2])]);
   if (needsSearch.length > 0) {
@@ -2674,19 +2696,22 @@ async function loadAllStats(force = false) {
         const found = await resolvePlayerId(p[1], p[2]);
         idStore[key] = found || null;
       }));
+      if (!isCurrent()) return;
       setProgress(15 + Math.round(((i + batch.length) / needsSearch.length) * 10));
     }
     saveIdStore(idStore);
   }
 
+  if (!isCurrent()) return;
   setProgress(25);
   setLoaderMsg('Fetching MLB stats...');
 
   // ── Phase 2: Fetch MLB stats for all players ──────────────
-  const { start, end, valid } = getDateRange(currentHalf);
+  const { start, end, valid } = getDateRange(myHalf);
 
   // 2H stats don't exist until after the All-Star Break
   if (!valid) {
+    if (!isCurrent()) return;
     setStatus('ok', `2H stats not available until after the All-Star Break (~July 14, 2026)`);
     document.getElementById('standings-body').innerHTML =
       `<tr><td colspan="14" style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:40px;">
@@ -2743,21 +2768,25 @@ async function loadAllStats(force = false) {
       loadState.loaded++;
     }));
 
+    if (!isCurrent()) return; // a newer call has since started — abandon this one
+
     const pct = 25 + Math.round(((i + batch.length) / allPlayers.length) * 73);
     setProgress(pct);
     setLoaderMsg(`Stats: ${loadState.loaded}/${loadState.total}`);
     setStatus('load', `Loading ${loadState.loaded}/${loadState.total}...`);
   }
 
+  if (!isCurrent()) return;
+
   statsCache = newCache;
-  saveCachedStats(currentHalf, newCache);
+  saveCachedStats(myHalf, newCache);
   setProgress(100);
   updateLastUpdated();
   computeTeamStats();
   renderAll();
 
   const found = allPlayers.length - loadState.errors;
-  setStatus('ok', `${found} MLB · ${loadState.errors} MiLB/IL · ${currentHalf}`);
+  setStatus('ok', `${found} MLB · ${loadState.errors} MiLB/IL · ${myHalf}`);
   setLoaderMsg('Done!');
   setTimeout(hideLoader, 500);
 }
