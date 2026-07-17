@@ -2709,13 +2709,25 @@ async function loadAllStats(force = false) {
       if (stat) {
         newCache[key] = { found: true, id: playerId, stat, isPitcher: needsPitching };
       } else {
-        // No MLB stats — try MiLB stats
-        const milbResult = await fetchMiLBStats(playerId, needsPitching);
-        if (milbResult) {
-          newCache[key] = { found: false, id: playerId, milbStat: milbResult.stat,
-                            milbLevel: milbResult.level, isPitcher: needsPitching };
+        // No stats in this date range. Before assuming this means "in the
+        // minors," check the player's REAL current MLB roster status
+        // (Active/IL/MiLB), fetched fresh in Phase 0. A confirmed MLB
+        // active/IL player with zero games in a short window (e.g. a
+        // starting pitcher a few days into a new half) simply hasn't
+        // played yet — it does NOT mean he's a minor leaguer, and pulling
+        // in an unrelated MiLB stat line for him is wrong.
+        const rStatus = getRosterStatus(name, mlbTeam);
+        if (rStatus === 'active' || rStatus === 'il') {
+          newCache[key] = { found: true, id: playerId, stat: null, isPitcher: needsPitching, noGamesYet: true };
         } else {
-          newCache[key] = { found: false, id: playerId };
+          // Genuinely not on an MLB roster — safe to check MiLB stats
+          const milbResult = await fetchMiLBStats(playerId, needsPitching);
+          if (milbResult) {
+            newCache[key] = { found: false, id: playerId, milbStat: milbResult.stat,
+                              milbLevel: milbResult.level, isPitcher: needsPitching };
+          } else {
+            newCache[key] = { found: false, id: playerId };
+          }
         }
         loadState.errors++;
       }
