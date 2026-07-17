@@ -984,6 +984,7 @@
   }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 </head>
 <body>
 
@@ -2777,7 +2778,12 @@ function computeTeamStats() {
   teamStats = {};
 
   for (const team of TEAMS) {
-    const roster   = getRoster().filter(p => p[4] === team &&
+    // RLWIL players (red-font in the roster upload) are ineligible for stats
+    // this half per league rules — exclude them from the candidate pool
+    // entirely so they can never be auto-selected into best9/bestHitters,
+    // regardless of whether they have partial-half stats from before landing
+    // on the RLW IL. Applies the same way to both 1H and 2H.
+    const roster   = getRoster().filter(p => p[4] === team && !p[7] &&
                        statsCache[playerKey(p[1], p[2])]?.found === true);
     const pitchers = roster.filter(p => p[0] === 'P');
     const hitters  = roster.filter(p => p[0] !== 'P');
@@ -5183,8 +5189,11 @@ async function computeLockedStandings(half) {
       }
     }
 
-    // Now compute stats for only the counting players
-    const countingRoster = roster.filter(p => countingKeys.has(playerKey(p[1], p[2])));
+    // Now compute stats for only the counting players. RLWIL players are
+    // excluded here as a final safety net too — their stats are ineligible
+    // per league rules regardless of how they ended up in countingKeys
+    // (submitted lineup, auto-fill, or a file-based upload).
+    const countingRoster = roster.filter(p => countingKeys.has(playerKey(p[1], p[2])) && !p[7]);
     const pitchers = countingRoster.filter(p => p[0] === 'P' && !p[6]);
     const hitters  = countingRoster.filter(p => p[0] !== 'P');
 
@@ -5417,7 +5426,7 @@ async function renderLineupSubmissions() {
 
 // ── Commissioner auto-fill a specific team's lineup ──────────────────────────
 async function commAutoFillLineup(slug, team) {
-  const roster = getRoster().filter(p => p[4] === team && !p[5]);
+  const roster = getRoster().filter(p => p[4] === team && !p[5] && !p[7]);
   const ts     = teamStats[team];
   if (!ts) { alert('Stats not loaded — refresh stats first'); return; }
 
@@ -5482,14 +5491,14 @@ function closeCommLineupEditor() {
 
 function renderCommLineupSelectors(roster, savedLineup) {
   const container = document.getElementById('comm-lineup-selectors');
-  const pitchers = roster.filter(p => p[0] === 'P' && !p[6] &&
+  const pitchers = roster.filter(p => p[0] === 'P' && !p[6] && !p[7] &&
     (!p[5] || statsCache[playerKey(p[1], p[2])]?.found === true));
   const byPos = {};
   for (const [pos] of Object.entries(POS_SLOTS)) {
     if (pos === 'P') continue;
     byPos[pos] = roster.filter(p => {
       const effectivePos = (p[5] && positionOverrides[p[1]]) ? positionOverrides[p[1]] : p[0];
-      return effectivePos === pos &&
+      return effectivePos === pos && !p[7] &&
         (!p[5] || statsCache[playerKey(p[1], p[2])]?.found === true);
     });
   }
@@ -5815,14 +5824,14 @@ function renderLockedLineup(lineup, roster) {
 
 function renderLineupSelectors(roster, savedLineup) {
   const container = document.getElementById('lineup-selectors');
-  const pitchers = roster.filter(p => p[0] === 'P' && !p[6] && 
+  const pitchers = roster.filter(p => p[0] === 'P' && !p[6] && !p[7] &&
     (!p[5] || statsCache[playerKey(p[1], p[2])]?.found === true));
   const byPos = {};
   for (const [pos] of Object.entries(POS_SLOTS)) {
     if (pos === 'P') continue;
     byPos[pos] = roster.filter(p => {
       const effectivePos = (p[5] && positionOverrides[p[1]]) ? positionOverrides[p[1]] : p[0];
-      return effectivePos === pos && 
+      return effectivePos === pos && !p[7] &&
         (!p[5] || statsCache[playerKey(p[1], p[2])]?.found === true);
     });
   }
@@ -5862,7 +5871,7 @@ function renderLineupSelectors(roster, savedLineup) {
 
 function autoFillLineup() {
   if (!sessionTeam) return;
-  const roster = getRoster().filter(p => p[4] === sessionTeam && !p[5]);
+  const roster = getRoster().filter(p => p[4] === sessionTeam && !p[5] && !p[7]);
   const ts = teamStats[sessionTeam];
   if (!ts) { alert('Stats not loaded yet — refresh stats first'); return; }
 
@@ -6063,16 +6072,20 @@ const TEAM_COL_MAP = [
 // isRLWIL: player is on the RLW Injured List (red font in xlsx) — stats don't count that half
 
 function parseXlsxToRoster(workbook) {
-  const wsName = workbook.SheetNames[0];
-  const ws     = workbook.Sheets[wsName];
+  const ws = workbook.worksheets[0];
 
-  // Must use cellStyles:true when reading — already set on import
-  // SheetJS cell style: ws[addr].s?.font?.color?.rgb === 'FFFF0000' for red
+  // ExcelJS reads font styles reliably. SheetJS's free "Community Edition"
+  // build (used elsewhere in this app for the Final Stats File feature,
+  // which doesn't need style info) often fails to expose font color at all
+  // for some files, even with cellStyles:true — that was silently causing
+  // RLWIL (red-font) detection to miss real red-flagged players. Red font
+  // on a player's name cell marks them as RLW IL for that half.
   function isRedFont(addr) {
-    const cell = ws[addr];
-    if (!cell || !cell.s) return false;
-    const rgb = cell.s?.font?.color?.rgb || cell.s?.font?.color?.argb || '';
-    return rgb === 'FFFF0000' || rgb === 'FF0000';
+    const cell = ws.getCell(addr);
+    const color = cell?.font?.color;
+    if (!color) return false;
+    const argb = (color.argb || color.rgb || '').toUpperCase();
+    return argb === 'FFFF0000' || argb === 'FF0000';
   }
 
   // Convert col index (0-based) to Excel letter
@@ -6087,7 +6100,33 @@ function parseXlsxToRoster(workbook) {
     return s;
   }
 
-  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  // Extract plain text/value from an ExcelJS cell (handles rich text and
+  // formula results, which come back as objects rather than plain values).
+  function cellText(cell) {
+    const v = cell?.value;
+    if (v === null || v === undefined) return null;
+    if (typeof v === 'object' && !(v instanceof Date)) {
+      if (Array.isArray(v.richText)) return v.richText.map(rt => rt.text).join('');
+      if ('result' in v) return v.result;
+      if ('text' in v) return v.text;
+      return null;
+    }
+    return v;
+  }
+
+  // Build a 0-indexed 2D array of cell values, mirroring the shape
+  // XLSX.utils.sheet_to_json(ws, {header:1}) used to produce, so the
+  // row-parsing logic below stays unchanged.
+  const rows = [];
+  const maxCol = Math.max(ws.columnCount || 0, 40);
+  ws.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+    const arr = [];
+    for (let c = 1; c <= maxCol; c++) {
+      arr[c - 1] = cellText(row.getCell(c));
+    }
+    rows[rowNumber - 1] = arr;
+  });
+
   const result = [];
 
   // ── MLB SECTION: rows 3–51 (0-indexed: 2–50) ─────────────────────────────
@@ -6117,6 +6156,9 @@ function parseXlsxToRoster(workbook) {
 
       if (!nameVal || !String(nameVal).trim()) continue;
       if (!posVal  || !String(posVal).trim())  continue;
+      // Skip legend/footer rows (e.g. "Red=Injured List" salary-cap-total
+      // row) that can fall within the row-count-based section boundary.
+      if (/injured list/i.test(String(nameVal)) || /injured list/i.test(String(posVal))) continue;
 
       const nameStr  = String(nameVal).trim();
       const posStr   = String(posVal).trim();
@@ -6150,6 +6192,7 @@ function parseXlsxToRoster(workbook) {
 
       if (!nameVal || !String(nameVal).trim()) continue;
       if (!posVal  || !String(posVal).trim())  continue;
+      if (/injured list/i.test(String(nameVal)) || /injured list/i.test(String(posVal))) continue;
 
       const nameStr = String(nameVal).trim();
       const posStr  = String(posVal).trim();
@@ -6517,16 +6560,18 @@ function handleXlsxFile(file) {
   if (!file) return;
   document.getElementById('upload-status').textContent = `Reading ${file.name}...`;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     try {
-      const wb = XLSX.read(e.target.result, { type: 'array', cellStyles: true });
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(e.target.result);
       const { roster, errors } = parseXlsxToRoster(wb);
       pendingRoster = roster;
       const teams = {};
       roster.forEach(p => { teams[p[4]] = (teams[p[4]] || 0) + 1; });
       const summary = Object.entries(teams).map(([t,n]) => `${t}: ${n}`).join(' · ');
+      const rlwilCount = roster.filter(p => p[7]).length;
       document.getElementById('upload-status').textContent =
-        `✓ Parsed ${roster.length} players · ${file.name}`;
+        `✓ Parsed ${roster.length} players · ${rlwilCount} on RLW IL (red font) · ${file.name}`;
       document.getElementById('upload-preview').textContent = summary;
       document.getElementById('upload-preview').style.display = 'block';
       document.getElementById('confirm-btn').style.display = 'block';
