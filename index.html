@@ -2559,6 +2559,15 @@ let loadState   = { loaded: 0, total: 0, errors: 0 };
 
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
+// 1H stats stop changing once the All-Star Break starts (or sooner, if the
+// commissioner explicitly locks 1H standings from the admin panel). Once
+// frozen, 1H's cached stats are permanent — no more TTL expiry, no more
+// re-fetching from the MLB API, even on an explicit "Refresh Stats" click.
+const ASB_FREEZE_DATE = new Date('2026-07-13T00:00:00');
+function is1HFrozen() {
+  return new Date() >= ASB_FREEZE_DATE || !!(lockedStandings1H?.locked);
+}
+
 function statCacheKey(half) { return `rlw_stats_2026_${half}_v3`; }
 
 function loadCachedStats(half) {
@@ -2566,6 +2575,7 @@ function loadCachedStats(half) {
     const raw = localStorage.getItem(statCacheKey(half));
     if (!raw) return null;
     const { ts, data } = JSON.parse(raw);
+    if (half === '1H' && is1HFrozen()) return data; // frozen — never expires
     if (Date.now() - ts < CACHE_TTL_MS) return data;
     return null;
   } catch(e) { return null; }
@@ -2613,12 +2623,18 @@ async function loadAllStats(force = false) {
   const rosterMaps = await Promise.all(allTeams.map(t => fetchFullRoster(t)));
   allTeams.forEach((t, i) => { rosterStatusCache[t] = rosterMaps[i]; });
 
-  if (!force) {
+  // Once 1H is frozen (past the ASB cutoff, or commissioner-locked), its cached
+  // stats are final — skip re-fetching even on an explicit "Refresh Stats" click.
+  const frozen1H = currentHalf === '1H' && is1HFrozen();
+
+  if (!force || frozen1H) {
     const cached = loadCachedStats(currentHalf);
     if (cached) {
       statsCache = cached;
       const n = Object.values(cached).filter(v => v.found).length;
-      setStatus('ok', `Loaded from cache · ${n} players with stats · ${currentHalf}`);
+      setStatus('ok', frozen1H
+        ? `1H stats final · ${n} players · no re-fetch needed`
+        : `Loaded from cache · ${n} players with stats · ${currentHalf}`);
       updateLastUpdated();
       computeTeamStats();
       renderAll();
