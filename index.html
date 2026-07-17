@@ -2823,22 +2823,10 @@ function computeTeamStats() {
       });
     }
 
-    // Ohtani hitting: he's listed as OF with ohtaniHO=true — add his hitting stats
-    const ohtaniEntry = getRoster().find(p => p[1] === 'Shohei Ohtani' && p[4] === team);
-    if (ohtaniEntry) {
-      const os = getStat('Shohei Ohtani', 'LAD');
-      if (os) {
-        totAB  += os.atBats      || 0;
-        totH   += os.hits        || 0;
-        tot2B  += os.doubles     || 0;
-        tot3B  += os.triples     || 0;
-        totHR  += os.homeRuns    || 0;
-        totR   += os.runs        || 0;
-        totRBI += os.rbi         || 0;
-        totSB  += os.stolenBases || 0;
-        bestHitters.push(playerKey('Shohei Ohtani', 'LAD'));
-      }
-    }
+    // NOTE: Ohtani's hitting stats are NOT added here separately. He is already
+    // included in the `hitters` pool above (pos === 'OF', ohtaniHO only excludes
+    // him from the PITCHER pool) and competes for one of the 6 best-ball OF slots
+    // like any other outfielder. Adding him again here double-counted his stats.
 
     const avg = totAB > 0 ? totH / totAB : 0;
 
@@ -5153,21 +5141,10 @@ async function computeLockedStandings(half) {
       totRBI += s.rbi         || 0;
       totSB  += s.stolenBases || 0;
     }
-    // Ohtani hitting
-    const ohtaniEntry = getRoster().find(p => p[1]==='Shohei Ohtani' && p[4]===team);
-    if (ohtaniEntry && countingKeys.has(playerKey('Shohei Ohtani','LAD'))) {
-      const os = getStat('Shohei Ohtani','LAD');
-      if (os) {
-        totAB  += os.atBats      || 0;
-        totH   += os.hits        || 0;
-        tot2B  += os.doubles     || 0;
-        tot3B  += os.triples     || 0;
-        totHR  += os.homeRuns    || 0;
-        totR   += os.runs        || 0;
-        totRBI += os.rbi         || 0;
-        totSB  += os.stolenBases || 0;
-      }
-    }
+    // NOTE: Ohtani's hitting stats are NOT added here separately — see note in
+    // computeTeamStats(). He's already covered by the `hitters` loop above
+    // whenever his key is present in countingKeys (auto best-ball OF slot or
+    // manually locked lineup slot). Adding him again here double-counted his stats.
 
     const avg = totAB > 0 ? totH / totAB : 0;
     results[team] = {
