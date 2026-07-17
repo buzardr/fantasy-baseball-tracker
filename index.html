@@ -2564,6 +2564,15 @@ let rosterStatusCache = {}; // { "Name|Team": { status, statusDate, note } }
 // results — only the most recently started call is allowed to apply.
 let loadGeneration = 0;
 
+// Same generation-guard pattern for loadRosterFromFirebase() — without this,
+// an older/slower roster fetch (e.g. for 1H) could resolve AFTER a newer one
+// (e.g. for 2H) and silently overwrite ROSTER_OVERRIDE with the wrong
+// half's data. Declared here (not next to the function itself, further
+// down) because init() is called much earlier in the script and calls into
+// loadRosterFromFirebase synchronously — a declaration placed later would
+// still be in its temporal dead zone at that point.
+let rosterLoadGeneration = 0;
+
 // ════════════════════════════════════════════════════════════
 // CACHE MANAGEMENT
 // Separate TTL caches per half so switching 1H↔2H↔FULL
@@ -6081,13 +6090,9 @@ async function fbSet(path, data) {
 }
 
 // ── Load roster from Firebase on startup ────────────────────────────────────
-// Generation guard for roster loading — same pattern as loadGeneration in
-// loadAllStats(). Without this, an older/slower roster fetch (e.g. for 1H)
-// could resolve AFTER a newer one (e.g. for 2H) and silently overwrite
-// ROSTER_OVERRIDE with the wrong half's data, making that half's RLWIL
-// flags (and everything else) appear to vanish.
-let rosterLoadGeneration = 0;
-
+// (rosterLoadGeneration is declared earlier, alongside the other app-state
+// variables, since init() calls into this function before this point in
+// the script would otherwise have executed.)
 async function loadRosterFromFirebase(half) {
   const myGen = ++rosterLoadGeneration;
   const data = await fbGet(`rosters/${half}`);
