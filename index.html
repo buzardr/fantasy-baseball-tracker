@@ -3483,6 +3483,8 @@ function selectTeam(team) {
 }
 
 async function init() {
+  console.log('[DIAG] init() started. Date.now() =', new Date().toISOString(), '| ASB_FREEZE_DATE =', ASB_FREEZE_DATE.toISOString(), '| currentHalf before ASB check =', currentHalf);
+
   // Once the season is officially past the All-Star Break, default returning
   // visitors to the 2ND HALF view instead of the now-frozen 1H one. Manual
   // half switching via the tabs still works normally after this.
@@ -3495,11 +3497,14 @@ async function init() {
     if (info) info.textContent = 'Second half stats: All-Star Break → End of Season';
   }
 
+  console.log('[DIAG] currentHalf AFTER ASB check =', currentHalf, '— about to call loadRosterFromFirebase with this value');
+
   setProgress(5);
   setLoaderMsg('Loading roster data...');
 
   // Try to load roster from Firebase first (commissioner may have uploaded XLSX)
   const loaded = await loadRosterFromFirebase(currentHalf);
+  console.log('[DIAG] loadRosterFromFirebase returned:', loaded, '| ROSTER_OVERRIDE now has', ROSTER_OVERRIDE ? ROSTER_OVERRIDE.length : 'null (using hardcoded fallback ROSTER)', 'players');
   if (loaded) {
     setLoaderMsg('Roster loaded from Firebase...');
   }
@@ -6095,13 +6100,18 @@ async function fbSet(path, data) {
 // the script would otherwise have executed.)
 async function loadRosterFromFirebase(half) {
   const myGen = ++rosterLoadGeneration;
+  console.log(`[DIAG] loadRosterFromFirebase called with half="${half}", generation=${myGen}`);
   const data = await fbGet(`rosters/${half}`);
-  if (myGen !== rosterLoadGeneration) return false; // a newer roster load has since started — abandon this one
+  if (myGen !== rosterLoadGeneration) {
+    console.log(`[DIAG] loadRosterFromFirebase generation=${myGen} is STALE (current is ${rosterLoadGeneration}) — abandoning, NOT applying this half="${half}" result`);
+    return false;
+  }
   if (data && Array.isArray(data) && data.length > 0) {
     ROSTER_OVERRIDE = data;
-    console.log(`Loaded ${data.length} players from Firebase rosters/${half}`);
+    console.log(`[DIAG] Loaded ${data.length} players from Firebase rosters/${half} — this is now ROSTER_OVERRIDE`);
     return true;
   }
+  console.log(`[DIAG] rosters/${half} returned no usable data (data=`, data, `) — ROSTER_OVERRIDE unchanged`);
   return false;
 }
 
