@@ -6347,9 +6347,16 @@ function handleFinalStatsDrop(e) {
 
 async function confirmFinalStatsUpload() {
   if (!pendingFinalStats) return;
+
+  const discCount = pendingFinalStats.discrepancies.length;
+  const discLine = discCount > 0
+    ? `\n\n⚠ ${discCount} stat discrepanc${discCount === 1 ? 'y' : 'ies'} found vs. the site's live-pulled stats (see browser console). Locking now will use the FILE's numbers, not the live ones.\n`
+    : `\n\n✓ No discrepancies found vs. the site's live-pulled stats.\n`;
+
   if (!confirm(
-    "This will OVERWRITE all 8 teams' 1H lineups and lock 1H standings using this file.\n\n" +
-    "Any lineup a team already submitted themselves will be replaced. This action can be repeated later by uploading a corrected file. Continue?"
+    "This will OVERWRITE all 8 teams' 1H lineups and lock 1H standings using this file." +
+    discLine +
+    "\nAny lineup a team already submitted themselves will be replaced. This action can be repeated later by uploading a corrected file. Continue?"
   )) return;
 
   const statusEl = document.getElementById('final-stats-status');
