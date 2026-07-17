@@ -6081,8 +6081,17 @@ async function fbSet(path, data) {
 }
 
 // ── Load roster from Firebase on startup ────────────────────────────────────
+// Generation guard for roster loading — same pattern as loadGeneration in
+// loadAllStats(). Without this, an older/slower roster fetch (e.g. for 1H)
+// could resolve AFTER a newer one (e.g. for 2H) and silently overwrite
+// ROSTER_OVERRIDE with the wrong half's data, making that half's RLWIL
+// flags (and everything else) appear to vanish.
+let rosterLoadGeneration = 0;
+
 async function loadRosterFromFirebase(half) {
+  const myGen = ++rosterLoadGeneration;
   const data = await fbGet(`rosters/${half}`);
+  if (myGen !== rosterLoadGeneration) return false; // a newer roster load has since started — abandon this one
   if (data && Array.isArray(data) && data.length > 0) {
     ROSTER_OVERRIDE = data;
     console.log(`Loaded ${data.length} players from Firebase rosters/${half}`);
