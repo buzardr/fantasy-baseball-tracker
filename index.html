@@ -3413,6 +3413,18 @@ function selectTeam(team) {
 }
 
 async function init() {
+  // Once the season is officially past the All-Star Break, default returning
+  // visitors to the 2ND HALF view instead of the now-frozen 1H one. Manual
+  // half switching via the tabs still works normally after this.
+  if (new Date() >= ASB_FREEZE_DATE) {
+    currentHalf = '2H';
+    document.querySelectorAll('.half-btn').forEach(b => b.classList.remove('active'));
+    const btn2H = document.getElementById('btn-2H');
+    if (btn2H) btn2H.classList.add('active');
+    const info = document.getElementById('controls-info');
+    if (info) info.textContent = 'Second half stats: All-Star Break → End of Season';
+  }
+
   setProgress(5);
   setLoaderMsg('Loading roster data...');
 
