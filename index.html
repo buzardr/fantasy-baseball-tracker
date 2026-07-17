@@ -2782,7 +2782,13 @@ function computeTeamStats() {
     const pitchers = roster.filter(p => p[0] === 'P');
     const hitters  = roster.filter(p => p[0] !== 'P');
 
-    // ── PITCHERS: Best Ball picks best 9 by ERA ──────────
+    // ── PITCHERS: Best Ball picks best 9 by a composite of W+S, K, and ERA
+    // (equal 1/3 weight each), not ERA alone. Weighting only by ERA over-
+    // projects pitchers with a great rate but almost no innings (e.g. hurt
+    // most of the half) ahead of full-workload pitchers who actually
+    // contribute counting stats — W and K are raw totals, so a low-IP
+    // pitcher's meager win/strikeout total naturally drags his composite
+    // score down even if his ERA alone looks excellent.
     const pitcherStats = pitchers
       .filter(p => !p[6]) // exclude Ohtani's pitcher slot
       .map(p => {
@@ -2800,13 +2806,33 @@ function computeTeamStats() {
         };
       });
 
-    // Sort: pitchers with stats first (by ERA asc), then no-stats ones last
-    const sorted = [...pitcherStats].sort((a, b) => {
-      if (!a.hasStats && !b.hasStats) return 0;
-      if (!a.hasStats) return 1;
-      if (!b.hasStats) return -1;
-      return a.era - b.era;
-    });
+    // Min-max normalize a metric to 0-10 within this team's own candidate
+    // pool (same pro-rating approach used for league scoring).
+    function normalize01(vals, val, lowerBetter) {
+      const max = Math.max(...vals), min = Math.min(...vals);
+      const range = max - min;
+      if (range === 0) return 5; // everyone equal — neutral
+      const pct = lowerBetter ? (max - val) / range : (val - min) / range;
+      return pct * 10;
+    }
+
+    const eligible = pitcherStats.filter(p => p.hasStats);
+    const noStats  = pitcherStats.filter(p => !p.hasStats);
+
+    if (eligible.length > 0) {
+      const wsVals  = eligible.map(p => p.w + p.sv * 0.5);
+      const kVals   = eligible.map(p => p.k);
+      const eraVals = eligible.map(p => p.era);
+      eligible.forEach(p => {
+        const wsScore  = normalize01(wsVals,  p.w + p.sv * 0.5, false);
+        const kScore   = normalize01(kVals,   p.k,              false);
+        const eraScore = normalize01(eraVals, p.era,            true); // lower ERA is better
+        p.selectionScore = (wsScore + kScore + eraScore) / 3;
+      });
+    }
+
+    // Sort: pitchers with stats first (by composite score desc), then no-stats ones last
+    const sorted = [...eligible].sort((a, b) => b.selectionScore - a.selectionScore).concat(noStats);
     const best9 = sorted.slice(0, 9);
 
     // IP-weighted ERA/WHIP across the best 9
