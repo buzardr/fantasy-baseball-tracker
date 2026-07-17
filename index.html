@@ -1854,6 +1854,13 @@ function normalizeName(s) {
   return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\./g, '').toLowerCase().trim();
 }
 
+// Loose match: normalize + strip Jr/Sr/II/III/IV suffixes. Used when matching
+// player names from an externally-prepared file (e.g. final stats upload)
+// against the roster, where suffix formatting can differ slightly.
+function normNameLoose(s) {
+  return normalizeName(s).replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
+}
+
 async function fetchFullRoster(teamAbbr) {
   const teamId = TEAM_IDS[teamAbbr];
   if (!teamId) return {};
@@ -6107,6 +6114,213 @@ function parseXlsxToRoster(workbook) {
   return { roster: result, errors: [] };
 }
 
+// ════════════════════════════════════════════════════════════
+// FINAL 1H STATS FILE UPLOAD (offline-computed override)
+// Lets the commissioner lock in all 8 teams' 1H standings at once
+// from an externally-prepared workbook (e.g. handled offline), using
+// its "Detail" sheet — which already lists each team's final,
+// best-ball-selected 25-man counting roster with aggregated stats.
+// This supersedes any team's self-submitted lineup for 1H.
+// ════════════════════════════════════════════════════════════
+
+// Short codes used in the file's RLW column → full fantasy team names
+const RLW_ABBR_MAP = {
+  'Ballpark': 'Ballpark Franks',
+  'Brave':    'Brave Mistakes',
+  'Gang':     'The James Gang',
+  "Js":       "J's",
+  'Motwin':   'Motwin Shufflers',
+  'Oneders':  'Oneders',
+  'Team':     'Team America',
+  'Yukon':    'Yukon Jacks',
+};
+
+function parseFinalStatsXlsx(workbook) {
+  const sheet = workbook.Sheets['Detail'];
+  if (!sheet) return { error: 'No "Detail" sheet found in this workbook.' };
+
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+  // Column order: Sort,Name,Team,POS,RLW,Runs,2B&3B,HR,RBI,SB,AB,Hits,AVG,
+  //               SO,W+.5S,IP,ER,BB,Hits(allowed),WHIP,ERA
+  const byTeam = {};
+  TEAMS.forEach(t => { byTeam[t] = { hitterRows: [], pitcherRows: [] }; });
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every(v => v === null || v === '')) continue;
+    const [ , name, mlbTeam, pos, rlw, R, XBH, HR, RBI, SB, AB, H, , K, WS, IP, ER, BB, hitsAllowed ] = row;
+    if (!rlw || !name) continue;
+    const team = RLW_ABBR_MAP[rlw] || rlw;
+    if (!byTeam[team]) byTeam[team] = { hitterRows: [], pitcherRows: [] };
+
+    if (pos === 'P') {
+      byTeam[team].pitcherRows.push({
+        name, mlbTeam,
+        K: Number(K) || 0, WS: Number(WS) || 0, IP: Number(IP) || 0,
+        ER: Number(ER) || 0, BB: Number(BB) || 0, hitsAllowed: Number(hitsAllowed) || 0,
+      });
+    } else {
+      byTeam[team].hitterRows.push({
+        name, mlbTeam, pos,
+        R: Number(R) || 0, XBH: Number(XBH) || 0, HR: Number(HR) || 0,
+        RBI: Number(RBI) || 0, SB: Number(SB) || 0, AB: Number(AB) || 0, H: Number(H) || 0,
+      });
+    }
+  }
+
+  const unmatched = [];
+  const lockedStats = {};
+  const lineups = {};
+
+  for (const team of TEAMS) {
+    const { hitterRows, pitcherRows } = byTeam[team] || { hitterRows: [], pitcherRows: [] };
+    const roster = getRoster().filter(p => p[4] === team);
+
+    // Resolve each file row to the roster's own name/team text so the
+    // resulting playerKey matches the rest of the app exactly. Falls back
+    // to the file's own text (and flags it) if no roster match is found.
+    function resolveKey(name, mlbTeam) {
+      const target = normNameLoose(name);
+      const match  = roster.find(p => normNameLoose(p[1]) === target);
+      if (match) return playerKey(match[1], match[2]);
+      unmatched.push({ name, mlbTeam, team });
+      return playerKey(name, mlbTeam);
+    }
+
+    const lineup = { locked: true, submittedAt: Date.now(), setFromFile: true };
+    lineup.P = pitcherRows.map(r => resolveKey(r.name, r.mlbTeam));
+    const byPos = {};
+    for (const r of hitterRows) (byPos[r.pos] = byPos[r.pos] || []).push(r);
+    for (const pos of Object.keys(POS_SLOTS)) {
+      if (pos === 'P') continue;
+      lineup[pos] = (byPos[pos] || []).map(r => resolveKey(r.name, r.mlbTeam));
+    }
+    lineups[team] = lineup;
+
+    let totR=0, totXBH=0, totHR=0, totRBI=0, totSB=0, totAB=0, totH=0;
+    hitterRows.forEach(r => {
+      totR += r.R; totXBH += r.XBH; totHR += r.HR; totRBI += r.RBI;
+      totSB += r.SB; totAB += r.AB; totH += r.H;
+    });
+    const avg = totAB > 0 ? totH / totAB : 0;
+
+    let totK=0, totWS=0, totIP=0, totER=0, totBB=0, totHitsAllowed=0;
+    pitcherRows.forEach(r => {
+      totK += r.K; totWS += r.WS; totIP += r.IP;
+      totER += r.ER; totBB += r.BB; totHitsAllowed += r.hitsAllowed;
+    });
+    const era  = totIP > 0 ? (totER * 9) / totIP : 0;
+    const whip = totIP > 0 ? (totBB + totHitsAllowed) / totIP : 0;
+
+    lockedStats[team] = {
+      avg, R: totR, XBH: totXBH, HR: totHR, RBI: totRBI, SB: totSB,
+      WS: totWS, K: totK,
+      ERA:  era  > 0 && era  < 50 ? era  : 0,
+      WHIP: whip > 0 && whip < 5  ? whip : 0,
+      IP: totIP, ipInsufficient: false,
+      lineupSource: 'file-upload',
+    };
+  }
+
+  return { lockedStats, lineups, unmatched };
+}
+
+let pendingFinalStats = null;
+
+function handleFinalStatsFile(file) {
+  if (!file) return;
+  document.getElementById('final-stats-status').textContent = `Reading ${file.name}...`;
+  document.getElementById('confirm-final-stats-btn').style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const result = parseFinalStatsXlsx(wb);
+      if (result.error) {
+        document.getElementById('final-stats-status').textContent = `Error: ${result.error}`;
+        return;
+      }
+      pendingFinalStats = result;
+
+      const summary = TEAMS.map(t => {
+        const s = result.lockedStats[t];
+        return `${escapeHtml(t)}: ${s.avg.toFixed(3)} AVG · ${s.HR} HR · ${s.ERA.toFixed(2)} ERA · ${s.IP.toFixed(1)} IP`;
+      }).join('<br>');
+      const warn = result.unmatched.length > 0
+        ? `<div style="color:var(--gold);margin-top:8px;">⚠ ${result.unmatched.length} player(s) couldn't be matched to your roster by name — double-check these before confirming:<br>${result.unmatched.map(u => `${escapeHtml(u.name)} (${escapeHtml(u.team)})`).join(', ')}</div>`
+        : `<div style="color:var(--green);margin-top:8px;">✓ All players matched to your roster</div>`;
+
+      document.getElementById('final-stats-preview').innerHTML = summary + warn;
+      document.getElementById('final-stats-preview').style.display = 'block';
+      document.getElementById('final-stats-status').textContent = `✓ Parsed ${file.name} — review below, then confirm`;
+      document.getElementById('confirm-final-stats-btn').style.display = 'block';
+    } catch(err) {
+      document.getElementById('final-stats-status').textContent = `Error: ${err.message}`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function handleFinalStatsDrop(e) {
+  e.preventDefault();
+  document.getElementById('final-stats-upload-zone').classList.remove('over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFinalStatsFile(file);
+}
+
+async function confirmFinalStatsUpload() {
+  if (!pendingFinalStats) return;
+  if (!confirm(
+    "This will OVERWRITE all 8 teams' 1H lineups and lock 1H standings using this file.\n\n" +
+    "Any lineup a team already submitted themselves will be replaced. This action can be repeated later by uploading a corrected file. Continue?"
+  )) return;
+
+  const statusEl = document.getElementById('final-stats-status');
+  statusEl.textContent = 'Saving to Firebase...';
+  document.getElementById('confirm-final-stats-btn').style.display = 'none';
+
+  try {
+    // Write each team's lineup — marks them officially LOCKED, same as a
+    // team locking their own, so the UI/eligibility rules treat them identically.
+    await Promise.all(TEAMS.map(team =>
+      fbSet(`lineups/1h/${teamSlug(team)}`, pendingFinalStats.lineups[team])
+    ));
+
+    // Build and write the locked standings doc — same shape lock1HStandings() writes.
+    const scores  = scoreStats(pendingFinalStats.lockedStats);
+    const ranked  = TEAMS.slice().sort((a, b) => scores[a] - scores[b]); // worst to first
+    const payload = {
+      locked: true,
+      lockedAt: Date.now(),
+      scores,
+      stats: pendingFinalStats.lockedStats,
+      draftOrder: ranked,
+      source: 'file-upload',
+    };
+    const ok = await fbSet('standings/1h', payload);
+
+    if (ok) {
+      await fbSet('settings/status', 'standings-locked');
+      statusEl.textContent = `✓ All 8 teams locked from file at ${new Date().toLocaleTimeString()}`;
+      pendingFinalStats = null;
+      document.getElementById('final-stats-preview').style.display = 'none';
+      document.getElementById('final-stats-input').value = '';
+      document.getElementById('unlock-standings-btn').style.display = 'block';
+      document.getElementById('build-pool-btn').style.display       = 'block';
+      document.getElementById('build-milb-pool-btn').style.display  = 'block';
+      document.getElementById('draft-start-controls').style.display = 'block';
+      await loadLockedStandings();
+      await renderLineupSubmissions();
+    } else {
+      statusEl.textContent = '✗ Firebase write failed — try again';
+      document.getElementById('confirm-final-stats-btn').style.display = 'block';
+    }
+  } catch(err) {
+    statusEl.textContent = `Error: ${err.message}`;
+    document.getElementById('confirm-final-stats-btn').style.display = 'block';
+  }
+}
+
 // ── Commissioner panel state ─────────────────────────────────────────────────
 let commUnlocked = false;
 let commHalf = '1H';
@@ -6292,13 +6506,32 @@ async function clearRosterOverride() {
 
     <!-- Lock view -->
     <div id="comm-view-lock" style="display:none;">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);margin-bottom:8px;letter-spacing:1px;">FINAL 1H STATS FILE (OVERRIDES ALL 8 TEAMS)</div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:8px;line-height:1.6;">
+        For teams handled offline. Upload a workbook with a "Detail" sheet — locks every team's 1H lineup and standings from its numbers, superseding any lineup a team already submitted.
+      </div>
+      <div class="upload-zone" id="final-stats-upload-zone"
+           onclick="document.getElementById('final-stats-input').click()"
+           ondragover="event.preventDefault();this.classList.add('over')"
+           ondragleave="this.classList.remove('over')"
+           ondrop="handleFinalStatsDrop(event)">
+        <div style="font-size:22px">📊</div>
+        <p>Click or drag final 1H stats .xlsx here</p>
+      </div>
+      <input type="file" id="final-stats-input" accept=".xlsx,.xls" style="display:none"
+             onchange="handleFinalStatsFile(this.files[0])"/>
+      <div id="final-stats-status" style="font-family:'DM Mono',monospace;font-size:10px;margin:6px 0;"></div>
+      <div id="final-stats-preview" style="display:none;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);background:var(--bg3);border-radius:5px;padding:8px;margin-bottom:8px;line-height:1.8;"></div>
+      <button class="c-btn confirm" id="confirm-final-stats-btn" style="display:none;" onclick="confirmFinalStatsUpload()">✓ Lock All 8 Teams From This File</button>
+      <div style="border-top:1px solid var(--border);margin:14px 0;padding-top:2px;"></div>
+
       <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:10px;letter-spacing:1px;">1H LINEUP SUBMISSIONS</div>
       <div id="lineup-submission-list" style="margin-bottom:12px;"></div>
       <div id="comm-lineup-editor" style="display:none;margin-bottom:14px;padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;">
         <div id="comm-lineup-editor-title" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--gold);margin-bottom:8px;letter-spacing:1px;"></div>
         <div id="comm-lineup-selectors"></div>
         <div style="display:flex;gap:6px;margin-top:10px;">
-          <button class="c-btn confirm" onclick="saveCommLineup()" style="margin:0;">✓ Save &amp; Lock Lineup</button>
+          <button class="c-btn confirm" onclick="saveCommLineup()" style="display:block;margin:0;">✓ Save &amp; Lock Lineup</button>
           <button class="c-btn" onclick="closeCommLineupEditor()" style="margin:0;">✕ Cancel</button>
         </div>
         <div id="comm-lineup-editor-status" style="font-family:'DM Mono',monospace;font-size:10px;margin-top:6px;"></div>
