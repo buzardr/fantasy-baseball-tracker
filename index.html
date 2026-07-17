@@ -6274,6 +6274,24 @@ function parseFinalStatsXlsx(workbook) {
   if (discrepancies.length > 0) {
     console.warn(`[Final Stats Validation] ${discrepancies.length} discrepancie(s) between the uploaded file and the site's live-pulled stats:`);
     console.table(discrepancies);
+
+    // Group by MLB team. A team with many affected players/fields usually
+    // means that team played an extra game between when the file was
+    // generated and the live pull's date cutoff (a snapshot-timing gap) —
+    // not a real data error. An isolated single-field, single-player entry
+    // is more likely a genuine one-off correction worth a closer look.
+    const byMlbTeam = {};
+    discrepancies.forEach(d => {
+      byMlbTeam[d.mlbTeam] = byMlbTeam[d.mlbTeam] || new Set();
+      byMlbTeam[d.mlbTeam].add(d.player);
+    });
+    const teamSummary = Object.keys(byMlbTeam).map(team => ({
+      mlbTeam: team,
+      playersAffected: byMlbTeam[team].size,
+      fieldsAffected: discrepancies.filter(d => d.mlbTeam === team).length,
+    })).sort((a, b) => b.fieldsAffected - a.fieldsAffected);
+    console.log('[Final Stats Validation] Grouped by MLB team — a team with several affected players/fields likely means a scheduling/snapshot-timing gap, not individual errors:');
+    console.table(teamSummary);
   } else {
     console.log('[Final Stats Validation] No discrepancies found between the uploaded file and the site\'s live-pulled stats.');
   }
