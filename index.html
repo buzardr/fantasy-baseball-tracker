@@ -4051,7 +4051,7 @@ let milbDecisions = {};
 async function checkMiLBDecisionsWindow() {
   document.getElementById('milb-decisions-section').style.display = 'block';
   const dates    = await fbGet('settings/dates');
-  const deadline = dates?.lineup ? new Date(dates.lineup) : null;
+  const deadline = dates?.milbDecisions ? new Date(dates.milbDecisions) : null;
   if (deadline) {
     const isPast = new Date() > deadline;
     const el = document.getElementById('milb-decisions-deadline');
@@ -5336,9 +5336,12 @@ async function renderLineupSubmissions() {
     const autoFillBtn = !lineup?.locked
       ? `<button class="c-btn comm-autofill-btn" data-slug="${slug}" data-team="${escapeHtml(team)}" style="padding:3px 8px;font-size:9px;margin:0;">Auto-fill</button>`
       : '';
+    const editBtn = !lineup?.locked
+      ? `<button class="c-btn comm-edit-lineup-btn" data-slug="${slug}" data-team="${escapeHtml(team)}" style="padding:3px 8px;font-size:9px;margin:0;">Edit Lineup</button>`
+      : '';
     return `<div class="lineup-status-row">
       <span style="font-family:'DM Mono',monospace;font-size:10px;">${team}</span>
-      <div style="display:flex;align-items:center;gap:6px;">${status}${autoFillBtn}</div>
+      <div style="display:flex;align-items:center;gap:6px;">${status}${autoFillBtn}${editBtn}</div>
     </div>`;
   }));
   list.innerHTML = rows.join('');
@@ -5346,6 +5349,11 @@ async function renderLineupSubmissions() {
   list.querySelectorAll('.comm-autofill-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       commAutoFillLineup(btn.dataset.slug, btn.dataset.team);
+    });
+  });
+  list.querySelectorAll('.comm-edit-lineup-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      openCommLineupEditor(btn.dataset.slug, btn.dataset.team);
     });
   });
 }
@@ -5380,6 +5388,143 @@ async function commAutoFillLineup(slug, team) {
 
   const ok = await fbSet(`lineups/1h/${slug}`, lineup);
   if (ok) await renderLineupSubmissions();
+}
+
+// ── Commissioner: manually set a specific team's 1H lineup ──────────────────
+// Mirrors renderLineupSelectors/submitLineup from the team page, but takes an
+// explicit team instead of relying on sessionTeam, so the commissioner never
+// has to log into a team to set its lineup. Only usable while a team's
+// lineup is still unlocked (the "Edit Lineup" button is hidden once locked).
+let commLineupSlug = null;
+let commLineupTeamName = null;
+
+async function openCommLineupEditor(slug, team) {
+  commLineupSlug = slug;
+  commLineupTeamName = team;
+
+  const existing = await fbGet(`lineups/1h/${slug}`);
+  if (existing?.locked) {
+    alert(`${team} has already locked their own lineup — editing is disabled to avoid overwriting it.`);
+    return;
+  }
+
+  document.getElementById('comm-lineup-editor-title').textContent = `Editing 1H lineup — ${team}`;
+  document.getElementById('comm-lineup-editor-status').textContent = '';
+  document.getElementById('comm-lineup-editor').style.display = 'block';
+
+  const roster = getRoster().filter(p => p[4] === team);
+  renderCommLineupSelectors(roster, existing);
+  document.getElementById('comm-lineup-editor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeCommLineupEditor() {
+  commLineupSlug = null;
+  commLineupTeamName = null;
+  document.getElementById('comm-lineup-editor').style.display = 'none';
+}
+
+function renderCommLineupSelectors(roster, savedLineup) {
+  const container = document.getElementById('comm-lineup-selectors');
+  const pitchers = roster.filter(p => p[0] === 'P' && !p[6] &&
+    (!p[5] || statsCache[playerKey(p[1], p[2])]?.found === true));
+  const byPos = {};
+  for (const [pos] of Object.entries(POS_SLOTS)) {
+    if (pos === 'P') continue;
+    byPos[pos] = roster.filter(p => {
+      const effectivePos = (p[5] && positionOverrides[p[1]]) ? positionOverrides[p[1]] : p[0];
+      return effectivePos === pos &&
+        (!p[5] || statsCache[playerKey(p[1], p[2])]?.found === true);
+    });
+  }
+
+  let html = '';
+  html += `<div class="lineup-group"><div class="lineup-group-title">Pitchers (select 9)</div>`;
+  for (let i = 0; i < 9; i++) {
+    const saved = savedLineup?.P?.[i] || '';
+    html += `<div class="lineup-slot"><label>${i+1}</label>
+      <select id="comm-lineup-P-${i}" onchange="commValidateLineup()">
+        <option value="">—</option>
+        ${pitchers.map(p => `<option value="${playerKey(p[1],p[2])}" ${saved===playerKey(p[1],p[2])?'selected':''}>${p[1]} (${p[2]})</option>`).join('')}
+      </select></div>`;
+  }
+  html += `</div>`;
+
+  for (const [pos, count] of Object.entries(POS_SLOTS)) {
+    if (pos === 'P') continue;
+    const pool = byPos[pos] || [];
+    if (pool.length === 0) continue;
+    html += `<div class="lineup-group"><div class="lineup-group-title">${pos} (select ${count})</div>`;
+    for (let i = 0; i < count; i++) {
+      const saved = savedLineup?.[pos]?.[i] || '';
+      html += `<div class="lineup-slot"><label>${i+1}</label>
+        <select id="comm-lineup-${pos}-${i}" onchange="commValidateLineup()">
+          <option value="">—</option>
+          ${pool.map(p => `<option value="${playerKey(p[1],p[2])}" ${saved===playerKey(p[1],p[2])?'selected':''}>${p[1]} (${p[2]})</option>`).join('')}
+        </select></div>`;
+    }
+    html += `</div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function commValidateLineup() {
+  let valid = true;
+  for (const [pos, count] of Object.entries(POS_SLOTS)) {
+    const vals = [];
+    for (let i = 0; i < count; i++) {
+      const sel = document.getElementById(`comm-lineup-${pos}-${i}`);
+      if (!sel) continue;
+      if (!sel.value) { valid = false; continue; }
+      if (vals.includes(sel.value)) {
+        sel.style.borderColor = '#ef5350';
+        valid = false;
+      } else {
+        sel.style.borderColor = '';
+        vals.push(sel.value);
+      }
+    }
+  }
+  return valid;
+}
+
+async function saveCommLineup() {
+  if (!commLineupSlug || !commLineupTeamName) return;
+
+  // Guard against the team locking their own lineup while the commissioner
+  // had the editor open — re-check right before writing.
+  const existing = await fbGet(`lineups/1h/${commLineupSlug}`);
+  if (existing?.locked) {
+    document.getElementById('comm-lineup-editor-status').textContent =
+      `⚠ ${commLineupTeamName} locked their own lineup while you were editing — not overwritten.`;
+    document.getElementById('comm-lineup-editor-status').style.color = '#ef5350';
+    return;
+  }
+
+  if (!commValidateLineup()) {
+    document.getElementById('comm-lineup-editor-status').textContent =
+      'Please fill all slots and fix duplicate selections';
+    document.getElementById('comm-lineup-editor-status').style.color = '#ef5350';
+    return;
+  }
+
+  const lineup = { locked: true, submittedAt: Date.now(), setByCommissioner: true };
+  for (const [pos, count] of Object.entries(POS_SLOTS)) {
+    lineup[pos] = [];
+    for (let i = 0; i < count; i++) {
+      const sel = document.getElementById(`comm-lineup-${pos}-${i}`);
+      if (sel?.value) lineup[pos].push(sel.value);
+    }
+  }
+
+  const ok = await fbSet(`lineups/1h/${commLineupSlug}`, lineup);
+  if (ok) {
+    closeCommLineupEditor();
+    await renderLineupSubmissions();
+  } else {
+    document.getElementById('comm-lineup-editor-status').textContent = '✗ Save failed — check connection and try again';
+    document.getElementById('comm-lineup-editor-status').style.color = '#ef5350';
+  }
 }
 
 // ── Patch switchCommView to load lineup status when LOCK tab opened ───────────
@@ -5445,7 +5590,7 @@ async function saveTeamPins() {
 }
 
 // ── Date management ──────────────────────────────────────────────────────────
-const DATE_KEYS = ['lineup','suppl','recon','milb'];
+const DATE_KEYS = ['lineup','milbDecisions','suppl','recon','milb'];
 const DATE_LABELS = {
   lineup: '1H Lineup Lock',
   suppl:  'Supplemental Draft',
@@ -6148,6 +6293,15 @@ async function clearRosterOverride() {
     <div id="comm-view-lock" style="display:none;">
       <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:10px;letter-spacing:1px;">1H LINEUP SUBMISSIONS</div>
       <div id="lineup-submission-list" style="margin-bottom:12px;"></div>
+      <div id="comm-lineup-editor" style="display:none;margin-bottom:14px;padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;">
+        <div id="comm-lineup-editor-title" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--gold);margin-bottom:8px;letter-spacing:1px;"></div>
+        <div id="comm-lineup-selectors"></div>
+        <div style="display:flex;gap:6px;margin-top:10px;">
+          <button class="c-btn confirm" onclick="saveCommLineup()" style="margin:0;">✓ Save &amp; Lock Lineup</button>
+          <button class="c-btn" onclick="closeCommLineupEditor()" style="margin:0;">✕ Cancel</button>
+        </div>
+        <div id="comm-lineup-editor-status" style="font-family:'DM Mono',monospace;font-size:10px;margin-top:6px;"></div>
+      </div>
       <div class="half-row" style="margin-bottom:8px;">
         <div class="half-chip on" onclick="setLockHalf('1h',this)" style="font-size:8px;">1ST HALF</div>
         <div class="half-chip" onclick="setLockHalf('2h',this)" style="font-size:8px;">2ND HALF</div>
@@ -6204,6 +6358,10 @@ async function clearRosterOverride() {
       <div style="margin-bottom:8px;">
         <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:3px;">1H LINEUP LOCK</div>
         <input type="datetime-local" id="date-lineup" class="comm-date-input"/>
+      </div>
+      <div style="margin-bottom:8px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:3px;">MILB PROMOTION/CUT DECISIONS DEADLINE</div>
+        <input type="datetime-local" id="date-milbDecisions" class="comm-date-input"/>
       </div>
       <div style="margin-bottom:8px;">
         <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:3px;">SUPPLEMENTAL DRAFT</div>
