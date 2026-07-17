@@ -5146,8 +5146,9 @@ async function computeLockedStandings(half) {
       const s = getStat(p[1], p[2]);
       if (!s) continue;
       const ip   = parseFloat(s.inningsPitched || 0);
-      // Convert innings like 5.2 (5 and 2/3) to decimal
-      const ipDec = Math.floor(ip) + (ip % 1) / 0.3 * (1/3);
+      // Convert innings like 5.2 (5 and 2/3) to decimal.
+      // MLB's fractional notation is OUTS, not tenths: .1 = ⅓, .2 = ⅔.
+      const ipDec = Math.floor(ip) + Math.round((ip % 1) * 10) / 3;
       totW  += s.wins   || 0;
       totSV += s.saves  || 0;
       totK  += s.strikeOuts || 0;
@@ -6169,8 +6170,24 @@ function parseFinalStatsXlsx(workbook) {
   }
 
   const unmatched = [];
+  const discrepancies = [];
   const lockedStats = {};
   const lineups = {};
+
+  // MLB innings-pitched notation uses .1/.2 for thirds of an inning (e.g.
+  // "98.1" = 98⅓), not true decimal — convert before comparing to the file,
+  // which already stores true decimal innings.
+  function ipToDecimal(raw) {
+    const ip = parseFloat(raw || 0);
+    return Math.floor(ip) + Math.round((ip % 1) * 10) / 3;
+  }
+
+  function checkDiff(team, name, mlbTeam, field, fileVal, liveVal, tolerance = 0) {
+    if (liveVal === null || liveVal === undefined) return;
+    if (Math.abs(fileVal - liveVal) > tolerance) {
+      discrepancies.push({ team, player: name, mlbTeam, field, fileValue: fileVal, liveValue: liveVal });
+    }
+  }
 
   for (const team of TEAMS) {
     const { hitterRows, pitcherRows } = byTeam[team] || { hitterRows: [], pitcherRows: [] };
@@ -6179,23 +6196,55 @@ function parseFinalStatsXlsx(workbook) {
     // Resolve each file row to the roster's own name/team text so the
     // resulting playerKey matches the rest of the app exactly. Falls back
     // to the file's own text (and flags it) if no roster match is found.
-    function resolveKey(name, mlbTeam) {
+    function resolveMatch(name) {
       const target = normNameLoose(name);
-      const match  = roster.find(p => normNameLoose(p[1]) === target);
+      return roster.find(p => normNameLoose(p[1]) === target) || null;
+    }
+    function resolveKey(row) {
+      const match = resolveMatch(row.name);
       if (match) return playerKey(match[1], match[2]);
-      unmatched.push({ name, mlbTeam, team });
-      return playerKey(name, mlbTeam);
+      unmatched.push({ name: row.name, mlbTeam: row.mlbTeam, team });
+      return playerKey(row.name, row.mlbTeam);
     }
 
     const lineup = { locked: true, submittedAt: Date.now(), setFromFile: true };
-    lineup.P = pitcherRows.map(r => resolveKey(r.name, r.mlbTeam));
+    lineup.P = pitcherRows.map(resolveKey);
     const byPos = {};
     for (const r of hitterRows) (byPos[r.pos] = byPos[r.pos] || []).push(r);
     for (const pos of Object.keys(POS_SLOTS)) {
       if (pos === 'P') continue;
-      lineup[pos] = (byPos[pos] || []).map(r => resolveKey(r.name, r.mlbTeam));
+      lineup[pos] = (byPos[pos] || []).map(resolveKey);
     }
     lineups[team] = lineup;
+
+    // Validate matched players' file numbers against the site's own
+    // already-pulled live stats (statsCache), and log any mismatches.
+    hitterRows.forEach(r => {
+      const match = resolveMatch(r.name);
+      if (!match) return;
+      const live = getStat(match[1], match[2]);
+      if (!live) return;
+      checkDiff(team, match[1], match[2], 'R',   r.R,             live.runs        || 0);
+      checkDiff(team, match[1], match[2], 'XBH', r.XBH,           (live.doubles||0) + (live.triples||0));
+      checkDiff(team, match[1], match[2], 'HR',  r.HR,            live.homeRuns    || 0);
+      checkDiff(team, match[1], match[2], 'RBI', r.RBI,           live.rbi         || 0);
+      checkDiff(team, match[1], match[2], 'SB',  r.SB,            live.stolenBases || 0);
+      checkDiff(team, match[1], match[2], 'AB',  r.AB,            live.atBats      || 0);
+      checkDiff(team, match[1], match[2], 'H',   r.H,             live.hits        || 0);
+    });
+    pitcherRows.forEach(r => {
+      const match = resolveMatch(r.name);
+      if (!match) return;
+      const live = getStat(match[1], match[2]);
+      if (!live) return;
+      checkDiff(team, match[1], match[2], 'K',   r.K,             live.strikeOuts  || 0);
+      checkDiff(team, match[1], match[2], 'IP',  r.IP,            ipToDecimal(live.inningsPitched), 0.05);
+      checkDiff(team, match[1], match[2], 'ER',  r.ER,            live.earnedRuns  ?? null);
+      checkDiff(team, match[1], match[2], 'BB',  r.BB,            live.baseOnBalls ?? null);
+      checkDiff(team, match[1], match[2], 'Hits allowed', r.hitsAllowed, live.hits ?? null);
+      const liveWS = (live.wins || 0) + (live.saves || 0) * 0.5;
+      checkDiff(team, match[1], match[2], 'W+.5S', r.WS,          liveWS, 0.05);
+    });
 
     let totR=0, totXBH=0, totHR=0, totRBI=0, totSB=0, totAB=0, totH=0;
     hitterRows.forEach(r => {
@@ -6222,7 +6271,14 @@ function parseFinalStatsXlsx(workbook) {
     };
   }
 
-  return { lockedStats, lineups, unmatched };
+  if (discrepancies.length > 0) {
+    console.warn(`[Final Stats Validation] ${discrepancies.length} discrepancie(s) between the uploaded file and the site's live-pulled stats:`);
+    console.table(discrepancies);
+  } else {
+    console.log('[Final Stats Validation] No discrepancies found between the uploaded file and the site\'s live-pulled stats.');
+  }
+
+  return { lockedStats, lineups, unmatched, discrepancies };
 }
 
 let pendingFinalStats = null;
@@ -6249,8 +6305,11 @@ function handleFinalStatsFile(file) {
       const warn = result.unmatched.length > 0
         ? `<div style="color:var(--gold);margin-top:8px;">⚠ ${result.unmatched.length} player(s) couldn't be matched to your roster by name — double-check these before confirming:<br>${result.unmatched.map(u => `${escapeHtml(u.name)} (${escapeHtml(u.team)})`).join(', ')}</div>`
         : `<div style="color:var(--green);margin-top:8px;">✓ All players matched to your roster</div>`;
+      const diffWarn = result.discrepancies.length > 0
+        ? `<div style="color:var(--gold);margin-top:6px;">⚠ ${result.discrepancies.length} stat discrepancie(s) vs. the site's live-pulled stats — see browser console for details</div>`
+        : `<div style="color:var(--green);margin-top:6px;">✓ File stats match the site's live-pulled stats for all matched players</div>`;
 
-      document.getElementById('final-stats-preview').innerHTML = summary + warn;
+      document.getElementById('final-stats-preview').innerHTML = summary + warn + diffWarn;
       document.getElementById('final-stats-preview').style.display = 'block';
       document.getElementById('final-stats-status').textContent = `✓ Parsed ${file.name} — review below, then confirm`;
       document.getElementById('confirm-final-stats-btn').style.display = 'block';
