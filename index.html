@@ -6170,12 +6170,35 @@ function parseXlsxToRoster(workbook) {
   // Build a 0-indexed 2D array of cell values, mirroring the shape
   // XLSX.utils.sheet_to_json(ws, {header:1}) used to produce, so the
   // row-parsing logic below stays unchanged.
+  //
+  // IMPORTANT: ExcelJS returns the SAME value for every cell within a
+  // merged range, not just the top-left "anchor" cell. Left unhandled,
+  // this causes two real bugs: (1) a merged note/legend row like a trade
+  // log spanning many columns gets its text read as if it were valid
+  // position/name data for every team whose columns fall inside the merge
+  // span; (2) merged name-display cells (e.g. a player name spanning two
+  // columns) leak that name into the NEXT column, which is supposed to be
+  // read separately (e.g. corrupting a MiLB player's MLB team field). Null
+  // out every non-anchor merged cell so only the true anchor carries a value.
+  const nonAnchorMerged = new Set();
+  (ws.model.merges || []).forEach(rangeStr => {
+    const [startAddr, endAddr] = rangeStr.split(':');
+    const startCell = ws.getCell(startAddr);
+    const endCell   = ws.getCell(endAddr || startAddr);
+    for (let r = startCell.row; r <= endCell.row; r++) {
+      for (let c = startCell.col; c <= endCell.col; c++) {
+        if (r === startCell.row && c === startCell.col) continue; // anchor — keep its value
+        nonAnchorMerged.add(`${r}:${c}`);
+      }
+    }
+  });
+
   const rows = [];
   const maxCol = Math.max(ws.columnCount || 0, 40);
   ws.eachRow({ includeEmpty: true }, (row, rowNumber) => {
     const arr = [];
     for (let c = 1; c <= maxCol; c++) {
-      arr[c - 1] = cellText(row.getCell(c));
+      arr[c - 1] = nonAnchorMerged.has(`${rowNumber}:${c}`) ? null : cellText(row.getCell(c));
     }
     rows[rowNumber - 1] = arr;
   });
@@ -6241,7 +6264,9 @@ function parseXlsxToRoster(workbook) {
       const base    = t * 4;
       const posVal  = row[base];
       const nameVal = row[base + 1];
-      const orgVal  = row[base + 2];
+      // Note: the name cell is merged across base+1 AND base+2 for display
+      // width, so the real MLB-team/org value sits at base+3, not base+2.
+      const orgVal  = row[base + 3];
 
       if (!nameVal || !String(nameVal).trim()) continue;
       if (!posVal  || !String(posVal).trim())  continue;
@@ -6662,10 +6687,10 @@ async function confirmRosterUpload() {
 }
 
 async function clearRosterOverride() {
-  if (!confirm('Clear saved rosters and revert to hardcoded data?')) return;
+  if (!confirm(`This will PERMANENTLY DELETE the saved ${commHalf} roster data from Firebase and revert to the hardcoded fallback roster.\n\nCurrently selected half: ${commHalf}\n\nThis cannot be undone — you'd need to re-upload the file to restore it. Continue?`)) return;
   await fbSet(`rosters/${commHalf}`, null);
   ROSTER_OVERRIDE = null;
-  document.getElementById('upload-status').textContent = 'Cleared — using hardcoded rosters';
+  document.getElementById('upload-status').textContent = `Cleared ${commHalf} — using hardcoded rosters`;
   await loadAllStats(true);
 }
 
