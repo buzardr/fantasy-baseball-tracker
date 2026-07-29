@@ -2593,11 +2593,38 @@ function is1HFrozen() {
 
 function statCacheKey(half) { return `rlw_stats_2026_${half}_v3`; }
 
+// Cheap, deterministic hash — used only to detect when the roster
+// composition has changed, not for any security purpose.
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) | 0;
+  }
+  return hash;
+}
+
+// A signature of the CURRENT roster's composition. If this doesn't match
+// what a cached stats payload was computed against, the cache is stale —
+// e.g. the roster reloaded correctly after a fresh admin upload, but the
+// old cached stats (from before that reload, possibly against a fallback
+// roster) would otherwise keep getting served until a manual "Refresh
+// Stats" click bypassed the cache. Comparing signatures makes that
+// automatic instead of requiring a manual workaround.
+function rosterSignature() {
+  const roster = getRoster();
+  const ids = roster.map(p => playerKey(p[1], p[2])).sort().join('|');
+  return `${roster.length}:${simpleHash(ids)}`;
+}
+
 function loadCachedStats(half) {
   try {
     const raw = localStorage.getItem(statCacheKey(half));
     if (!raw) return null;
-    const { ts, data } = JSON.parse(raw);
+    const { ts, data, rosterSig } = JSON.parse(raw);
+    if (rosterSig !== undefined && rosterSig !== rosterSignature()) {
+      console.log(`[cache] ${half} stats cache is for a different roster composition — ignoring, will fetch fresh`);
+      return null;
+    }
     if (half === '1H' && is1HFrozen()) return data; // frozen — never expires
     if (Date.now() - ts < CACHE_TTL_MS) return data;
     return null;
@@ -2606,7 +2633,7 @@ function loadCachedStats(half) {
 
 function saveCachedStats(half, data) {
   try {
-    localStorage.setItem(statCacheKey(half), JSON.stringify({ ts: Date.now(), data }));
+    localStorage.setItem(statCacheKey(half), JSON.stringify({ ts: Date.now(), data, rosterSig: rosterSignature() }));
   } catch(e) {}
 }
 
@@ -6075,12 +6102,31 @@ function simpleHash(str) {
 }
 
 // ── Firebase helpers (no SDK needed — REST API) ──────────────────────────────
-async function fbGet(path) {
+async function fbGet(path, attempt = 1) {
+  const MAX_ATTEMPTS = 3;
   try {
     const res = await fetch(`${FIREBASE_URL}/${path}.json`);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`[fbGet] ${path} — HTTP ${res.status} on attempt ${attempt}/${MAX_ATTEMPTS}`);
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise(r => setTimeout(r, 300 * attempt));
+        return fbGet(path, attempt + 1);
+      }
+      return null;
+    }
     return await res.json();
-  } catch(e) { return null; }
+  } catch(e) {
+    // A fresh page's very first request to a not-yet-connected host can
+    // occasionally fail at the network layer (DNS/TLS/connection setup)
+    // even though the data itself is fine — retry before giving up, rather
+    // than silently falling back as if the data genuinely doesn't exist.
+    console.warn(`[fbGet] ${path} — network error on attempt ${attempt}/${MAX_ATTEMPTS}:`, e.message);
+    if (attempt < MAX_ATTEMPTS) {
+      await new Promise(r => setTimeout(r, 300 * attempt));
+      return fbGet(path, attempt + 1);
+    }
+    return null;
+  }
 }
 
 async function fbSet(path, data) {
