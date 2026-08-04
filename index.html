@@ -2512,18 +2512,60 @@ async function fetchStatsByDateRange(playerId, group, startDate, endDate) {
     const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
-    // byDateRange returns splits array; aggregate across all entries if multiple
+    // byDateRange returns a splits array; a player TRADED during the
+    // queried date range returns MULTIPLE splits — one per team-stint.
+    // Aggregate all of them instead of only taking the first, which would
+    // silently drop every stat accumulated with every team but one.
     const stats = data?.stats;
     if (!stats || stats.length === 0) return null;
     // Find the matching group
     const grouped = stats.find(s => s.group?.displayName?.toLowerCase() === group) || stats[0];
     const splits = grouped?.splits;
     if (!splits || splits.length === 0) return null;
-    // If one entry it's the aggregate; if multiple, take the total row or first
-    return splits[0].stat;
+    if (splits.length === 1) return splits[0].stat;
+    return aggregateStatSplits(splits.map(s => s.stat), group);
   } catch(e) {
     return null;
   }
+}
+
+// MLB's fractional innings-pitched notation is OUTS, not tenths: .1 = ⅓
+// inning, .2 = ⅔ inning. Needed to correctly sum innings across stints.
+function ipStringToDecimal(raw) {
+  const ip = parseFloat(raw || 0);
+  return Math.floor(ip) + Math.round((ip % 1) * 10) / 3;
+}
+function decimalToIpString(dec) {
+  const whole = Math.floor(dec + 1e-9);
+  const outs  = Math.round((dec - whole) * 3);
+  return `${whole}.${outs}`;
+}
+
+// Combine multiple team-stint stat splits (from a mid-range trade) into one
+// object, matching the same field shape a normal single-team API response
+// has — sums counting stats directly, recomputes rate stats (ERA/WHIP/AVG)
+// from the combined totals rather than incorrectly averaging pre-rounded
+// per-stint rates.
+function aggregateStatSplits(statObjs, group) {
+  const sum = (field) => statObjs.reduce((t, s) => t + (parseFloat(s?.[field]) || 0), 0);
+  if (group === 'pitching') {
+    const totalIP = statObjs.reduce((t, s) => t + ipStringToDecimal(s?.inningsPitched), 0);
+    const er = sum('earnedRuns'), bb = sum('baseOnBalls'), h = sum('hits');
+    return {
+      wins: sum('wins'), losses: sum('losses'), saves: sum('saves'),
+      strikeOuts: sum('strikeOuts'), earnedRuns: er, baseOnBalls: bb, hits: h,
+      inningsPitched: decimalToIpString(totalIP),
+      era:  totalIP > 0 ? ((er * 9) / totalIP).toFixed(2) : '0.00',
+      whip: totalIP > 0 ? ((bb + h) / totalIP).toFixed(2) : '0.00',
+    };
+  }
+  const ab = sum('atBats'), h = sum('hits');
+  return {
+    runs: sum('runs'), doubles: sum('doubles'), triples: sum('triples'),
+    homeRuns: sum('homeRuns'), rbi: sum('rbi'), stolenBases: sum('stolenBases'),
+    atBats: ab, hits: h, baseOnBalls: sum('baseOnBalls'), strikeOuts: sum('strikeOuts'),
+    avg: ab > 0 ? (h / ab).toFixed(3) : '.000',
+  };
 }
 
 function getActiveTeam(name, listedTeam) {
@@ -2681,9 +2723,13 @@ async function loadAllStats(force = false) {
 
   // ── Phase 0: Fetch roster status first (always, even on cache hits) ──
   // Drives name colors, IL badges, and header counts on every load.
+  // Fetch ALL 30 MLB teams here — not just the teams the fantasy roster's
+  // static data happens to reference. A player who's been traded needs
+  // their NEW team's roster in this cache for getActiveTeam() to find them,
+  // even if no other fantasy team happens to already have a player there.
   setLoaderMsg('Fetching team rosters...');
   const freshRosterStatusCache = {};
-  const allTeams = [...new Set(getRoster().map(p => p[2]).filter(Boolean))];
+  const allTeams = Object.keys(TEAM_ABBR_MAP);
   const rosterMaps = await Promise.all(allTeams.map(t => fetchFullRoster(t)));
   allTeams.forEach((t, i) => { freshRosterStatusCache[t] = rosterMaps[i]; });
   if (!isCurrent()) return; // a newer call has since started — abandon this one
@@ -2765,11 +2811,30 @@ async function loadAllStats(force = false) {
       const [pos, name, mlbTeam, , , , ohtaniHO] = p;
       const needsPitching = pos === 'P' && !ohtaniHO;
       const group         = needsPitching ? 'pitching' : 'hitting';
-      const key           = playerKey(name, mlbTeam);
-      const playerId      = idStore[key];
+
+      // Resolve the player's CURRENT active team — critical for traded
+      // players. The roster's static mlbTeam field goes stale the moment
+      // a trade happens; getActiveTeam() checks the freshly-fetched real
+      // MLB rosters (Phase 0, covering all 30 teams) to find where they
+      // actually play right now, so stats get fetched/cached under the
+      // correct team instead of silently failing under a team they've
+      // since left.
+      const activeTeam = getActiveTeam(name, mlbTeam);
+      const rawKey = playerKey(name, mlbTeam);     // roster's static team — used to find the already-cached numeric ID (never changes on a trade) and kept as a fallback cache key for any lookup that doesn't resolve trades
+      const key    = playerKey(name, activeTeam);  // player's CURRENT team — primary stat cache key, matches what team-aware display code looks up first
+      const playerId    = idStore[rawKey];
+      // Write results under both keys when a trade means they differ, so
+      // every existing lookup throughout the app — most of which use the
+      // roster's raw static team — keeps finding this player's stats,
+      // while team-aware lookups (e.g. the roster page's display) also
+      // resolve correctly.
+      const setBoth = (entry) => {
+        newCache[key] = entry;
+        if (rawKey !== key) newCache[rawKey] = entry;
+      };
 
       if (!playerId) {
-        newCache[key] = { found: false, id: null };
+        setBoth({ found: false, id: null });
         loadState.errors++;
         loadState.loaded++;
         return;
@@ -2777,7 +2842,7 @@ async function loadAllStats(force = false) {
 
       const stat = await fetchStatsByDateRange(playerId, group, start, end);
       if (stat) {
-        newCache[key] = { found: true, id: playerId, stat, isPitcher: needsPitching };
+        setBoth({ found: true, id: playerId, stat, isPitcher: needsPitching });
       } else {
         // No stats in this date range. Before assuming this means "in the
         // minors," check the player's REAL current MLB roster status
@@ -2786,17 +2851,17 @@ async function loadAllStats(force = false) {
         // starting pitcher a few days into a new half) simply hasn't
         // played yet — it does NOT mean he's a minor leaguer, and pulling
         // in an unrelated MiLB stat line for him is wrong.
-        const rStatus = getRosterStatus(name, mlbTeam);
+        const rStatus = getRosterStatus(name, activeTeam);
         if (rStatus === 'active' || rStatus === 'il') {
-          newCache[key] = { found: true, id: playerId, stat: null, isPitcher: needsPitching, noGamesYet: true };
+          setBoth({ found: true, id: playerId, stat: null, isPitcher: needsPitching, noGamesYet: true });
         } else {
           // Genuinely not on an MLB roster — safe to check MiLB stats
           const milbResult = await fetchMiLBStats(playerId, needsPitching);
           if (milbResult) {
-            newCache[key] = { found: false, id: playerId, milbStat: milbResult.stat,
-                              milbLevel: milbResult.level, isPitcher: needsPitching };
+            setBoth({ found: false, id: playerId, milbStat: milbResult.stat,
+                      milbLevel: milbResult.level, isPitcher: needsPitching });
           } else {
-            newCache[key] = { found: false, id: playerId };
+            setBoth({ found: false, id: playerId });
           }
         }
         loadState.errors++;
@@ -4226,12 +4291,13 @@ function renderMLBDecisions(mlbAll) {
   const sorted = [...mlbAll].sort((a,b) => POS_ORDER.indexOf(a[0]) - POS_ORDER.indexOf(b[0]));
 
   const rows = sorted.map(p => {
-    const pKey    = playerKey(p[1], p[2]);
-    const dec     = milbDecisions[pKey] || {};
-    const isRLWIL = p[7];
-    const rStatus = getRosterStatus(p[1], p[2]);
-    const isIL    = !isRLWIL && rStatus === 'il';
-    const posKey  = p[0]==='1B'?'B1':p[0]==='2B'?'B2':p[0]==='3B'?'B3':p[0];
+    const pKey       = playerKey(p[1], p[2]);
+    const dec        = milbDecisions[pKey] || {};
+    const isRLWIL    = p[7];
+    const activeTeam = getActiveTeam(p[1], p[2]);
+    const rStatus    = getRosterStatus(p[1], activeTeam);
+    const isIL       = !isRLWIL && rStatus === 'il';
+    const posKey     = p[0]==='1B'?'B1':p[0]==='2B'?'B2':p[0]==='3B'?'B3':p[0];
 
     // Name color
     const nameColor = isRLWIL ? '#ef5350' : isIL ? '#f5c842' : 'var(--text)';
@@ -4270,7 +4336,7 @@ function renderMLBDecisions(mlbAll) {
       <span class="pos-tag ${posKey}" style="font-size:9px;padding:1px 4px;">${p[0]}</span>
       <div class="milb-player-info">
         <div class="milb-player-name" style="color:${nameColor};">${escapeHtml(p[1])}
-          <span class="team-abbr">${p[2]}</span>
+          <span class="team-abbr">${activeTeam}</span>
         </div>
         <div class="milb-player-meta">$${p[3]}</div>
       </div>
@@ -4300,7 +4366,8 @@ function renderMiLBDecisions(milbAll, mlbAll) {
   const rows = milbAll.map(p => {
     const pKey    = playerKey(p[1], p[2]);
     const dec     = milbDecisions[pKey] || {};
-    const rawSt   = getRosterStatus(p[1], p[2]);
+    const activeTeam = getActiveTeam(p[1], p[2]);
+    const rawSt   = getRosterStatus(p[1], activeTeam);
     const isActive = rawSt === 'active';
     const posKey  = p[0]==='1B'?'B1':p[0]==='2B'?'B2':p[0]==='3B'?'B3':p[0];;
     const nameColor = isActive ? 'var(--text)' : 'var(--muted)';
@@ -4325,7 +4392,7 @@ function renderMiLBDecisions(milbAll, mlbAll) {
       <span class="pos-tag ${posKey}" style="font-size:9px;padding:1px 4px;">${p[0]}</span>
       <div class="milb-player-info">
         <div class="milb-player-name" style="color:${nameColor};">${escapeHtml(p[1])}
-          <span class="team-abbr">${p[2]}</span>
+          <span class="team-abbr">${activeTeam}</span>
         </div>
         <div class="milb-player-meta">${isActive?'Must promote or release':'Keep for $0.75 or release'}</div>
       </div>
