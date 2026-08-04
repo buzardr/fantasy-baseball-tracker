@@ -2589,6 +2589,27 @@ function getActiveTeam(name, listedTeam) {
   return listedTeam; // fall back to listed team if not found anywhere
 }
 
+// Debug helper — call from the browser console to see exactly what
+// getActiveTeam() finds for a player, and on which team(s) they show up
+// as Active, without needing a code change + redeploy to investigate.
+// Usage: debugPlayerTeam("Luis Garcia", "WAS")
+window.debugPlayerTeam = function(name, listedTeam) {
+  const norm  = normalizeName(name);
+  const short = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
+  console.log(`[debugPlayerTeam] "${name}" (roster says: ${listedTeam})`);
+  console.log('  rosterStatusCache has', Object.keys(rosterStatusCache).length, 'teams loaded:', Object.keys(rosterStatusCache).sort());
+  const activeOn = [];
+  for (const [abbr, teamMap] of Object.entries(rosterStatusCache)) {
+    const e = teamMap?.[norm] || teamMap?.[short];
+    if (e) console.log(`  found on ${abbr}:`, e.status, e.statusDate || '');
+    if (e?.status === 'Active') activeOn.push(abbr);
+  }
+  console.log('  listed as ACTIVE on:', activeOn.length ? activeOn : '(none)');
+  console.log('  getActiveTeam() resolves to:', getActiveTeam(name, listedTeam));
+  console.log('  cache key that would be used:', playerKey(name, getActiveTeam(name, listedTeam)));
+  console.log('  cached stat entry:', statsCache[playerKey(name, getActiveTeam(name, listedTeam))]);
+};
+
 // ════════════════════════════════════════════════════════════
 // APP STATE
 // ════════════════════════════════════════════════════════════
@@ -2633,7 +2654,7 @@ function is1HFrozen() {
   return new Date() >= ASB_FREEZE_DATE || !!(lockedStandings1H?.locked);
 }
 
-function statCacheKey(half) { return `rlw_stats_2026_${half}_v3`; }
+function statCacheKey(half) { return `rlw_stats_2026_${half}_v4`; }
 
 // Cheap, deterministic hash — used only to detect when the roster
 // composition has changed, not for any security purpose.
