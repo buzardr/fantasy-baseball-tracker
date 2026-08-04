@@ -2604,10 +2604,14 @@ async function fetchStatsByDateRange(playerId, group, startDate, endDate) {
     const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
-    // byDateRange returns a splits array; a player TRADED during the
-    // queried date range returns MULTIPLE splits — one per team-stint.
-    // Aggregate all of them instead of only taking the first, which would
-    // silently drop every stat accumulated with every team but one.
+    // byDateRange can return MULTIPLE splits within one date range for
+    // several reasons — a genuine mid-range trade (different teams), but
+    // also things unrelated to a trade (a brief option/recall, or other
+    // stint boundaries the API tracks even within the same team). Only
+    // SUM splits when they actually belong to different teams; multiple
+    // splits for the SAME team are not a trade and must not be summed —
+    // doing so silently double-counts every stat for any player whose
+    // stint happens to get split for a non-trade reason.
     const stats = data?.stats;
     if (!stats || stats.length === 0) return null;
     // Find the matching group
@@ -2615,6 +2619,17 @@ async function fetchStatsByDateRange(playerId, group, startDate, endDate) {
     const splits = grouped?.splits;
     if (!splits || splits.length === 0) return null;
     if (splits.length === 1) return splits[0].stat;
+
+    const teamIds = new Set(splits.map(s => s.team?.id ?? s.team?.abbreviation ?? null));
+    if (teamIds.size <= 1 || teamIds.has(null)) {
+      // All splits are for the same team (or team info is missing/
+      // unreliable) — not a trade. Take the single most complete split
+      // (most innings pitched / at-bats) rather than summing duplicates.
+      const weight = (s) => parseFloat(s.stat?.inningsPitched || s.stat?.atBats || 0);
+      return splits.reduce((best, s) => weight(s) > weight(best) ? s : best, splits[0]).stat;
+    }
+    // Splits genuinely span different teams — this is a real trade within
+    // the queried range. Combine them so nothing gets silently dropped.
     return aggregateStatSplits(splits.map(s => s.stat), group);
   } catch(e) {
     return null;
@@ -2828,7 +2843,7 @@ function is1HFrozen() {
   return new Date() >= ASB_FREEZE_DATE || !!(lockedStandings1H?.locked);
 }
 
-function statCacheKey(half) { return `rlw_stats_2026_${half}_v11`; }
+function statCacheKey(half) { return `rlw_stats_2026_${half}_v12`; }
 
 // Cheap, deterministic hash — used only to detect when the roster
 // composition has changed, not for any security purpose.
