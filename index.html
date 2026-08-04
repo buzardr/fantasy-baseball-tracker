@@ -1869,7 +1869,7 @@ async function fetchFullRoster(teamAbbr) {
   const map = {};
   try {
     const activeUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=active&season=2026`;
-    const fullUrl   = `${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`;
+    const fullUrl   = `${MLB_API}/teams/${teamId}/roster?rosterType=40Man&season=2026`;
     const [activeRes, fullRes] = await Promise.all([fetch(activeUrl), fetch(fullUrl)]);
 
     // Fetch the 40-man roster FIRST so we can cross-validate "Active"
@@ -2712,7 +2712,7 @@ window.debugTeamRosterLive = async function(teamAbbr) {
   const teamId = TEAM_IDS[teamAbbr];
   if (!teamId) { console.error('Unknown team abbreviation:', teamAbbr); return; }
   const activeUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=active&season=2026`;
-  const fullUrl   = `${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`;
+  const fullUrl   = `${MLB_API}/teams/${teamId}/roster?rosterType=40Man&season=2026`;
   const [activeRes, fullRes] = await Promise.all([fetch(activeUrl), fetch(fullUrl)]);
   console.log(`  active-roster call: HTTP ${activeRes.status} (ok=${activeRes.ok})`);
   console.log(`  fullRoster (40-man) call: HTTP ${fullRes.status} (ok=${fullRes.ok})`);
@@ -2780,7 +2780,7 @@ function is1HFrozen() {
   return new Date() >= ASB_FREEZE_DATE || !!(lockedStandings1H?.locked);
 }
 
-function statCacheKey(half) { return `rlw_stats_2026_${half}_v9`; }
+function statCacheKey(half) { return `rlw_stats_2026_${half}_v10`; }
 
 // Cheap, deterministic hash — used only to detect when the roster
 // composition has changed, not for any security purpose.
@@ -4815,7 +4815,7 @@ async function buildDraftPool(type) {
     try {
       const [activeRes, fullRes] = await Promise.all([
         fetch(`${MLB_API}/teams/${teamId}/roster?rosterType=active&season=2026`),
-        fetch(`${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`)
+        fetch(`${MLB_API}/teams/${teamId}/roster?rosterType=40Man&season=2026`)
       ]);
       const active = activeRes.ok ? (await activeRes.json()).roster || [] : [];
       const full   = fullRes.ok  ? (await fullRes.json()).roster  || [] : [];
