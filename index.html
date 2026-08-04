@@ -1879,6 +1879,10 @@ async function fetchFullRoster(teamAbbr) {
         const rec   = { status: 'Active', statusDate: '', note: '', id: entry.person.id };
         map[full]  = rec;
         map[short] = rec;
+        // ID-based key — disambiguates two different real people who
+        // happen to share a (suffix-stripped) name, e.g. two unrelated
+        // players both reducing to "luis garcia" in the same org.
+        map[`id:${entry.person.id}`] = rec;
       }
     }
     // Call 2: fullRoster (40-man) -> catches all IL players
@@ -1895,22 +1899,25 @@ async function fetchFullRoster(teamAbbr) {
         if (isIL) {
           const full  = normalizeName(entry.person.fullName);
           const short = full.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
-          // Always overwrite with IL — IL status from fullRoster is authoritative
           // Build a clean label from the code: D10 -> "10-Day IL", ILF -> "Full Season IL"
           const codeLabels = { D7:'7-Day IL', D10:'10-Day IL', D15:'15-Day IL', D60:'60-Day IL', ILF:'Full Season IL' };
           const label = codeLabels[code] || status;
           // MLB API uses several field names for IL placement date depending on endpoint/season
           const rawDate = entry.statusDate || entry.injuryDate || entry.placementDate || '';
-          // DEBUG — log first IL player per team to confirm date field; remove once confirmed
-          if (!map.__debugged) { console.log(`[IL debug] ${teamAbbr} sample entry:`, JSON.parse(JSON.stringify(entry))); map.__debugged = true; }
           const rec = {
             status: label,
             statusDate: rawDate,
             note:       entry.injuryNotes || entry.note || '',
             id:         entry.person.id,
           };
+          // Only overwrite the NAME-based keys — never let one person's IL
+          // status clobber a DIFFERENT person's Active entry just because
+          // they share a suffix-stripped name. The ID-based key always
+          // points to this exact person regardless of what else shares
+          // their name, and callers who know the ID should prefer it.
           map[full]  = rec;
           map[short] = rec;
+          map[`id:${entry.person.id}`] = rec;
         }
       }
     }
@@ -1929,16 +1936,15 @@ async function fetchFullRoster(teamAbbr) {
         const isILTx   = typeCode.startsWith('IL') || typeCode === 'TRIL' ||
                          (tx.description || '').toLowerCase().includes('injured list');
         if (!isILTx) continue;
-        const personName = normalizeName(tx.person?.fullName || '');
-        const short      = personName.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
-        const txDate     = tx.date || tx.effectiveDate || '';
-        if (txDate && (map[personName] || map[short])) {
-          const entry = map[personName] || map[short];
-          if (entry.status !== 'Active' && !entry.statusDate) {
-            entry.statusDate = txDate;
-            if (!entry.note && tx.description) {
-              entry.note = tx.description;
-            }
+        const txId = tx.person?.id;
+        // Prefer matching by ID when the transaction includes one — avoids
+        // patching the wrong same-named person's entry.
+        const entry = (txId && map[`id:${txId}`]) || map[normalizeName(tx.person?.fullName || '')];
+        const txDate = tx.date || tx.effectiveDate || '';
+        if (txDate && entry && entry.status !== 'Active' && !entry.statusDate) {
+          entry.statusDate = txDate;
+          if (!entry.note && tx.description) {
+            entry.note = tx.description;
           }
         }
       }
@@ -2568,22 +2574,40 @@ function aggregateStatSplits(statObjs, group) {
   };
 }
 
-function getActiveTeam(name, listedTeam) {
+function getActiveTeam(name, listedTeam, playerId) {
   const norm  = normalizeName(name);
   const short = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
+  const idKey = playerId ? `id:${playerId}` : null;
+
+  // 'Active' or any IL designation both mean "genuinely on this team's org" —
+  // just healthy vs hurt. Only a status that resolves to neither (not found
+  // at all — MiLB, released, etc.) should fail to confirm this team.
+  function isRosteredStatus(s) {
+    return s === 'Active' || s.endsWith('IL') || s.startsWith('Injured');
+  }
+
+  // Look up this player's entry on a team's roster map — prefer the
+  // unambiguous ID-based key when we know their ID, since two different
+  // real people can share a (suffix-stripped) name, e.g. two unrelated
+  // "Luis Garcia"s in the same org. Only fall back to name matching when
+  // we don't yet know the player's ID.
+  function lookup(teamMap) {
+    if (idKey && teamMap[idKey]) return teamMap[idKey];
+    return teamMap[norm] || teamMap[short];
+  }
 
   // Check listed team first (skip if empty)
   if (listedTeam) {
     const teamMap = rosterStatusCache[listedTeam] || {};
-    const direct  = teamMap[norm] || teamMap[short];
-    if (direct && direct.status === 'Active') return listedTeam;
+    const direct  = lookup(teamMap);
+    if (direct && isRosteredStatus(direct.status || '')) return listedTeam;
   }
 
-  // Search other teams for active entry (traded player)
+  // Search other teams for an active-or-IL entry (traded player)
   for (const [abbr, otherMap] of Object.entries(rosterStatusCache)) {
     if (!otherMap || abbr === listedTeam) continue;
-    const e = otherMap[norm] || otherMap[short];
-    if (e && e.status === 'Active') return abbr;
+    const e = lookup(otherMap);
+    if (e && isRosteredStatus(e.status || '')) return abbr;
   }
 
   return listedTeam; // fall back to listed team if not found anywhere
@@ -2591,23 +2615,29 @@ function getActiveTeam(name, listedTeam) {
 
 // Debug helper — call from the browser console to see exactly what
 // getActiveTeam() finds for a player, and on which team(s) they show up
-// as Active, without needing a code change + redeploy to investigate.
+// as Active or IL, without needing a code change + redeploy to investigate.
 // Usage: debugPlayerTeam("Luis Garcia", "WAS")
-window.debugPlayerTeam = function(name, listedTeam) {
+// Usage with explicit ID: debugPlayerTeam("Luis Garcia", "WAS", 691718)
+window.debugPlayerTeam = function(name, listedTeam, playerId) {
   const norm  = normalizeName(name);
   const short = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
-  console.log(`[debugPlayerTeam] "${name}" (roster says: ${listedTeam})`);
+  const autoId = playerId || statsCache[playerKey(name, listedTeam)]?.id || null;
+  console.log(`[debugPlayerTeam] "${name}" (roster says: ${listedTeam}) — using ID: ${autoId || '(none known)'}`);
   console.log('  rosterStatusCache has', Object.keys(rosterStatusCache).length, 'teams loaded:', Object.keys(rosterStatusCache).sort());
-  const activeOn = [];
+  const matchesByName = [];
   for (const [abbr, teamMap] of Object.entries(rosterStatusCache)) {
     const e = teamMap?.[norm] || teamMap?.[short];
-    if (e) console.log(`  found on ${abbr}:`, e.status, e.statusDate || '');
-    if (e?.status === 'Active') activeOn.push(abbr);
+    if (e) {
+      console.log(`  name match on ${abbr}: id=${e.id}`, e.status, e.statusDate || '', e.id === autoId ? '← THIS IS THE RIGHT PERSON' : (autoId ? '← DIFFERENT PERSON, same name!' : ''));
+      matchesByName.push({ abbr, id: e.id, status: e.status });
+    }
   }
-  console.log('  listed as ACTIVE on:', activeOn.length ? activeOn : '(none)');
-  console.log('  getActiveTeam() resolves to:', getActiveTeam(name, listedTeam));
-  console.log('  cache key that would be used:', playerKey(name, getActiveTeam(name, listedTeam)));
-  console.log('  cached stat entry:', statsCache[playerKey(name, getActiveTeam(name, listedTeam))]);
+  if (matchesByName.length > 1 && new Set(matchesByName.map(m => m.id)).size > 1) {
+    console.warn('  ⚠ Multiple DIFFERENT people share this name across teams — this is exactly the kind of collision the ID-based lookup exists to prevent.');
+  }
+  console.log('  getActiveTeam() resolves to:', getActiveTeam(name, listedTeam, autoId));
+  console.log('  cache key that would be used:', playerKey(name, getActiveTeam(name, listedTeam, autoId)));
+  console.log('  cached stat entry:', statsCache[playerKey(name, getActiveTeam(name, listedTeam, autoId))]);
 };
 
 // ════════════════════════════════════════════════════════════
@@ -2654,7 +2684,7 @@ function is1HFrozen() {
   return new Date() >= ASB_FREEZE_DATE || !!(lockedStandings1H?.locked);
 }
 
-function statCacheKey(half) { return `rlw_stats_2026_${half}_v4`; }
+function statCacheKey(half) { return `rlw_stats_2026_${half}_v5`; }
 
 // Cheap, deterministic hash — used only to detect when the roster
 // composition has changed, not for any security purpose.
@@ -2833,17 +2863,19 @@ async function loadAllStats(force = false) {
       const needsPitching = pos === 'P' && !ohtaniHO;
       const group         = needsPitching ? 'pitching' : 'hitting';
 
+      const rawKey = playerKey(name, mlbTeam); // roster's static team — used to find the already-cached numeric ID (never changes on a trade) and kept as a fallback cache key for any lookup that doesn't resolve trades
+      const playerId = idStore[rawKey];
+
       // Resolve the player's CURRENT active team — critical for traded
       // players. The roster's static mlbTeam field goes stale the moment
       // a trade happens; getActiveTeam() checks the freshly-fetched real
       // MLB rosters (Phase 0, covering all 30 teams) to find where they
       // actually play right now, so stats get fetched/cached under the
       // correct team instead of silently failing under a team they've
-      // since left.
-      const activeTeam = getActiveTeam(name, mlbTeam);
-      const rawKey = playerKey(name, mlbTeam);     // roster's static team — used to find the already-cached numeric ID (never changes on a trade) and kept as a fallback cache key for any lookup that doesn't resolve trades
+      // since left. Passing playerId lets it disambiguate between two
+      // different real people who happen to share a (suffix-stripped) name.
+      const activeTeam = getActiveTeam(name, mlbTeam, playerId);
       const key    = playerKey(name, activeTeam);  // player's CURRENT team — primary stat cache key, matches what team-aware display code looks up first
-      const playerId    = idStore[rawKey];
       // Write results under both keys when a trade means they differ, so
       // every existing lookup throughout the app — most of which use the
       // roster's raw static team — keeps finding this player's stats,
@@ -2872,7 +2904,7 @@ async function loadAllStats(force = false) {
         // starting pitcher a few days into a new half) simply hasn't
         // played yet — it does NOT mean he's a minor leaguer, and pulling
         // in an unrelated MiLB stat line for him is wrong.
-        const rStatus = getRosterStatus(name, activeTeam);
+        const rStatus = getRosterStatus(name, activeTeam, playerId);
         if (rStatus === 'active' || rStatus === 'il') {
           setBoth({ found: true, id: playerId, stat: null, isPitcher: needsPitching, noGamesYet: true });
         } else {
@@ -3326,31 +3358,8 @@ function renderRosters(team) {
   const bestH    = teamStats[team]?.bestHitters   || [];
 
   // Count Active / IL / MiLB for each group using live roster data
-  function getRosterStatus(name, mlbTeam) {
-    const norm  = normalizeName(name);
-    const short = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
-
-    // Check listed team first (covers 99% of cases)
-    const teamMap = rosterStatusCache[mlbTeam] || {};
-    const direct  = teamMap[norm] || teamMap[short];
-    if (direct) {
-      const s = direct.status || '';
-      if (s === 'Active') return 'active';
-      if (s.endsWith('IL') || s.startsWith('Injured') || s === 'Full Season IL') return 'il';
-      return 'milb';
-    }
-
-    // Not found on listed team — may have been traded.
-    // Only search other teams' ACTIVE 26-man entries (status === 'Active').
-    // We do NOT carry over IL status from a previous team.
-    for (const [abbr, otherMap] of Object.entries(rosterStatusCache)) {
-      if (!otherMap || abbr === mlbTeam) continue;
-      const e = otherMap[norm] || otherMap[short];
-      if (e && e.status === 'Active') return 'active';
-    }
-
-    return 'milb';
-  }
+  // (getRosterStatus is the global version, defined once below — kept
+  // out of this scope to avoid two copies drifting out of sync)
 
   function getILInfo(name, mlbTeam) {
     const teamMap = rosterStatusCache[mlbTeam] || {};
@@ -3385,12 +3394,16 @@ function renderRosters(team) {
 
   function makeRow(p) {
     const [pos, name, mlbTeamRaw, salary, ft, isMilbFlag, ohtaniHO, isRLWIL] = p;
-    const mlbTeam = getActiveTeam(name, mlbTeamRaw);
+    // The raw-key cache entry is always populated (see setBoth() in the
+    // fetch phase), so its id is a reliable way to disambiguate before
+    // resolving which team this player is actually on right now.
+    const knownId = statsCache[playerKey(name, mlbTeamRaw)]?.id || null;
+    const mlbTeam = getActiveTeam(name, mlbTeamRaw, knownId);
     const cacheEntry  = statsCache[playerKey(name, mlbTeam)] || statsCache[playerKey(name, mlbTeamRaw)];
     const s           = cacheEntry?.found ? cacheEntry.stat : null;
     const milbStat    = cacheEntry?.milbStat || null;
     const milbLevel   = cacheEntry?.milbLevel || 'MiLB';
-    const rStatus     = getRosterStatus(name, mlbTeam);
+    const rStatus     = getRosterStatus(name, mlbTeam, knownId);
     const isActive    = rStatus === 'active';
     const isIL        = !isRLWIL && rStatus === 'il'; // amber - informational only
     const isTrueMiLB  = rStatus === 'milb';
@@ -4219,13 +4232,19 @@ async function loadCommMiLBDecisions() {
 
 // Global getRosterStatus — mirrors the closure version inside renderRosters
 // Used by MiLB decisions and any code outside renderRosters
-function getRosterStatus(name, mlbTeam) {
+function getRosterStatus(name, mlbTeam, playerId) {
   const norm  = normalizeName(name);
   const short = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
+  const idKey = playerId ? `id:${playerId}` : null;
+
+  function lookup(teamMap) {
+    if (idKey && teamMap[idKey]) return teamMap[idKey];
+    return teamMap[norm] || teamMap[short];
+  }
 
   // Check listed team first
   const teamMap = rosterStatusCache[mlbTeam] || {};
-  const direct  = teamMap[norm] || teamMap[short];
+  const direct  = lookup(teamMap);
   if (direct) {
     const s = direct.status || '';
     if (s === 'Active') return 'active';
@@ -4233,11 +4252,15 @@ function getRosterStatus(name, mlbTeam) {
     return 'milb';
   }
 
-  // Traded? Search other teams' active 26-man entries
+  // Traded? Search other teams' entries (active OR IL — being traded and
+  // being hurt are independent facts)
   for (const [abbr, otherMap] of Object.entries(rosterStatusCache)) {
     if (!otherMap || abbr === mlbTeam) continue;
-    const e = otherMap[norm] || otherMap[short];
-    if (e && e.status === 'Active') return 'active';
+    const e = lookup(otherMap);
+    if (!e) continue;
+    const s = e.status || '';
+    if (s === 'Active') return 'active';
+    if (s.endsWith('IL') || s.startsWith('Injured')) return 'il';
   }
   return 'milb';
 }
@@ -4315,8 +4338,9 @@ function renderMLBDecisions(mlbAll) {
     const pKey       = playerKey(p[1], p[2]);
     const dec        = milbDecisions[pKey] || {};
     const isRLWIL    = p[7];
-    const activeTeam = getActiveTeam(p[1], p[2]);
-    const rStatus    = getRosterStatus(p[1], activeTeam);
+    const knownId    = statsCache[pKey]?.id || null;
+    const activeTeam = getActiveTeam(p[1], p[2], knownId);
+    const rStatus    = getRosterStatus(p[1], activeTeam, knownId);
     const isIL       = !isRLWIL && rStatus === 'il';
     const posKey     = p[0]==='1B'?'B1':p[0]==='2B'?'B2':p[0]==='3B'?'B3':p[0];
 
@@ -4387,8 +4411,9 @@ function renderMiLBDecisions(milbAll, mlbAll) {
   const rows = milbAll.map(p => {
     const pKey    = playerKey(p[1], p[2]);
     const dec     = milbDecisions[pKey] || {};
-    const activeTeam = getActiveTeam(p[1], p[2]);
-    const rawSt   = getRosterStatus(p[1], activeTeam);
+    const knownId = statsCache[pKey]?.id || null;
+    const activeTeam = getActiveTeam(p[1], p[2], knownId);
+    const rawSt   = getRosterStatus(p[1], activeTeam, knownId);
     const isActive = rawSt === 'active';
     const posKey  = p[0]==='1B'?'B1':p[0]==='2B'?'B2':p[0]==='3B'?'B3':p[0];;
     const nameColor = isActive ? 'var(--text)' : 'var(--muted)';
