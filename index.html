@@ -1962,6 +1962,47 @@ async function fetchFullRoster(teamAbbr) {
   } catch(e) {
     console.error(`fetchFullRoster error for ${teamAbbr}:`, e);
   }
+
+  // Supplementary call: the org-wide farm-system endpoint (every affiliate
+  // level combined) — used ONLY to detect injury status for true prospects
+  // who aren't on the 40-man at all (so they weren't found by anything
+  // above). NEVER used to determine Active/MLB status — that would
+  // reintroduce the original bug where a AAA player's "Active" status on
+  // his own AAA roster got mistaken for MLB-active. This only adds an
+  // entry when it's specifically injury-related AND the player isn't
+  // already known from the 40-man data.
+  try {
+    const orgUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`;
+    const orgRes = await fetch(orgUrl);
+    if (orgRes.ok) {
+      const orgData = await orgRes.json();
+      for (const entry of (orgData.roster || [])) {
+        if (map[`id:${entry.person.id}`]) continue; // already known from 40-man data — don't touch it
+
+        const status = entry.status?.description || '';
+        const code   = entry.status?.code || '';
+        const isInjury = status.toLowerCase().includes('injured') || status.toLowerCase().includes('rehab') ||
+                          code.startsWith('D') || code === 'ILF';
+        if (!isInjury) continue; // only care about injuries here — not general farm-system "Active" noise
+
+        const full  = normalizeName(entry.person.fullName);
+        const short = full.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
+        const codeLabels = { D7:'7-Day IL', D10:'10-Day IL', D15:'15-Day IL', D60:'60-Day IL', ILF:'Full Season IL' };
+        const rec = {
+          status: codeLabels[code] || status,
+          statusDate: entry.statusDate || entry.injuryDate || entry.placementDate || '',
+          note: entry.injuryNotes || entry.note || '',
+          id: entry.person.id,
+        };
+        map[full]  = rec;
+        map[short] = rec;
+        map[`id:${entry.person.id}`] = rec;
+      }
+    }
+  } catch(e) {
+    console.error(`fetchFullRoster org-wide injury lookup failed for ${teamAbbr}:`, e);
+  }
+
   // Patch in IL placement dates from transactions API (fullRoster doesn't include dates)
   try {
     const today  = new Date().toISOString().split('T')[0];
@@ -2780,7 +2821,7 @@ function is1HFrozen() {
   return new Date() >= ASB_FREEZE_DATE || !!(lockedStandings1H?.locked);
 }
 
-function statCacheKey(half) { return `rlw_stats_2026_${half}_v10`; }
+function statCacheKey(half) { return `rlw_stats_2026_${half}_v11`; }
 
 // Cheap, deterministic hash — used only to detect when the roster
 // composition has changed, not for any security purpose.
