@@ -1868,12 +1868,45 @@ async function fetchFullRoster(teamAbbr) {
   if (!teamId) return {};
   const map = {};
   try {
-    // Call 1: active 26-man -> white names
     const activeUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=active&season=2026`;
-    const activeRes = await fetch(activeUrl);
+    const fullUrl   = `${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`;
+    const [activeRes, fullRes] = await Promise.all([fetch(activeUrl), fetch(fullUrl)]);
+
+    // Fetch the 40-man roster FIRST so we can cross-validate "Active"
+    // claims against it. Anyone truly on the 26-man active roster is, by
+    // definition, also on the 40-man — if the active-roster endpoint
+    // claims someone is Active but they don't appear on the 40-man at
+    // all, that's a stale/inconsistent API response, not a real active player.
+    let fullData = null;
+    const fullRosterIds = new Set();
+    const fullStatusById = new Map(); // person id -> raw status description from the 40-man call
+    if (fullRes.ok) {
+      fullData = await fullRes.json();
+      for (const entry of (fullData.roster || [])) {
+        fullRosterIds.add(entry.person.id);
+        fullStatusById.set(entry.person.id, entry.status?.description || '');
+      }
+    }
+
+    // Call 1: active 26-man -> white names
     if (activeRes.ok) {
       const activeData = await activeRes.json();
       for (const entry of (activeData.roster || [])) {
+        if (fullRosterIds.size > 0 && !fullRosterIds.has(entry.person.id)) {
+          console.warn(`[fetchFullRoster] ${teamAbbr}: "${entry.person.fullName}" listed Active but not found on the 40-man roster — treating as stale data, not marking Active.`);
+          continue;
+        }
+        // Even when found on the 40-man, if the 40-man call's OWN status
+        // for this exact person explicitly says something like "Minors"
+        // or "Optional Assignment" (matching what MLB.com's own roster
+        // page displays, e.g. a bold "MINORS" tag), trust that specific,
+        // authoritative per-player signal over a conflicting "Active"
+        // claim from the separate active-roster endpoint.
+        const fullStatusText = (fullStatusById.get(entry.person.id) || '').toLowerCase();
+        if (fullStatusText.includes('minor') || fullStatusText.includes('option') || fullStatusText.includes('reassign')) {
+          console.warn(`[fetchFullRoster] ${teamAbbr}: "${entry.person.fullName}" listed Active but 40-man status says "${fullStatusById.get(entry.person.id)}" — trusting that instead.`);
+          continue;
+        }
         // Store under both full name and name-without-suffix for Jr./Sr. mismatches
         const full  = normalizeName(entry.person.fullName);
         const short = full.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
@@ -1893,10 +1926,7 @@ async function fetchFullRoster(teamAbbr) {
     // assignment) can use different text entirely — always add the entry
     // rather than silently dropping anyone whose exact status text isn't a
     // pattern we specifically recognize.
-    const fullUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`;
-    const fullRes = await fetch(fullUrl);
-    if (fullRes.ok) {
-      const fullData = await fullRes.json();
+    if (fullData) {
       for (const entry of (fullData.roster || [])) {
         // Call 1 (active roster) is authoritative for who's truly Active —
         // don't let a 40-man listing downgrade someone we already confirmed active.
@@ -2715,7 +2745,7 @@ function is1HFrozen() {
   return new Date() >= ASB_FREEZE_DATE || !!(lockedStandings1H?.locked);
 }
 
-function statCacheKey(half) { return `rlw_stats_2026_${half}_v7`; }
+function statCacheKey(half) { return `rlw_stats_2026_${half}_v9`; }
 
 // Cheap, deterministic hash — used only to detect when the roster
 // composition has changed, not for any security purpose.
