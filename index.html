@@ -2701,6 +2701,41 @@ window.debugPlayerTeam = function(name, listedTeam, playerId) {
   console.log('  cached stat entry:', statsCache[playerKey(name, getActiveTeam(name, listedTeam, autoId))]);
 };
 
+// Live re-fetch diagnostic — bypasses ALL caching (rosterStatusCache, stats
+// cache, everything) and hits the MLB API fresh, right now, for one team.
+// Use this to verify with certainty whether a code fix is actually running
+// on the current page, rather than relying on state loaded at page-load
+// time (which could be from a stale deployment or cached localStorage).
+// Usage: debugTeamRosterLive("SD")
+window.debugTeamRosterLive = async function(teamAbbr) {
+  console.log(`[debugTeamRosterLive] Fetching ${teamAbbr} fresh from MLB API (bypassing all caches)...`);
+  const teamId = TEAM_IDS[teamAbbr];
+  if (!teamId) { console.error('Unknown team abbreviation:', teamAbbr); return; }
+  const activeUrl = `${MLB_API}/teams/${teamId}/roster?rosterType=active&season=2026`;
+  const fullUrl   = `${MLB_API}/teams/${teamId}/roster?rosterType=fullRoster&season=2026`;
+  const [activeRes, fullRes] = await Promise.all([fetch(activeUrl), fetch(fullUrl)]);
+  console.log(`  active-roster call: HTTP ${activeRes.status} (ok=${activeRes.ok})`);
+  console.log(`  fullRoster (40-man) call: HTTP ${fullRes.status} (ok=${fullRes.ok})`);
+  if (!fullRes.ok) {
+    console.warn('  ⚠ The 40-man call FAILED — this means cross-validation cannot run, and any "Active" claim from the active-roster call would currently be trusted unfiltered. This would explain a false Active showing through.');
+  }
+  const fullData = fullRes.ok ? await fullRes.json() : null;
+  const fullIds = new Set((fullData?.roster || []).map(e => e.person.id));
+  console.log(`  40-man roster has ${fullIds.size} players`);
+  if (activeRes.ok) {
+    const activeData = await activeRes.json();
+    console.log(`  active-roster call lists ${activeData.roster?.length || 0} players`);
+    for (const entry of (activeData.roster || [])) {
+      const onFortyMan = fullIds.has(entry.person.id);
+      const fullEntry = (fullData?.roster || []).find(e => e.person.id === entry.person.id);
+      const fullStatus = fullEntry?.status?.description || '(not found on 40-man)';
+      const wouldFilterOut = !onFortyMan || /minor|option|reassign/i.test(fullStatus);
+      console.log(`    ${entry.person.fullName} (id=${entry.person.id}): on 40-man=${onFortyMan}, 40-man status="${fullStatus}"`, wouldFilterOut ? '→ WOULD BE FILTERED OUT (correctly not Active)' : '→ stays Active');
+    }
+  }
+  console.log('[debugTeamRosterLive] Done. Compare this against what rosterStatusCache currently shows for this team to see whether the page needs a refresh.');
+};
+
 // ════════════════════════════════════════════════════════════
 // APP STATE
 // ════════════════════════════════════════════════════════════
