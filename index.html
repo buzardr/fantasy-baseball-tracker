@@ -393,6 +393,7 @@
   .player-row.milb { opacity: 0.45; }
   .player-row.il { opacity: 1; }
   .player-name.il    { color: #f5c842; cursor: help; }
+  .player-name.pending { color: #5dade2; cursor: help; }
   .player-name.rlwil { color: #ef5350; font-style:italic; cursor:help; }
   .player-name.milb-name { color: var(--muted); }
   .il-tooltip {
@@ -2581,6 +2582,27 @@ function aggregateStatSplits(statObjs, group) {
   };
 }
 
+// Classify a raw MLB roster status string into one of four buckets.
+// MLB's API uses many different status texts, so this matches on keywords
+// rather than an exhaustive exact-string list:
+//   'active'  — literally on the 26-man active roster
+//   'il'      — injured list or rehab assignment (still a big leaguer,
+//               just not currently accumulating MLB stats)
+//   'milb'    — optioned/reassigned to the minors (genuinely playing in
+//               the minors right now — keep showing MiLB stats for them)
+//   'pending' — anything else non-injury, non-active, non-minors (e.g.
+//               "Not Yet Reported" after a trade, restricted/bereavement/
+//               paternity list, suspended) — informational, but distinct
+//               from an actual injury
+function classifyStatus(statusText) {
+  const s = (statusText || '').toLowerCase();
+  if (s === 'active') return 'active';
+  if (s.includes('reassign') || s.includes('minor') || s.includes('option')) return 'milb';
+  if (s.includes('injured') || s.includes('rehab') || s.endsWith(' il') || /\dil$/.test(s.replace(/[\s-]/g,''))) return 'il';
+  if (!s) return 'milb'; // no status at all means not found on this team — treat as not-on-org
+  return 'pending';
+}
+
 function getActiveTeam(name, listedTeam, playerId) {
   const norm  = normalizeName(name);
   const short = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
@@ -2693,7 +2715,7 @@ function is1HFrozen() {
   return new Date() >= ASB_FREEZE_DATE || !!(lockedStandings1H?.locked);
 }
 
-function statCacheKey(half) { return `rlw_stats_2026_${half}_v6`; }
+function statCacheKey(half) { return `rlw_stats_2026_${half}_v7`; }
 
 // Cheap, deterministic hash — used only to detect when the roster
 // composition has changed, not for any security purpose.
@@ -2914,7 +2936,7 @@ async function loadAllStats(force = false) {
         // played yet — it does NOT mean he's a minor leaguer, and pulling
         // in an unrelated MiLB stat line for him is wrong.
         const rStatus = getRosterStatus(name, activeTeam, playerId);
-        if (rStatus === 'active' || rStatus === 'il') {
+        if (rStatus === 'active' || rStatus === 'il' || rStatus === 'pending') {
           setBoth({ found: true, id: playerId, stat: null, isPitcher: needsPitching, noGamesYet: true });
         } else {
           // Genuinely not on an MLB roster — safe to check MiLB stats
@@ -3386,7 +3408,7 @@ function renderRosters(team) {
 
   function countGroup(group) {
     const active  = group.filter(p => getRosterStatus(p[1], p[2]) === 'active').length;
-    const il      = group.filter(p => getRosterStatus(p[1], p[2]) === 'il').length;
+    const il      = group.filter(p => ['il','pending'].includes(getRosterStatus(p[1], p[2]))).length;
     const milb    = group.filter(p => getRosterStatus(p[1], p[2]) === 'milb').length;
     // MiLB-IL: originally MiLB players who are injured — count in MiLB tally for draft planning
     const milbIL  = group.filter(p => p[5] && getRosterStatus(p[1], p[2]) === 'il').length;
@@ -3415,6 +3437,7 @@ function renderRosters(team) {
     const rStatus     = getRosterStatus(name, mlbTeam, knownId);
     const isActive    = rStatus === 'active';
     const isIL        = !isRLWIL && rStatus === 'il'; // amber - informational only
+    const isPending   = !isRLWIL && rStatus === 'pending'; // blue - administrative status (e.g. "Not Yet Reported"), not an injury
     const isTrueMiLB  = rStatus === 'milb';
     const isBBp       = best9.includes(playerKey(name, mlbTeam));
     const isBBh       = bestH.includes(playerKey(name, mlbTeam));
@@ -3424,12 +3447,15 @@ function renderRosters(team) {
 
     // Name color class
     const isMiLBonIL = isMilbFlag && rStatus === 'il'; // MiLB player called up to MLB IL
-    const nameClass = isRLWIL ? 'rlwil' : isIL ? 'il' : isMiLBonIL ? 'il' : isTrueMiLB ? 'milb-name' : '';
+    const nameClass = isRLWIL ? 'rlwil' : isIL ? 'il' : isMiLBonIL ? 'il' : isPending ? 'pending' : isTrueMiLB ? 'milb-name' : '';
 
     // IL tooltip
     let tooltipHtml = '';
     if (isRLWIL) {
       tooltipHtml = `<div class="il-tooltip">RLW IL — stats ineligible this half</div>`;
+    } else if (isPending) {
+      const info = getILInfo(name, mlbTeam);
+      tooltipHtml = `<div class="il-tooltip">${info?.type || 'Status update'}${info?.date ? ` · ${info.date}` : ''}</div>`;
     } else if (isIL || isMiLBonIL) {
       const info = getILInfo(name, mlbTeam);
       if (info) {
@@ -4254,23 +4280,14 @@ function getRosterStatus(name, mlbTeam, playerId) {
   // Check listed team first
   const teamMap = rosterStatusCache[mlbTeam] || {};
   const direct  = lookup(teamMap);
-  if (direct) {
-    const s = direct.status || '';
-    // fetchFullRoster() only adds entries for real 40-man roster members —
-    // anyone found here but not literally Active is IL, on a rehab
-    // assignment, or some other away-from-the-26-man status. Treat all of
-    // that as 'il' rather than requiring the exact status text to match a
-    // known pattern (MLB's API uses several different phrasings).
-    return s === 'Active' ? 'active' : 'il';
-  }
+  if (direct) return classifyStatus(direct.status);
 
-  // Traded? Search other teams' entries (active OR IL — being traded and
-  // being hurt are independent facts)
+  // Traded? Search other teams' entries
   for (const [abbr, otherMap] of Object.entries(rosterStatusCache)) {
     if (!otherMap || abbr === mlbTeam) continue;
     const e = lookup(otherMap);
     if (!e) continue;
-    return (e.status || '') === 'Active' ? 'active' : 'il';
+    return classifyStatus(e.status);
   }
   return 'milb';
 }
@@ -4352,13 +4369,16 @@ function renderMLBDecisions(mlbAll) {
     const activeTeam = getActiveTeam(p[1], p[2], knownId);
     const rStatus    = getRosterStatus(p[1], activeTeam, knownId);
     const isIL       = !isRLWIL && rStatus === 'il';
+    const isPending  = !isRLWIL && rStatus === 'pending';
     const posKey     = p[0]==='1B'?'B1':p[0]==='2B'?'B2':p[0]==='3B'?'B3':p[0];
 
     // Name color
-    const nameColor = isRLWIL ? '#ef5350' : isIL ? '#f5c842' : 'var(--text)';
+    const nameColor = isRLWIL ? '#ef5350' : isIL ? '#f5c842' : isPending ? '#5dade2' : 'var(--text)';
     const nameItalic = isRLWIL ? 'font-style:italic;' : '';
     const badge = isRLWIL
       ? `<span class="milb-status-badge il" style="font-size:8px;">RLWIL</span>`
+      : isPending
+      ? (() => { const info = getILInfoGlobal(p[1],p[2]); return `<span class="milb-status-badge il" style="font-size:8px;background:rgba(93,173,226,0.15);color:#5dade2;">${info?.type||'PENDING'}</span>`; })()
       : isIL
       ? (() => { const info = getILInfoGlobal(p[1],p[2]); return `<span class="milb-status-badge il" style="font-size:8px;">${info?.type||'IL'}</span>`; })()
       : `<span class="milb-status-badge active" style="font-size:8px;">ACTIVE</span>`;
@@ -4429,7 +4449,7 @@ function renderMiLBDecisions(milbAll, mlbAll) {
     const nameColor = isActive ? 'var(--text)' : 'var(--muted)';
     const badge   = isActive
       ? `<span class="milb-status-badge active" style="font-size:8px;">MLB ACTIVE</span>`
-      : rawSt === 'il'
+      : (rawSt === 'il' || rawSt === 'pending')
       ? `<span class="milb-status-badge il" style="font-size:8px;">MINORS·IL</span>`
       : `<span class="milb-status-badge minors" style="font-size:8px;">MINORS</span>`;
 
