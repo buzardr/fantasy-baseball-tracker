@@ -414,7 +414,14 @@
   .player-name.il:hover + .il-tooltip,
   .player-name.il:focus + .il-tooltip,
   .player-name.rlwil:hover + .il-tooltip,
-  .player-name.rlwil:focus + .il-tooltip { display: block; }
+  .player-name.rlwil:focus + .il-tooltip,
+  .player-name.pending:hover + .il-tooltip,
+  .player-name.pending:focus + .il-tooltip { display: block; }
+  .player-name.pending:hover + .il-tooltip,
+  .player-name.pending:focus + .il-tooltip {
+    border-color: #5dade2;
+    color: #a9d4f0;
+  }
   .il-wrapper { position: relative; display: contents; }
   .player-row.active-bb { background: rgba(0,200,83,0.04); }
 
