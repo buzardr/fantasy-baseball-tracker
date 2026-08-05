@@ -2747,6 +2747,19 @@ window.debugPlayerTeam = function(name, listedTeam, playerId) {
   const short = norm.replace(/\s+(jr|sr|ii|iii|iv)\.?$/, '').trim();
   const autoId = playerId || statsCache[playerKey(name, listedTeam)]?.id || null;
   console.log(`[debugPlayerTeam] "${name}" (roster says: ${listedTeam}) — using ID: ${autoId || '(none known)'}`);
+
+  // Check whether this exact name+team is actually present in the roster
+  // being iterated by the stat-fetch loop. A cache entry that's fully
+  // `undefined` (not even a {found:false} placeholder) usually means the
+  // player never reached that loop at all — this check shows exactly what
+  // IS in the roster under this name, to catch subtle mismatches (accent
+  // marks, apostrophes, extra whitespace, a different team spelling, etc).
+  const rosterMatches = getRoster().filter(p => normalizeName(p[1]) === norm);
+  console.log(`  getRoster() has ${rosterMatches.length} entr${rosterMatches.length===1?'y':'ies'} matching this name:`, rosterMatches.map(p => ({ pos: p[0], name: p[1], team: p[2], fantasyTeam: p[4] })));
+  if (rosterMatches.length === 0) {
+    console.warn(`  ⚠ No roster entry found for "${name}" at all — check for a spelling/accent-mark/apostrophe mismatch between what you're searching and how the name is actually stored.`);
+  }
+
   console.log('  rosterStatusCache has', Object.keys(rosterStatusCache).length, 'teams loaded:', Object.keys(rosterStatusCache).sort());
   const matchesByName = [];
   for (const [abbr, teamMap] of Object.entries(rosterStatusCache)) {
@@ -2797,6 +2810,63 @@ window.debugTeamRosterLive = async function(teamAbbr) {
     }
   }
   console.log('[debugTeamRosterLive] Done. Compare this against what rosterStatusCache currently shows for this team to see whether the page needs a refresh.');
+};
+
+// Diagnostic for the ID-search step — shows exactly what MLB's
+// people-search API returns at each stage resolvePlayerId() tries, and
+// why a candidate was accepted or rejected. Use this when a player's
+// cached stat entry shows id:null, meaning the ID search itself failed.
+// Usage: debugResolvePlayerId("Nick Gonzalez", "PIT")
+window.debugResolvePlayerId = async function(name, mlbTeamRoster) {
+  const parts = name.trim().split(/\s+/);
+  const lastName = parts[parts.length - 1];
+  const normalizedTarget = normName(name);
+  const targetAbbr = TEAM_ABBR_MAP[mlbTeamRoster] || mlbTeamRoster;
+  console.log(`[debugResolvePlayerId] "${name}" (roster team: ${mlbTeamRoster} → API abbr: ${targetAbbr})`);
+
+  const searchUrl = `${MLB_API}/people/search?names=${encodeURIComponent(lastName)}&sportIds=${SPORT_ID}`;
+  console.log(`  Step 1: last-name search for "${lastName}"`);
+  try {
+    const res = await fetch(searchUrl);
+    console.log(`    HTTP ${res.status} (ok=${res.ok})`);
+    if (res.ok) {
+      const data = await res.json();
+      const people = data?.people || [];
+      console.log(`    ${people.length} candidate(s) returned:`, people.map(p => ({ name: p.fullName, id: p.id, team: p.currentTeam?.abbreviation || '(none)' })));
+      const exact = people.find(p => normName(p.fullName || '') === normalizedTarget && p.currentTeam?.abbreviation === targetAbbr);
+      console.log('    Exact name+team match:', exact ? `${exact.fullName} (id=${exact.id})` : 'none');
+      const loose = people.find(p => {
+        const nameMatch = normName(p.fullName || '').includes(normName(parts[0])) && normName(p.fullName || '').includes(normName(lastName));
+        const teamMatch = p.currentTeam?.abbreviation === targetAbbr || p.currentTeam?.abbreviation === mlbTeamRoster;
+        return nameMatch && teamMatch;
+      });
+      console.log('    Loose name+team match:', loose ? `${loose.fullName} (id=${loose.id})` : 'none');
+      const partial = people.find(p => {
+        const pn = normName(p.fullName || '');
+        return pn.includes(normName(lastName)) && pn.includes(normName(parts[0]));
+      });
+      console.log('    Partial name-only match (any team):', partial ? `${partial.fullName} (id=${partial.id}, team=${partial.currentTeam?.abbreviation})` : 'none');
+    }
+  } catch(e) {
+    console.log('    ERROR:', e.message);
+  }
+
+  const fullUrl = `${MLB_API}/people/search?names=${encodeURIComponent(name)}&sportIds=${SPORT_ID}`;
+  console.log(`  Step 2 (fallback): full-name search for "${name}"`);
+  try {
+    const res2 = await fetch(fullUrl);
+    console.log(`    HTTP ${res2.status} (ok=${res2.ok})`);
+    if (res2.ok) {
+      const data2 = await res2.json();
+      const people2 = data2?.people || [];
+      console.log(`    ${people2.length} candidate(s) returned:`, people2.map(p => ({ name: p.fullName, id: p.id, team: p.currentTeam?.abbreviation || '(none)' })));
+    }
+  } catch(e) {
+    console.log('    ERROR:', e.message);
+  }
+
+  const actualResult = await resolvePlayerId(name, mlbTeamRoster);
+  console.log('  resolvePlayerId() actual result:', actualResult);
 };
 
 // ════════════════════════════════════════════════════════════
