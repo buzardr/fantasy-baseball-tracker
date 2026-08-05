@@ -3567,8 +3567,8 @@ function renderRosters(team) {
     const isIL        = !isRLWIL && rStatus === 'il'; // amber - informational only
     const isPending   = !isRLWIL && rStatus === 'pending'; // blue - administrative status (e.g. "Not Yet Reported"), not an injury
     const isTrueMiLB  = rStatus === 'milb';
-    const isBBp       = best9.includes(playerKey(name, mlbTeam));
-    const isBBh       = bestH.includes(playerKey(name, mlbTeam));
+    const isBBp       = best9.includes(playerKey(name, mlbTeam)) || best9.includes(playerKey(name, mlbTeamRaw));
+    const isBBh       = bestH.includes(playerKey(name, mlbTeam)) || bestH.includes(playerKey(name, mlbTeamRaw));
     const isBB        = isBBp || isBBh;
     const livePos = (isMilbFlag && positionOverrides[name]) ? positionOverrides[name] : pos;
     const posKey  = livePos === '1B' ? 'B1' : livePos === '2B' ? 'B2' : livePos === '3B' ? 'B3' : livePos;
