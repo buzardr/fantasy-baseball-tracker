@@ -2936,7 +2936,7 @@ function is1HFrozen() {
   return new Date() >= ASB_FREEZE_DATE || !!(lockedStandings1H?.locked);
 }
 
-function statCacheKey(half) { return `rlw_stats_2026_${half}_v12`; }
+function statCacheKey(half) { return `rlw_stats_2026_${half}_v13`; }
 
 // Cheap, deterministic hash — used only to detect when the roster
 // composition has changed, not for any security purpose.
@@ -3111,7 +3111,7 @@ async function loadAllStats(force = false) {
   for (let i = 0; i < allPlayers.length; i += STAT_BATCH) {
     const batch = allPlayers.slice(i, i + STAT_BATCH);
     await Promise.all(batch.map(async (p) => {
-      const [pos, name, mlbTeam, , , , ohtaniHO] = p;
+      const [pos, name, mlbTeam, , , isMilbFlag, ohtaniHO] = p;
       const needsPitching = pos === 'P' && !ohtaniHO;
       const group         = needsPitching ? 'pitching' : 'hitting';
 
@@ -3156,8 +3156,16 @@ async function loadAllStats(force = false) {
         // starting pitcher a few days into a new half) simply hasn't
         // played yet — it does NOT mean he's a minor leaguer, and pulling
         // in an unrelated MiLB stat line for him is wrong.
+        //
+        // BUT: this shortcut only applies to players NOT flagged as MiLB
+        // in the roster. A true MiLB prospect can also be classified 'il'
+        // (hurt in the minors, detected via the org-wide farm-system
+        // lookup) — for them, skipping the MiLB fetch would wrongly wipe
+        // out real accumulated minor-league stats and replace them with
+        // "no games yet," even though they may have hundreds of at-bats
+        // this season before landing on the minors' IL.
         const rStatus = getRosterStatus(name, activeTeam, playerId);
-        if (rStatus === 'active' || rStatus === 'il' || rStatus === 'pending') {
+        if (!isMilbFlag && (rStatus === 'active' || rStatus === 'il' || rStatus === 'pending')) {
           setBoth({ found: true, id: playerId, stat: null, isPitcher: needsPitching, noGamesYet: true });
         } else {
           // Genuinely not on an MLB roster — safe to check MiLB stats
