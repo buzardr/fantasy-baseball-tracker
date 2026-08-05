@@ -2070,6 +2070,29 @@ async function fetchMiLBStats(playerId, isPitcher) {
 
 // Seed with IDs we already know are correct (reduces API calls)
 const KNOWN_IDS = {
+  // Verified directly against mlb.com/milb.com player pages — these are
+  // deep/young prospects that MLB's people-search API doesn't reliably
+  // index yet, regardless of name spelling. Hardcoding bypasses that
+  // unreliability entirely for these specific players.
+  "Henry Lalane|NYY": 700649,
+  "Anthony Eyanson|BOS": 809254,
+  "Jackson Flora|SF": 814176,
+  "Seth Hernandez|PIT": 815825,
+  "Roch Cholowsky|CWS": 800604,
+  "Vahn Lackey|MIN": 822518,
+  "Xavier Neyens|HOU": 815832,
+  "Ryder Helfrick|ARI": 805785,
+  "Grady Emerson|TB": 815690,
+  "Kendry Chourio|KC": 830402,
+  "Aiva Arquette|MIA": 804109,
+  "Daniel Jackson|COL": 828714,
+  "Eric Booth, Jr.|BAL": 835727,
+  "Dax Kilby|NYY": 828076,
+  "Jacob Lombard|MIA": 813075,
+  "Ace Reese|SEA": 814505,
+  "Gage Wood|PHI": 805906,
+  "Ramon Marquez|PHI": 827408,
+  "Liam Doyle|STL": 824604,
   "Aaron Judge|NYY": 592450,
 "Aaron Nola|PHI": 605400,
 "Adley Rutschman|BAL": 668939,
