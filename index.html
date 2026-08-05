@@ -7021,6 +7021,40 @@ function setCommHalf(half, el) {
   el.classList.add('on');
 }
 
+// Verify every player in a freshly-parsed roster can be matched to a real
+// MLB person, BEFORE the commissioner commits it to Firebase. Catches
+// roster spelling typos (e.g. "Miquel Vargas" instead of the real "Miguel
+// Vargas") immediately at upload time instead of only being discovered
+// later through gameplay confusion. Skips anyone who already has a cached
+// ID from a prior session (the common case for a routine roster update) —
+// only does a fresh live search for names not already known, keeping this
+// reasonably fast on typical re-uploads.
+async function verifyRosterNames(roster, onProgress) {
+  const idStore = loadIdStore();
+  for (const [key, id] of Object.entries(KNOWN_IDS)) idStore[key] = id;
+
+  const unresolved = [];
+  const toCheck = roster.filter(p => !idStore[playerKey(p[1], p[2])]);
+
+  const BATCH = 8;
+  let checked = 0;
+  for (let i = 0; i < toCheck.length; i += BATCH) {
+    const batch = toCheck.slice(i, i + BATCH);
+    await Promise.all(batch.map(async (p) => {
+      const id = await resolvePlayerId(p[1], p[2]);
+      if (id) {
+        idStore[playerKey(p[1], p[2])] = id; // cache it now so future loads/uploads skip this player
+      } else {
+        unresolved.push({ name: p[1], team: p[2], fantasyTeam: p[4] });
+      }
+    }));
+    checked += batch.length;
+    if (onProgress) onProgress(checked, toCheck.length);
+  }
+  saveIdStore(idStore);
+  return unresolved;
+}
+
 function handleXlsxFile(file) {
   if (!file) return;
   document.getElementById('upload-status').textContent = `Reading ${file.name}...`;
@@ -7035,10 +7069,24 @@ function handleXlsxFile(file) {
       roster.forEach(p => { teams[p[4]] = (teams[p[4]] || 0) + 1; });
       const summary = Object.entries(teams).map(([t,n]) => `${t}: ${n}`).join(' · ');
       const rlwilCount = roster.filter(p => p[7]).length;
-      document.getElementById('upload-status').textContent =
-        `✓ Parsed ${roster.length} players · ${rlwilCount} on RLW IL (red font) · ${file.name}`;
+
       document.getElementById('upload-preview').textContent = summary;
       document.getElementById('upload-preview').style.display = 'block';
+      document.getElementById('upload-status').textContent = 'Verifying player names against MLB...';
+
+      const unresolved = await verifyRosterNames(roster, (done, total) => {
+        document.getElementById('upload-status').textContent =
+          `Verifying player names against MLB... ${done}/${total}`;
+      });
+
+      document.getElementById('upload-status').textContent =
+        `✓ Parsed ${roster.length} players · ${rlwilCount} on RLW IL (red font) · ${file.name}`;
+
+      const nameWarning = unresolved.length > 0
+        ? `<div style="color:var(--gold);margin-top:8px;">⚠ ${unresolved.length} name(s) couldn't be matched to a real MLB player — double-check spelling before confirming:<br>${unresolved.map(u => `${escapeHtml(u.name)} (${escapeHtml(u.team)}, ${escapeHtml(u.fantasyTeam)})`).join('<br>')}</div>`
+        : `<div style="color:var(--green);margin-top:8px;">✓ All player names matched to real MLB players</div>`;
+      document.getElementById('upload-preview').innerHTML = `${escapeHtml(summary)}${nameWarning}`;
+
       document.getElementById('confirm-btn').style.display = 'block';
     } catch(err) {
       document.getElementById('upload-status').textContent = `Error: ${err.message}`;
